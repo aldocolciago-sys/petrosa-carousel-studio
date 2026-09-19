@@ -24,8 +24,8 @@ const DATA = path.join(ROOT, 'data');
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const ANTHROPIC_KEY = () => process.env.ANTHROPIC_API_KEY || '';
 const MODEL = () => process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
-const POSTIZ_KEY = () => process.env.POSTIZ_API_KEY || '';
-const POSTIZ_URL = () => (process.env.POSTIZ_API_URL || 'https://api.postiz.com/public/v1').replace(/\/$/, '');
+const POSTFAST_KEY = () => process.env.POSTFAST_API_KEY || '';
+const POSTFAST_URL = () => (process.env.POSTFAST_API_URL || 'https://api.postfa.st').replace(/\/$/, '');
 
 // ---------- Dati ----------
 const LIB = require('../library');
@@ -301,52 +301,58 @@ async function scanWeb() {
   return { reviews, bands };
 }
 
-// ---------- Postiz ----------
-async function postiz(pathname, opts = {}) {
-  if (!POSTIZ_KEY()) throw new Error('Manca POSTIZ_API_KEY nel file .env');
-  const r = await fetch(POSTIZ_URL() + pathname, { ...opts, headers: { Authorization: POSTIZ_KEY(), ...(opts.headers || {}) } });
+// ---------- PostFast (pubblicazione automatica) ----------
+async function postfast(pathname, opts = {}) {
+  if (!POSTFAST_KEY()) throw new Error('Manca POSTFAST_API_KEY (variabile ambiente / file .env)');
+  const r = await fetch(POSTFAST_URL() + pathname, { ...opts, headers: { 'pf-api-key': POSTFAST_KEY(), ...(opts.headers || {}) } });
   const txt = await r.text();
   let j; try { j = JSON.parse(txt); } catch { j = { raw: txt }; }
-  if (!r.ok) throw new Error(`Postiz ${r.status}: ${typeof j === 'object' ? JSON.stringify(j).slice(0, 400) : txt.slice(0, 400)}`);
+  if (!r.ok) throw new Error(`PostFast ${r.status}: ${typeof j === 'object' ? JSON.stringify(j).slice(0, 400) : txt.slice(0, 400)}`);
   return j;
 }
 
-function platformSettings(identifier, caption) {
-  if (identifier === 'instagram' || identifier === 'instagram-standalone') return { __type: identifier, post_type: 'post', is_trial_reel: false, collaborators: [] };
-  if (identifier === 'tiktok') return {
-    __type: 'tiktok', title: caption.split('\n')[0].slice(0, 90), privacy_level: 'PUBLIC_TO_EVERYONE',
-    duet: false, stitch: false, comment: true, autoAddMusic: 'no', brand_content_toggle: false, brand_organic_toggle: false,
-    video_made_with_ai: false, content_posting_method: 'DIRECT_POST'
-  };
-  return { __type: identifier };
+async function listAccounts() {
+  const list = await postfast('/social-media/my-social-accounts');
+  return (Array.isArray(list) ? list : list.data || []).map(a => ({
+    id: a.id, platform: String(a.platform || '').toUpperCase(), username: a.platformUsername || '',
+    name: a.displayName || a.platformUsername || a.id, status: a.connectionStatus || '', reason: a.disabledReason || ''
+  }));
+}
+
+// carica UNA slide (data URL) su PostFast e restituisce la key da usare nel post
+async function uploadSlide(p) {
+  const m = /^data:(image\/(?:png|jpeg));base64,(.+)$/.exec(p.image || '');
+  if (!m) throw new Error('Immagine non valida (serve PNG o JPEG in base64).');
+  const type = m[1], buf = Buffer.from(m[2], 'base64');
+  if (buf.length > 10 * 1024 * 1024) throw new Error('Slide oltre 10 MB.');
+  const urls = await postfast('/file/get-signed-upload-urls', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: type, count: 1 }) });
+  const u = Array.isArray(urls) ? urls[0] : (urls.urls || urls.data || [])[0];
+  if (!u?.signedUrl || !u?.key) throw new Error('PostFast non ha restituito un URL di upload: ' + JSON.stringify(urls).slice(0, 200));
+  const put = await fetch(u.signedUrl, { method: 'PUT', headers: { 'content-type': type }, body: buf });
+  if (!put.ok) throw new Error('Upload slide fallito: HTTP ' + put.status);
+  return { key: u.key };
 }
 
 async function publish(p) {
-  const { caption, images, integrations, mode, date } = p;
-  if (!images?.length) throw new Error('Nessuna immagine da pubblicare.');
-  if (!integrations?.length) throw new Error('Seleziona almeno un canale.');
-  // 1) upload di ogni PNG su Postiz (obbligatorio: i social accettano solo URL verificati)
-  const uploaded = [];
-  for (let i = 0; i < images.length; i++) {
-    const buf = Buffer.from(images[i].replace(/^data:image\/\w+;base64,/, ''), 'base64');
-    const fd = new FormData();
-    fd.append('file', new Blob([buf], { type: 'image/png' }), `petrosa-slide-${String(i + 1).padStart(2, '0')}.png`);
-    const up = await postiz('/upload', { method: 'POST', body: fd });
-    uploaded.push({ id: up.id, path: up.path });
-  }
-  // 2) un post per ogni canale, con impostazioni specifiche
-  const posts = integrations.map(ch => ({
-    integration: { id: ch.id },
-    value: [{ content: caption, image: uploaded }],
-    settings: platformSettings(ch.identifier, caption)
+  const { caption, keys, accounts, mode, date } = p;
+  if (!keys?.length) throw new Error('Nessuna slide caricata.');
+  if (keys.length < 2 || keys.length > 10) throw new Error('Un carosello richiede da 2 a 10 slide.');
+  if (!accounts?.length) throw new Error('Seleziona almeno un account.');
+  const draft = mode === 'draft';
+  const when = mode === 'now' ? new Date(Date.now() + 90 * 1000).toISOString() : (date || new Date(Date.now() + 10 * 60000).toISOString());
+  const mediaItems = keys.map((key, i) => ({ key, type: 'IMAGE', sortOrder: i }));
+  const controls = {};
+  const has = pl => accounts.some(a => a.platform === pl);
+  if (has('INSTAGRAM')) controls.instagramPublishType = 'TIMELINE';
+  if (has('TIKTOK')) Object.assign(controls, {
+    tiktokTitle: String(caption).split('\n')[0].slice(0, 90), tiktokPrivacy: 'PUBLIC', tiktokAllowComments: true, tiktokAutoAddMusic: !draft, tiktokIsDraft: draft
+  });
+  const posts = accounts.map(a => ({
+    content: caption, mediaItems, socialMediaId: a.id, ...(draft ? {} : { scheduledAt: when })
   }));
-  const body = {
-    type: mode === 'now' ? 'now' : mode === 'draft' ? 'draft' : 'schedule',
-    date: date || new Date(Date.now() + 5 * 60000).toISOString(),
-    shortLink: false, tags: [], posts
-  };
-  const res = await postiz('/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  return { ok: true, uploaded: uploaded.length, result: res };
+  const body = { posts, status: draft ? 'DRAFT' : 'SCHEDULED', controls };
+  const res = await postfast('/social-posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  return { ok: true, slides: keys.length, accounts: accounts.length, scheduledAt: draft ? null : when, result: res };
 }
 
 // ---------- HTTP ----------
@@ -368,7 +374,7 @@ function readBody(req, limit = 80 * 1024 * 1024) {
 const SERVERLESS = !!process.env.VERCEL;
 const PASSWORD = () => process.env.APP_PASSWORD || '';
 // Endpoint che usano chiavi segrete o scrivono su disco
-const SECRET_PATHS = ['/api/generate', '/api/ai-caption', '/api/scan-web', '/api/find-handle', '/api/postiz/integrations', '/api/postiz/publish'];
+const SECRET_PATHS = ['/api/generate', '/api/ai-caption', '/api/scan-web', '/api/find-handle', '/api/social/accounts', '/api/social/upload', '/api/social/publish'];
 const WRITE_PATHS = ['/api/tags:POST', '/api/reviews:POST'];
 
 function authorized(req) {
@@ -390,7 +396,7 @@ async function handler(req, res) {
     if (SERVERLESS && !PASSWORD() && SECRET_PATHS.includes(url.pathname)) throw new Error('Funzione disattivata online: imposta APP_PASSWORD su Vercel per abilitarla.');
     if (SERVERLESS && WRITE_PATHS.includes(url.pathname + ':' + req.method)) throw new Error('Online non si puo\' salvare: modifica il file in data/ su GitHub e fai il redeploy.');
     if (url.pathname === '/api/config') {
-      return send(res, 200, { anthropic: !!ANTHROPIC_KEY(), postiz: !!POSTIZ_KEY(), model: MODEL(), postizUrl: POSTIZ_URL() });
+      return send(res, 200, { anthropic: !!ANTHROPIC_KEY(), postfast: !!POSTFAST_KEY(), model: MODEL() });
     }
     if (url.pathname === '/api/data') {
       const d = loadAll();
@@ -432,11 +438,9 @@ async function handler(req, res) {
       fs.writeFileSync(f, JSON.stringify(arr, null, 2));
       return send(res, 200, { ok: true });
     }
-    if (url.pathname === '/api/postiz/integrations') {
-      const list = await postiz('/integrations');
-      return send(res, 200, (Array.isArray(list) ? list : []).filter(i => !i.disabled).map(i => ({ id: i.id, name: i.name, identifier: i.identifier, picture: i.picture })));
-    }
-    if (url.pathname === '/api/postiz/publish' && req.method === 'POST') return send(res, 200, await publish(await readBody(req)));
+    if (url.pathname === '/api/social/accounts') return send(res, 200, (await listAccounts()).filter(a => a.status !== 'DISABLED'));
+    if (url.pathname === '/api/social/upload' && req.method === 'POST') return send(res, 200, await uploadSlide(await readBody(req)));
+    if (url.pathname === '/api/social/publish' && req.method === 'POST') return send(res, 200, await publish(await readBody(req)));
 
     // statici
     let rel = decodeURIComponent(url.pathname);
@@ -452,5 +456,5 @@ async function handler(req, res) {
 }
 const server = http.createServer(handler);
 
-module.exports = { server, handler, loadAll, knowledgeBase, verifyQuotes, PORT, ANTHROPIC_KEY, POSTIZ_KEY, MODEL };
+module.exports = { server, handler, loadAll, knowledgeBase, verifyQuotes, PORT, ANTHROPIC_KEY, POSTFAST_KEY, MODEL };
 module.exports.default = handler;

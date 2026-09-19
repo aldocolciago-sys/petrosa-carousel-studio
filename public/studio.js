@@ -32,10 +32,10 @@
     $('btnAiCap').style.display = st.cfg.anthropic ? '' : 'none';
     if (st.cfg.anthropic) $('btnGen').textContent = 'Assembla dalla libreria';
     st.lib = await api('/api/library'); st.mood = st.lib.moods[0].id; renderMoods();
-    $('pillPZ').textContent = st.cfg.postiz ? 'Postiz collegato' : 'Postiz non configurato';
-    $('pillPZ').className = 'pill ' + (st.cfg.postiz ? 'on' : 'off');
-    $('pzOff').style.display = st.cfg.postiz ? 'none' : 'block';
-    $('pzBox').style.display = st.cfg.postiz ? 'block' : 'none';
+    $('pillPZ').textContent = st.cfg.postfast ? 'PostFast collegato' : 'PostFast non configurato';
+    $('pillPZ').className = 'pill ' + (st.cfg.postfast ? 'on' : 'off');
+    $('pzOff').style.display = st.cfg.postfast ? 'none' : 'block';
+    $('pzBox').style.display = st.cfg.postfast ? 'block' : 'none';
     $('genHint').innerHTML = `Libreria: ${st.lib.counts.hooks} copertine, ${st.lib.counts.quotes} citazioni verificate, ${st.lib.counts.info} post informativi, ${st.lib.counts.band} testi band, ${st.lib.counts.captions} caption.`;
     const d = new Date(Date.now() + 24 * 3600e3); d.setHours(18, 0, 0, 0);
     $('pzDate').value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -269,30 +269,37 @@
     return new Blob([...parts, ...central, end], { type: 'application/zip' });
   }
 
-  // ---------- Postiz ----------
+  // ---------- PostFast ----------
   $('btnCh').onclick = async () => {
     busy($('btnCh'), true, 'Carico...');
     try {
-      st.channels = await api('/api/postiz/integrations');
-      $('chList').innerHTML = st.channels.map((c, i) => `<label class="ch" style="margin:0;color:var(--text)"><input type="checkbox" data-i="${i}" ${['instagram', 'tiktok'].some(k => c.identifier.startsWith(k)) ? 'checked' : ''}><img src="${c.picture || ''}" alt=""><b>${(c.name || '').replace(/</g, '&lt;')}</b><span class="hint" style="margin:0">${c.identifier}</span></label>`).join('') || '<div class="hint warn">Nessun canale collegato a Postiz.</div>';
-      $('chHint').textContent = `${st.channels.length} canali`;
+      st.channels = await api('/api/social/accounts');
+      $('chList').innerHTML = st.channels.map((c, i) => `<label class="ch" style="margin:0;color:var(--text)"><input type="checkbox" data-i="${i}" ${['INSTAGRAM', 'TIKTOK'].includes(c.platform) ? 'checked' : ''}><b>${esc(c.name)}</b><span class="hint" style="margin:0">${esc(c.platform)}${c.username ? ' &middot; @' + esc(c.username) : ''}</span></label>`).join('') || '<div class="hint warn">Nessun account collegato a PostFast.</div>';
+      $('chHint').textContent = `${st.channels.length} account`;
     } catch (e) { toast(e.message, true); } finally { busy($('btnCh'), false); }
   };
   $('btnPub').onclick = async () => {
     const chosen = [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]);
-    if (!chosen.length) return toast('Carica i canali e selezionane almeno uno.', true);
+    if (!chosen.length) return toast('Carica gli account e selezionane almeno uno.', true);
     const mode = $('pzMode').value;
-    if (mode === 'now' && !confirm('Pubblicare subito su ' + chosen.map(c => c.name).join(', ') + '?')) return;
+    if (mode === 'now' && !confirm('Pubblicare tra pochi minuti su ' + chosen.map(c => c.name).join(', ') + '?')) return;
+    if (mode === 'schedule' && !$('pzDate').value) return toast('Scegli data e ora di pubblicazione.', true);
     const bad = st.slides.filter(s => s.citazione && s.verified === false).length;
     if (bad && !confirm(`${bad} citazioni non sono state verificate. Pubblicare comunque?`)) return;
-    busy($('btnPub'), true, 'Carico slide...');
     try {
-      const images = st.slides.map((_, i) => renderOff(i).toDataURL('image/png'));
-      const out = await api('/api/postiz/publish', {
-        caption: fullCaption(), images, integrations: chosen.map(c => ({ id: c.id, identifier: c.identifier })),
-        mode, date: new Date($('pzDate').value).toISOString()
+      const keys = [];
+      for (let i = 0; i < st.slides.length; i++) {
+        busy($('btnPub'), true, `Carico slide ${i + 1}/${st.slides.length}...`);
+        const image = renderOff(i).toDataURL('image/jpeg', 0.92);
+        keys.push((await api('/api/social/upload', { image })).key);
+      }
+      busy($('btnPub'), true, 'Programmo...');
+      const out = await api('/api/social/publish', {
+        caption: fullCaption(), keys, mode,
+        accounts: chosen.map(c => ({ id: c.id, platform: c.platform })),
+        date: $('pzDate').value ? new Date($('pzDate').value).toISOString() : null
       });
-      toast(`Inviato a Postiz: ${out.uploaded} slide su ${chosen.length} canali (${mode === 'draft' ? 'bozza' : mode === 'now' ? 'pubblicazione immediata' : 'programmato'}).`);
+      toast(`PostFast: ${out.slides} slide su ${out.accounts} account (${mode === 'draft' ? 'bozza' : mode === 'now' ? 'pubblicazione tra pochi minuti' : 'programmato'}).`);
     } catch (e) { toast(e.message, true); } finally { busy($('btnPub'), false); }
   };
 

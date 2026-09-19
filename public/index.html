@@ -89,7 +89,7 @@
   <div><h1>PETROSA</h1><small>Carousel Studio - stoner / doom social automation</small></div>
   <div class="grow"></div>
   <span id="pillAI" class="pill">Claude API</span>
-  <span id="pillPZ" class="pill">Postiz</span>
+  <span id="pillPZ" class="pill">PostFast</span>
 </header>
 <nav>
   <button class="active" data-tab="studio">Studio</button>
@@ -180,18 +180,18 @@
     </div>
 
     <div class="card">
-     <h2>6 &middot; Pubblica con Postiz</h2>
-     <div id="pzOff" class="hint warn" style="display:none">Aggiungi POSTIZ_API_KEY nel file .env e riavvia l'app per pubblicare da qui.</div>
+     <h2>6 &middot; Pubblica con PostFast</h2>
+     <div id="pzOff" class="hint warn" style="display:none">Aggiungi POSTFAST_API_KEY (file .env in locale, oppure Environments su Vercel + redeploy) per pubblicare da qui.</div>
      <div id="pzBox">
-      <div class="row"><button class="ghost" id="btnCh">Carica canali collegati</button><span class="hint" id="chHint"></span></div>
+      <div class="row"><button class="ghost" id="btnCh">Carica account collegati</button><span class="hint" id="chHint"></span></div>
       <div id="chList"></div>
       <div class="row" style="margin-top:12px">
         <label style="margin:0">Modo</label>
         <select id="pzMode" style="width:auto"><option value="schedule">Programma</option><option value="draft">Salva come bozza</option><option value="now">Pubblica subito</option></select>
         <input type="datetime-local" id="pzDate" style="width:auto">
-        <button class="btn" id="btnPub">Invia a Postiz</button>
+        <button class="btn" id="btnPub">Invia a PostFast</button>
       </div>
-      <div class="hint">Le 8-10 slide vengono caricate su Postiz e pubblicate come carosello. Per TikTok verifica che il canale supporti i caroselli di foto.</div>
+      <div class="hint">Le slide vengono caricate su PostFast e pubblicate come carosello. Prova prima con &laquo;Salva come bozza&raquo;. Su Instagram esce in automatico all'ora scelta.</div>
      </div>
     </div>
 
