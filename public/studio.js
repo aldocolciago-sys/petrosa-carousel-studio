@@ -25,9 +25,12 @@
   // ---------- Init ----------
   async function init() {
     [st.cfg, st.data, st.tags] = await Promise.all([api('/api/config'), api('/api/data'), api('/api/tags')]);
-    $('pillAI').textContent = st.cfg.anthropic ? `Claude opzionale: ${st.cfg.model}` : 'Libreria (nessuna API key)';
+    $('pillAI').textContent = st.cfg.anthropic ? `AI live: ${st.cfg.model}` : 'Libreria (AI non configurata)';
     $('pillAI').className = 'pill on';
     $('btnClaude').style.display = st.cfg.anthropic ? '' : 'none';
+    $('notesWrap').style.display = st.cfg.anthropic ? 'block' : 'none';
+    $('btnAiCap').style.display = st.cfg.anthropic ? '' : 'none';
+    if (st.cfg.anthropic) $('btnGen').textContent = 'Assembla dalla libreria';
     st.lib = await api('/api/library'); st.mood = st.lib.moods[0].id; renderMoods();
     $('pillPZ').textContent = st.cfg.postiz ? 'Postiz collegato' : 'Postiz non configurato';
     $('pillPZ').className = 'pill ' + (st.cfg.postiz ? 'on' : 'off');
@@ -87,7 +90,7 @@
   }
   function useProposal(i) {
     const p = JSON.parse(JSON.stringify(st.proposals[i]));
-    st.slides = p.slides; st.caption = p.caption; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0;
+    st.slides = p.slides; st.caption = p.caption; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0; st.engine = 'library';
     showResult(); $('result').scrollIntoView({ behavior: 'smooth' });
   }
   $('btnGen').onclick = () => propose(false);
@@ -110,21 +113,37 @@
     } catch (e) { toast(e.message, true); }
   };
 
-  // ---------- Claude (opzionale) ----------
+  // ---------- AI live (Claude) ----------
+  st.history = [];   // titoli/angoli gia' generati, passati all'AI per non ripeterli
+  st.capHistory = [];
   async function generate() {
     const f = focusObj();
-    const params = { focus: f.type, item: f.item, custom: f.text, slides: +$('slides').value, notes: 'Mood: ' + st.mood };
-    busy($('btnClaude'), true, 'Claude sta scrivendo...');
+    if (f.type === 'custom' && !f.text.trim()) return toast('Scrivi il testo da cui partire.', true);
+    st.focus = f;
+    const params = { focus: f.type, item: f.item, custom: f.text, slides: +$('slides').value, mood: st.mood, notes: $('notes').value, avoid: st.history };
+    busy($('btnClaude'), true, 'L\'AI sta scrivendo (10-30 s)...');
     try {
       const out = await api('/api/generate', params);
-      st.slides = out.slides; st.caption = out.caption; st.hashtags = out.hashtags; st.argomento = out.argomento; st.sel = 0;
+      st.slides = out.slides; st.caption = out.caption; st.hashtags = out.hashtags; st.argomento = out.argomento; st.sel = 0; st.engine = 'claude';
+      st.history.push(`${out.argomento}: ${out.slides.slice(0, 3).map(x => x.titolo).join(' / ')}`); st.history = st.history.slice(-10);
+      st.capHistory.push(String(out.caption).split('\n')[0]); st.capHistory = st.capHistory.slice(-6);
+      $('proposals').style.display = 'none';
       $('demoBanner').style.display = 'none';
-      showResult();
+      showResult(); $('result').scrollIntoView({ behavior: 'smooth' });
     } catch (e) { toast(e.message, true); } finally { busy($('btnClaude'), false); }
   }
   $('btnClaude').onclick = generate;
+  $('btnAiCap').onclick = async () => {
+    busy($('btnAiCap'), true, 'Scrivo...');
+    try {
+      const out = await api('/api/ai-caption', { mood: st.mood, slides: st.slides, avoid: [...st.capHistory, $('caption').value.split('\n')[0]] });
+      $('caption').value = out.caption; $('hashtags').value = out.hashtags.join(' '); updateCaptionStats();
+      st.capHistory.push(out.caption.split('\n')[0]); st.capHistory = st.capHistory.slice(-6);
+    } catch (e) { toast(e.message, true); } finally { busy($('btnAiCap'), false); }
+  };
 
   function showResult() {
+    $('btnSwap').style.display = st.engine === 'claude' ? 'none' : '';
     $('empty').style.display = 'none'; $('result').style.display = 'block'; $('argom').textContent = st.argomento ? '- ' + st.argomento : '';
     $('caption').value = st.caption; $('hashtags').value = st.hashtags.join(' ');
     buildStrip(); selectSlide(0); updateCaptionStats(); updateSpec();

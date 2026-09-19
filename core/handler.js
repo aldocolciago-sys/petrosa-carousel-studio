@@ -78,9 +78,15 @@ Agisci come un Content Creator esperto di Social Media Marketing e Copywriting. 
 - Slide 1 (Copertina / Hook): fa riferimento a un brano specifico dell'album Roadburn Chronicles, all'album, alla band o a un suo membro, oppure a un articolo o recensione. Deve fermare lo scroll.
 - Slide 2 (Canzone/Articolo): cita il testo di una canzone dei Petrosa e poi il titolo della canzone, OPPURE un passaggio di una recensione/articolo citando testata e autore.
 - Slide 3 (Album): fa riferimento all'album, alle Doom Charts, ad altre recensioni, al genere musicale.
-- Slide 4 (Band): cita l'intera band o un membro, con foto.
+- Slide 4 (Band): cita l'intera band o un membro, con foto. Se il focus e' un membro, la sua foto compare in UNA sola slide (la Band); la copertina usa l'immagine "cover", mai la foto del membro; le altre slide non mostrano altri membri.
 - Slide intermedie extra (se servono per arrivare al numero richiesto): recensioni, curiosita' su studio/registrazione, temi del disco, altri versi. Ogni slide un solo concetto.
 - Ultima slide: invita ad ascoltare l'album su Spotify.
+
+# Creativita' (fondamentale)
+Ogni carosello deve sembrare scritto da zero da una persona con un'idea, non compilato da un modulo. Rielabora con fantasia: scegli un ANGOLO NARRATIVO diverso ogni volta (per esempio: storytelling della registrazione in otto giorni, provocazione ai fan del desert rock, "POV: sei su un furgone con questo disco in cassa", un verso letto come manifesto, un confronto tra due recensioni, un mini-racconto sulla nascita del riff, una domanda che divide i fan, un conto alla rovescia dei momenti piu' pesanti). Titoli con voce, ritmo, immagini forti; mai frasi da comunicato stampa, mai formule generiche ("Turn it up", "Check it out", "Out now" da soli). I FATTI (date, nomi, punteggi, citazioni) restano quelli della base di conoscenza; il modo di raccontarli e' libero. Non riusare le stesse frasi di un carosello precedente: se ti viene data una lista "DA NON RIPETERE", evita quei titoli e quegli angoli.
+
+# Caption (deve avere contesto)
+La caption e' scritta apposta per QUESTO carosello e deve nominare cio' che si vede nelle slide (il brano o il verso scelto, la recensione e la testata, il membro, il dato delle Doom Charts) e spiegare in una o due frasi perche' vale la pena, con un dettaglio concreto (studio, strumenti, tema del brano, cosa dice il recensore). Struttura: prima riga forte che ferma lo scroll (senza ripetere il titolo della slide 1); 2-3 brevi paragrafi con contesto e racconto; una domanda vera che invita a commentare (legata al contenuto, non "what do you think?"); call to action all'ascolto su Spotify ("link in bio"); menzioni @ inserite in modo naturale dentro il testo. 500-1200 caratteri, righe vuote tra i paragrafi, niente hashtag nel testo (vanno nel campo hashtags), niente emoji a raffica (al massimo 1-2 se servono).
 
 # Tono di voce
 Diretto, autorevole, amichevole ma senza fronzoli. Frasi corte. Spazi bianchi mentali. TUTTI I TESTI DELLE SLIDE, LA CAPTION E GLI HASHTAG DEVONO ESSERE IN INGLESE (pubblico: USA e Nord Europa). Le citazioni restano letterali; non usare citazioni non in inglese.
@@ -98,7 +104,7 @@ Diretto, autorevole, amichevole ma senza fronzoli. Frasi corte. Spazi bianchi me
 - Menzioni @: usa SOLO gli handle marcati "menzione consentita", mai altri e mai inventati. Scegli 3-6 band pertinenti al filo del carosello (es. se parli del sound fuzz: Dozer, Orange Goblin, Fu Manchu, Monster Magnet) e inseriscile in modo naturale nella caption, con una frase tipo "For fans of @dozer_band and @orangegoblinofficial (in inglese)". Elencale nel campo "menzioni" (senza @).
 - Nella slide Album (o in una slide dedicata "Per chi ama") nomina le band di paragone, attribuendo il paragone alla testata che lo fa (es. "Steve Howe, Outlaws Of The Sun: Kyuss, Orange Goblin, Dozer"). Metti gli handle usati nel campo "tag" della slide.
 - Non affermare mai che una band "suona come" un'altra se non lo dice una fonte: scrivi "citata da <testata>" o "nel FFO dell'EPK".
-- Hashtag: 15-20, senza #, in questo ordine di priorita': (1) generi stoner/doom (#stonerrock #doommetal #stonerdoom #desertrock #fuzz ...), (2) hashtag delle band simili pertinenti (#kyuss #orangegoblin ...), (3) identita' (#petrosa #roadburnchronicles #octopusrising), (4) locali/community (#italianmetal #doomcharts #heavyunderground). Nessun hashtag generico tipo #love o #music.
+- Hashtag: 15-20, senza #, in questo ordine di priorita': (1) generi stoner/doom (#stonerrock #doommetal #stonerdoom #desertrock #fuzz ...), (2) hashtag delle band simili pertinenti (#kyuss #orangegoblin ...), (3) identita' (#petrosa #roadburnchronicles #octopusrising), (4) reach internazionale (#undergroundmetal #heavyunderground #nordicmetal) e al massimo due locali (#italianmetal #milano). Nessun hashtag generico tipo #love o #music.
 
 # Output
 Rispondi SOLO chiamando lo strumento crea_carosello. Per ogni slide compila: tipo, layout, visual (descrizione grafica: colori, elementi, sfondo), titolo (testo grande), corpo (testo di supporto breve), servizio (elementi di servizio: handle, numerazione, swipe), immagine, e se pertinente citazione, fonte, stat. Poi la caption per la pubblicazione (con call to action e link in bio) e gli hashtag pertinenti (12-18, mix stoner/doom/heavy, USA e Nord Europa, senza il simbolo # nel testo dell'array).`;
@@ -192,7 +198,7 @@ function sanitizeTags(out) {
   // rimuove @menzioni non consentite eventualmente scritte nella caption
   out.caption = String(out.caption || '').replace(/@([A-Za-z0-9._]*[A-Za-z0-9_])/g, (m, h) => ok.has(h.toLowerCase()) ? m : h);
   const missing = out.menzioni.filter(h => !out.caption.toLowerCase().includes('@' + h.toLowerCase()));
-  if (missing.length) out.caption += `\n\nPer chi ama: ${missing.map(h => '@' + h).join(' ')}`;
+  if (missing.length) out.caption += `\n\nFor fans of: ${missing.map(h => '@' + h).join(' ')}`;
   const seen = new Set();
   const must = ['petrosa', 'roadburnchronicles', 'stonerrock', 'doommetal', 'stonerdoom'];
   out.hashtags = [...(out.hashtags || []), ...must].map(h => String(h).replace(/[#\s]/g, '').toLowerCase()).filter(h => h && !seen.has(h) && seen.add(h)).slice(0, 25);
@@ -200,15 +206,28 @@ function sanitizeTags(out) {
 }
 
 // ---------- Generazione ----------
+const MOODS = {
+  riff: 'Riff & Fuzz - energia, volume alto, groove, riff bassi',
+  doom: 'Doom & Peso - buio, pietra, peccato, il lato piu\' pesante del disco',
+  psych: 'Desert & Psych - miraggi, fuzz caldo, atmosfera desert rock alla Kyuss',
+  intro: 'Introspettivo - perdita, dubbio, un filo di luce, il lato umano del disco',
+  road: 'On the road - furgone, strada aperta, cielo enorme',
+  proof: 'Riconoscimenti - Doom Charts #14 e recensioni come prova sociale',
+  fans: 'Per i fan - punta ai follower di Dozer, Orange Goblin, Kyuss e band simili'
+};
+
 async function generate(p) {
   const d = loadAll();
   const n = Math.min(10, Math.max(7, parseInt(p.slides, 10) || 8));
   if (!ANTHROPIC_KEY()) throw new Error('Modalita\' Claude non attiva: manca ANTHROPIC_API_KEY. Usa le proposte dalla libreria.');
 
-  const userText = `${describeFocus(p, d)}\n\nNumero di slide: ${n} (esattamente).\n${p.notes ? `Indicazioni aggiuntive dell'utente: ${p.notes}\n` : ''}${p.variant ? `Variante n.${p.variant}: proponi un angolo diverso dalle versioni precedenti.\n` : ''}Crea il carosello.`;
+  const moodLine = MOODS[p.mood] ? `Mood richiesto: ${MOODS[p.mood]}. Scegli angolo, lessico e immagini coerenti con questo mood.\n` : '';
+  const avoid = (p.avoid || []).slice(0, 12).map(x => '- ' + String(x).slice(0, 120)).join('\n');
+  const userText = `${describeFocus(p, d)}\n${moodLine}${avoid ? 'DA NON RIPETERE (caroselli precedenti):\n' + avoid + '\n' : ''}Numero di slide: ${n} (esattamente).\n${p.notes ? `Indicazioni aggiuntive dell'utente: ${p.notes}\n` : ''}Seme creativo (usalo per variare l'angolo): ${Math.floor(Math.random() * 1e6)}.\nCrea il carosello.`;
   const j = await callAnthropic({
     model: MODEL(),
     max_tokens: 4096,
+    temperature: 1,
     system: [
       { type: 'text', text: SYSTEM_PROMPT },
       { type: 'text', text: 'BASE DI CONOSCENZA\n\n' + knowledgeBase(d), cache_control: { type: 'ephemeral' } }
@@ -221,7 +240,40 @@ async function generate(p) {
   if (!tu) throw new Error('Risposta senza carosello, riprova.');
   const out = tu.input;
   out.slides = verifyQuotes(out.slides || [], d);
+  if (p.focus === 'member') {
+    // la foto del membro compare in una sola slide; la copertina usa l'album
+    const photos = d.members.map(m => m.photo);
+    let seen = false;
+    out.slides.forEach((sl, i) => {
+      if (!photos.includes(sl.immagine)) return;
+      if (i === 0) { sl.immagine = 'cover'; sl.layout = 'hook'; return; }
+      if (!seen && sl.immagine === (d.members.find(m => m.id === p.item) || {}).photo) { seen = true; return; }
+      sl.immagine = 'none'; if (sl.layout === 'photo') sl.layout = 'text';
+    });
+  }
   return { demo: false, model: MODEL(), ...sanitizeTags(out) };
+}
+
+// Solo caption + hashtag nuove, scritte da Claude sul contenuto delle slide gia' composte
+async function aiCaption(p) {
+  if (!ANTHROPIC_KEY()) throw new Error('Serve ANTHROPIC_API_KEY per le caption scritte dall\'AI.');
+  const d = loadAll();
+  const slides = (p.slides || []).map((s, i) => `${i + 1}. [${s.tipo}] ${s.titolo} - ${s.corpo || ''}${s.citazione ? ` | citazione: "${s.citazione}" (${s.fonte || ''})` : ''}${s.stat ? ` | numero: ${s.stat}` : ''}`).join('\n');
+  const avoid = (p.avoid || []).slice(0, 8).map(x => '- ' + String(x).slice(0, 200)).join('\n');
+  const j = await callAnthropic({
+    model: MODEL(), max_tokens: 1500, temperature: 1,
+    system: [
+      { type: 'text', text: SYSTEM_PROMPT },
+      { type: 'text', text: 'BASE DI CONOSCENZA\n\n' + knowledgeBase(d), cache_control: { type: 'ephemeral' } }
+    ],
+    tools: [{ name: 'scrivi_caption', description: 'Restituisce caption, menzioni e hashtag.', input_schema: { type: 'object', properties: { caption: { type: 'string' }, menzioni: { type: 'array', items: { type: 'string' } }, hashtags: { type: 'array', items: { type: 'string' } } }, required: ['caption', 'menzioni', 'hashtags'] } }],
+    tool_choice: { type: 'tool', name: 'scrivi_caption' },
+    messages: [{ role: 'user', content: `Scrivi SOLO la caption (e menzioni, hashtag) per questo carosello gia' composto. Segui le regole "Caption" e "Strategia dei tag". ${MOODS[p.mood] ? 'Mood: ' + MOODS[p.mood] + '.' : ''}\n\nSLIDE:\n${slides}\n${avoid ? '\nDA NON RIPETERE (caption precedenti):\n' + avoid : ''}\nSeme creativo: ${Math.floor(Math.random() * 1e6)}.` }]
+  });
+  const tu = (j.content || []).find(c => c.type === 'tool_use');
+  if (!tu) throw new Error('Risposta senza caption, riprova.');
+  const out = sanitizeTags({ slides: [], ...tu.input });
+  return { caption: out.caption, menzioni: out.menzioni, hashtags: out.hashtags, model: MODEL() };
 }
 
 // ---------- Scansione web ----------
@@ -316,7 +368,7 @@ function readBody(req, limit = 80 * 1024 * 1024) {
 const SERVERLESS = !!process.env.VERCEL;
 const PASSWORD = () => process.env.APP_PASSWORD || '';
 // Endpoint che usano chiavi segrete o scrivono su disco
-const SECRET_PATHS = ['/api/generate', '/api/scan-web', '/api/find-handle', '/api/postiz/integrations', '/api/postiz/publish'];
+const SECRET_PATHS = ['/api/generate', '/api/ai-caption', '/api/scan-web', '/api/find-handle', '/api/postiz/integrations', '/api/postiz/publish'];
 const WRITE_PATHS = ['/api/tags:POST', '/api/reviews:POST'];
 
 function authorized(req) {
@@ -348,6 +400,7 @@ async function handler(req, res) {
     if (url.pathname === '/api/propose' && req.method === 'POST') return send(res, 200, LIB.propose(await readBody(req)));
     if (url.pathname === '/api/swap' && req.method === 'POST') return send(res, 200, LIB.swap(await readBody(req)));
     if (url.pathname === '/api/caption' && req.method === 'POST') return send(res, 200, LIB.recaption(await readBody(req)));
+    if (url.pathname === '/api/ai-caption' && req.method === 'POST') return send(res, 200, await aiCaption(await readBody(req)));
     if (url.pathname === '/api/generate' && req.method === 'POST') return send(res, 200, await generate(await readBody(req)));
     if (url.pathname === '/api/scan-web' && req.method === 'POST') return send(res, 200, await scanWeb());
     if (url.pathname === '/api/tags' && req.method === 'GET') return send(res, 200, loadTags());

@@ -79,6 +79,7 @@
   .prop { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
   .prop h3 { margin:0; font-size:14px; color:var(--amber); } .prop small { color:var(--mut); }
   .prop ol { margin:0; padding-left:20px; font-size:12.5px; line-height:1.5; } .prop ol li span { color:var(--mut); }
+  .btn.ai { background:linear-gradient(90deg,#c026d3,#8b5cf6); color:#fff; }
   .empty { text-align:center; color:var(--mut); padding:60px 10px; }
 </style>
 </head>
@@ -118,10 +119,12 @@
     <div id="customWrap" style="display:none"><label for="custom">Testo o notizia da cui partire</label><textarea id="custom" placeholder="Incolla un articolo, una notizia, una data live..."></textarea></div>
     <label for="slides">Numero di slide: <b id="slidesVal">8</b></label>
     <input id="slides" type="range" min="7" max="10" value="8" style="width:100%">
+    <div id="notesWrap" style="display:none"><label for="notes">Indicazioni per l'AI (facoltative)</label>
+    <textarea id="notes" placeholder="Es. angolo provocatorio, insisti sulla registrazione in otto giorni, cita Dozer..."></textarea></div>
     <div class="row" style="margin-top:14px">
       <button class="btn" id="btnGen">Proponi assemblaggi</button>
       <button class="ghost" id="btnVar" disabled>Altre proposte</button>
-      <button class="ghost" id="btnClaude" style="display:none">Scrivi con Claude</button>
+      <button class="btn ai" id="btnClaude" style="display:none">&#10024; Genera con AI</button>
     </div>
     <div class="hint" id="genHint"></div>
    </div>
@@ -173,7 +176,7 @@
      <textarea id="hashtags" rows="3"></textarea>
      <div class="hint" id="capStats"></div>
      <div class="chips" id="mentionChips"></div>
-     <div class="row" style="margin-top:12px"><button class="ghost" id="btnRecap">Altra caption</button> <button class="ghost" id="btnCopyCap">Copia caption + hashtag</button></div>
+     <div class="row" style="margin-top:12px"><button class="ghost" id="btnRecap">Altra caption</button> <button class="ghost" id="btnAiCap" style="display:none">&#10024; Caption nuova con AI</button> <button class="ghost" id="btnCopyCap">Copia caption + hashtag</button></div>
     </div>
 
     <div class="card">
