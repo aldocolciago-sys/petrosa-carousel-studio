@@ -2,8 +2,8 @@
   "name": "petrosa-carousel-studio",
   "version": "1.0.0",
   "description": "Generatore automatico di caroselli Instagram/TikTok per i Petrosa (stoner/doom)",
-  "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "main": "run.js",
+  "scripts": { "start": "node run.js" },
   "engines": { "node": ">=18" },
   "license": "UNLICENSED"
 }
