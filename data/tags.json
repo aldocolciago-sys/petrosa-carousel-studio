@@ -1,0 +1,162 @@
+{
+  "note": "Gli handle marcati confirmed:false NON vengono mai usati come @menzione (solo come hashtag). Modificali dalla scheda 'Tag & band simili' dell'app.",
+  "similarBands": [
+    {
+      "name": "Kyuss",
+      "hashtag": "kyuss",
+      "handle": "kyussworld",
+      "handleCandidates": [
+        "kyusslives",
+        "kyussworld"
+      ],
+      "confirmed": true,
+      "tier": "primary",
+      "evidence": "Outlaws Of The Sun (Steve Howe) e Pitstop Metal la citano come influenza; e' nel FFO dell'EPK; nell'intervista su Breathing The Core la band dice che la sua influenza maggiore per Roadburn Chronicles e' stata Kyuss.",
+      "note": "Community account (no official profile)"
+    },
+    {
+      "name": "Orange Goblin",
+      "hashtag": "orangegoblin",
+      "handle": "orangegoblinofficial",
+      "confirmed": true,
+      "tier": "primary",
+      "evidence": "Citati da Outlaws Of The Sun, Pitstop Metal, dal comunicato Argonauta/Octopus Rising e nel FFO dell'EPK."
+    },
+    {
+      "name": "Dozer",
+      "hashtag": "dozer",
+      "handle": "dozer_band",
+      "confirmed": true,
+      "tier": "primary",
+      "evidence": "Citati da Outlaws Of The Sun, Pitstop Metal, dal comunicato Argonauta/Octopus Rising e nel FFO dell'EPK."
+    },
+    {
+      "name": "Monster Magnet",
+      "hashtag": "monstermagnet",
+      "handle": "monstermagnetofficial",
+      "confirmed": true,
+      "tier": "primary",
+      "evidence": "Outlaws Of The Sun: 'some Monster Magnet spaced out heaviness'; Pitstop Metal: 'The legacy of bands such as KYUSS, DOZER, ORANGE GOBLIN, and MONSTER MAGNET is clearly present'."
+    },
+    {
+      "name": "Fu Manchu",
+      "hashtag": "fumanchu",
+      "handle": "fu_manchu",
+      "confirmed": true,
+      "tier": "primary",
+      "evidence": "Outlaws Of The Sun: 'some FU MANCHU and ORANGE GOBLIN elements'; Pitstop Metal: 'heavy/stoner vocal tradition associated with Fu Manchu and Orange Goblin'."
+    },
+    {
+      "name": "The Sword",
+      "hashtag": "thesword",
+      "handle": "theswordofficial",
+      "confirmed": true,
+      "tier": "secondary",
+      "evidence": "Comunicato Argonauta/Octopus Rising ('for fans of Dozer, Orange Goblin and The Sword') e FFO dell'EPK."
+    },
+    {
+      "name": "Black Sabbath",
+      "hashtag": "blacksabbath",
+      "handle": "blacksabbath",
+      "confirmed": true,
+      "tier": "secondary",
+      "evidence": "FFO dell'EPK (radici doom)."
+    },
+    {
+      "name": "Windhand",
+      "hashtag": "windhand",
+      "handle": "windhand",
+      "confirmed": true,
+      "tier": "secondary",
+      "evidence": "FFO dell'EPK."
+    },
+    {
+      "name": "Down",
+      "hashtag": "downnola",
+      "handle": "down_nola",
+      "confirmed": true,
+      "tier": "secondary",
+      "evidence": "FFO dell'EPK."
+    },
+    {
+      "name": "Trouble",
+      "hashtag": "troublemetal",
+      "handle": null,
+      "handleCandidates": [],
+      "confirmed": false,
+      "tier": "secondary",
+      "evidence": "FFO dell'EPK (doom classico). Handle Instagram ufficiale non trovato."
+    },
+    {
+      "name": "Motörhead",
+      "hashtag": "motorhead",
+      "handle": "officialmotorhead",
+      "handleCandidates": [
+        "motorhead.official"
+      ],
+      "confirmed": true,
+      "tier": "secondary",
+      "evidence": "Radiocoop (Antonio Bacciocchi): 'ferocious nods to Motörhead-style speed metal (I For An I)'. Due profili possibili, da confermare."
+    },
+    {
+      "name": "Valley of the Sun",
+      "hashtag": "valleyofthesun",
+      "handle": "valleyofthesunband",
+      "confirmed": true,
+      "tier": "secondary",
+      "evidence": "Nell'intervista su Breathing The Core e' citata come band preferita del batterista Giorgio Monza."
+    }
+  ],
+  "community": [
+    {
+      "name": "Argonauta Records / Octopus Rising",
+      "hashtag": "argonautarecords",
+      "handle": "argonautarecords",
+      "confirmed": true,
+      "evidence": "Etichetta dell'album. Handle da inserire."
+    },
+    {
+      "name": "Doom Charts",
+      "hashtag": "doomcharts",
+      "handle": "doomcharts",
+      "confirmed": true,
+      "evidence": "Classifica in cui l'album e' #14 (agosto 2026). Handle da inserire."
+    }
+  ],
+  "hashtags": {
+    "core": [
+      "stoner",
+      "stonerrock",
+      "stonermetal",
+      "doom",
+      "doommetal",
+      "stonerdoom",
+      "desertrock",
+      "fuzz",
+      "heavypsych",
+      "riffs",
+      "sludge",
+      "heavymusic"
+    ],
+    "identity": [
+      "petrosa",
+      "roadburnchronicles",
+      "doomcarvedinstoner",
+      "octopusrising",
+      "argonautarecords",
+      "doomcharts",
+      "newalbum",
+      "debutalbum"
+    ],
+    "local": [
+      "italianmetal",
+      "milano"
+    ],
+    "reach": [
+      "undergroundmetal",
+      "heavyunderground",
+      "nordicmetal",
+      "metalheads"
+    ]
+  }
+}

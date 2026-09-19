@@ -1,0 +1,190 @@
+{
+  "handle": "@petrosa_band",
+  "band": {
+    "name": "Petrosa",
+    "city": "Milano, Italia",
+    "founded": 2019,
+    "genre": "Stoner / Doom",
+    "tagline": "Doom Carved in Stone(r)",
+    "ffo": "Dozer, Orange Goblin, The Sword, Black Sabbath, Kyuss, Trouble, Windhand, Down",
+    "bio": "Fondati nel 2019 dal chitarrista Antonio Buonocore, i Petrosa sono un quartetto italiano nato dal sottosuolo heavy con l'obiettivo di costruire un muro di suono monolitico: riff sismici, linee vocali espressive e profondità introspettiva. Il credo della band è 'Doom Carved in Stone(r)': l'ampio groove dello stoner rock unito al peso schiacciante del doom classico. Fuzz ad alto voltaggio, cambi di tempo ragionati, ritmi ipnotici."
+  },
+  "album": {
+    "title": "Roadburn Chronicles",
+    "release": "28 agosto 2026",
+    "label": "Octopus Rising / Argonauta Records",
+    "studio": "Toxic Basement Studio (Carate Brianza), prodotto, registrato, mixato e masterizzato da Carlo Altobelli",
+    "recording": "otto giorni di sessioni tra novembre 2024 e gennaio 2025, con approccio analogico dal vivo",
+    "tracks": 10,
+    "runtime": "51 min 25 sec",
+    "singles": [
+      "Revenant",
+      "Viper"
+    ],
+    "themes": "un viaggio introspettivo nella condizione umana: peccato, autodistruzione, conflitto personale, disillusione, la tensione costante tra oscurità e redenzione, con spazio per speranza, libertà e momenti di luce (l'atmosfera 'open road' che lega tutto il disco)",
+    "tracklist": [
+      "S.U.R.E.",
+      "The Sinner",
+      "Turning Point",
+      "I For An I",
+      "Rusty Blues",
+      "Viper",
+      "Revenant",
+      "Dreamer's Sunsets",
+      "Monsters' Conceal",
+      "An Old Van and a Couple of Beers"
+    ],
+    "doomCharts": {
+      "issue": "Doom Charts agosto 2026 (pubblicata il 4 settembre 2026)",
+      "position": 14,
+      "points": 2678,
+      "pool": 166,
+      "note": "Entrato al #14 della classifica mondiale, nella Top 40 su 166 album nominati da blogger, radio host e giornalisti dell'underground heavy.",
+      "url": "https://doomcharts.com/2026/09/04/doom-charts-august-2026/"
+    }
+  },
+  "links": {
+    "spotify": "https://open.spotify.com/album/0UNqXSxcGxnTeyZprgv1Rg",
+    "instagram": "https://www.instagram.com/petrosa_band",
+    "youtubeRevenant": "https://www.youtube.com/watch?v=vnvpCNP9ArY",
+    "bandcamp": "https://petrosa.bandcamp.com/",
+    "cd": "https://shop.argonautarecords.com/cd/880-petrosa-roadburn-chronicles-cd.html",
+    "hub": "https://petrosabandhub.netlify.app"
+  },
+  "members": [
+    {
+      "id": "antonio",
+      "name": "Antonio Buonocore",
+      "role": "Guitar (founder)",
+      "photo": "antonio",
+      "bio": "Ex leader e fondatore della death metal band Orphean, dopo lo scioglimento ha fondato il progetto stoner/doom Petrosa. Chitarrista da adolescente, prima studiando chitarra classica da autodidatta, poi tra accademie, maestri e corsi di aggiornamento, è passato alla chitarra elettrica, prediligendo hard rock e heavy metal. Nell'EPK: crea riff massicci saturati a valvole, groove pentatonici e assoli modali, con fuzz britannici e vintage."
+    },
+    {
+      "id": "giorgio",
+      "name": "Giorgio Monza",
+      "role": "Drums",
+      "photo": "giorgio",
+      "bio": "Batterista milanese arrivato all'underground dallo skate. Lì ha maturato la passione per il punk, diventando batterista da autodidatta e suonando per anni nei centri sociali, contribuendo alla scena punk di Milano. La sua musica è puro istinto e rabbia, trovata nella stoner band Petrosa. Nell'EPK: controllo dinamico implacabile, schiocco di rullante autoritario, accenti pesanti su ride e crash."
+    },
+    {
+      "id": "aldo",
+      "name": "Aldo Colciago",
+      "role": "Vocals",
+      "photo": "aldo",
+      "bio": "Baritono versatile con oltre vent'anni di esperienza, dal pulito al distorto, con solida formazione di canto classico. Voce di PrimoSangue (alternative rock/stoner, dal 2012), Hanormale (black metal non convenzionale, dal 2010) e Petrosa (dal 2024). Nell'EPK: potenza e estensione vocale, cuore emotivo della band, tra grinta blues, melodia autorevole e timbro cavernoso doom."
+    },
+    {
+      "id": "andrea",
+      "name": "Andrea Vignati",
+      "role": "Bass",
+      "photo": "andrea",
+      "bio": "Dopo l'hard rock dei Big Crunch, dal 2024 è il bassista del progetto stoner/doom Petrosa. Bassista elettrico autodidatta, poi corsi per migliorare la tecnica; influenze: thrash metal, hard rock, hardcore punk e soul. Nell'EPK: sostiene il basso con un tono spesso e sinistro, sub-frequenze pulite e overdrive nei medi, in incastro con la chitarra."
+    }
+  ],
+  "reviews": [
+    {
+      "id": "outlaws",
+      "publication": "Outlaws Of The Sun",
+      "author": "Steve Howe",
+      "verdict": "Highly Recommended",
+      "quote": "Doom/Stoner Metallers PETROSA come out fighting with their intense debut album Roadburn Chronicles that focuses on the DOOMED OUT part of their music... Influenced by the likes of KYUSS, Orange Goblin and Dozer, there's a gritty realism to PETROSA's music that brings an aggressive level of Fuzz, Psych and Desert Rock with a destructive Nineties Alt-Metal attitude. Excellent and Highly Recommended.",
+      "url": "https://outlawsofthesun.blogspot.com/2026/08/petrosa-roadburn-chronicles-album-review.html"
+    },
+    {
+      "id": "outlaws-mm",
+      "publication": "Outlaws Of The Sun",
+      "author": "Steve Howe",
+      "verdict": "Highly Recommended",
+      "quote": "adding some Monster Magnet spaced out heaviness along the way",
+      "url": "https://outlawsofthesun.blogspot.com/2026/08/petrosa-roadburn-chronicles-album-review.html"
+    },
+    {
+      "id": "screaming",
+      "publication": "Screaming From The Heavy Underground",
+      "author": "Best New Releases (agosto 2026)",
+      "verdict": "Top Pick",
+      "quote": "Italian stoner/doom quartet Petrosa utterly dazzles with their debut album Roadburn Chronicles. While many elements of the album are undeniably bold, featuring an impressive showing of rich, expressive vocals, extraordinary guitar chops, sinister stoner/doom-style bass, and relentlessly crashing drums, Petrosa is all about striking a balance.",
+      "url": "https://screamingfromtheheavyunderground.blogspot.com/2026/09/best-new-releases-august-2026.html"
+    },
+    {
+      "id": "screaming2",
+      "publication": "Screaming From The Heavy Underground",
+      "author": "Best New Releases (agosto 2026)",
+      "verdict": "Top Pick",
+      "quote": "Although their sound has electrifying energy and a noticeably tenacious bite, the band counters this with an equal amount of soul, ultimately creating an emotionally charged album that's all about the treacherous 'journey through the human condition'. Gripping from start to finish, Roadburn Chronicles makes a memorable first impression on both the ears and souls of heavy music fans.",
+      "url": "https://screamingfromtheheavyunderground.blogspot.com/2026/09/best-new-releases-august-2026.html"
+    },
+    {
+      "id": "pitstop",
+      "publication": "Pitstop Metal",
+      "author": "Redazione",
+      "verdict": "Standout Debut",
+      "quote": "PETROSA reshapes stoner doom through sheer grit. Built around low-tuned guitars and dense layers of fuzz, the songs embrace classic stoner/doom structures while opening to sludge's lurching character and '90s alternative metal accents. Antonio Buonocore's guitars define the musical architecture, supported by Carlo Altobelli's dense, analog-style production.",
+      "url": "https://pitstopmetal.com/en/reviews/petrosa-roadburn-chronicles-album-review"
+    },
+    {
+      "id": "pitstop2",
+      "publication": "Pitstop Metal",
+      "author": "Redazione",
+      "verdict": "Standout Debut",
+      "quote": "The legacy of bands such as KYUSS, DOZER, ORANGE GOBLIN, and MONSTER MAGNET is clearly present",
+      "url": "https://pitstopmetal.com/en/reviews/petrosa-roadburn-chronicles-album-review"
+    },
+    {
+      "id": "wtrmag",
+      "publication": "W.T.R. Mag' (Francia)",
+      "author": "Ti-Rickou",
+      "verdict": "4/4",
+      "quote": "J'adore la voix, les morceaux sont exactement ce que j'aime : Doom, Stoner, pêchus et inspirés avec des changements de rythme et une basse bien lourde. Très bon ce groupe et superbe album. 4 pics ! Voilà la preuve qu'on peut être puissant sans avoir un vomitory derrière le micro.",
+      "url": "https://wtrmag.com/petrosa-roadburn-chronicles/"
+    },
+    {
+      "id": "derfuzzer",
+      "publication": "Der Fuzzer (Germania)",
+      "author": "Redazione",
+      "verdict": "Stoner Doom Feature",
+      "quote": "Bei einem Albumtitel wie Roadburn Chronicles sind die Erwartungen ziemlich klar: man rechnet mit schweren Gitarren, ordentlich Fuzz und wuchtigen Riffs. PETROSA liefern ein kraftvolles Stoner/Doom-Statement ab, das auf ganzer Linie überzeugt.",
+      "url": "https://derfuzzer.de/2026/08/24/petrosa-roadburn-chronicles-2026-octopus-rising-review/"
+    },
+    {
+      "id": "papyjeff",
+      "publication": "Radio Papy Jeff Metal",
+      "author": "Papy Jeff",
+      "verdict": "Heavy Metal Radar",
+      "quote": "Italian stoner/doom outfit Petrosa are releasing their debut full-length, Roadburn Chronicles, out today via Octopus Rising: delivering heavy, low-tuned monolithic grooves, fuzzy riffs and classic doom weight.",
+      "url": "https://www.radiopapyjeff.com/2026/08/PETROSA-Roadburn-Chronicles.html"
+    },
+    {
+      "id": "radiocoop",
+      "publication": "Radiocoop",
+      "author": "Antonio Bacciocchi",
+      "verdict": "Standout Debut",
+      "quote": "The quartet formed in 2019 by guitarist Antonio Buonocore takes on the clattering rails of stoner rock, draped in sinister doom ballads, while not shying away from ferocious nods to Motörhead-style speed metal (I For An I) and dirty, deep-rooted blues (Rusty Blues). A more than promising debut, played with complete mastery of tone and genre.",
+      "url": "https://radiocoop.it/petrosa-roadburn-chronicles/"
+    },
+    {
+      "id": "hmwebzine",
+      "publication": "Heavy Metal Webzine",
+      "author": "Piervittorio Sabidussi",
+      "verdict": "Album di debutto",
+      "quote": "Describing their sound as 'Doom Carved in Stone(r)', PETROSA expertly blend the extended groove of stoner rock with the crushing weight of classic doom metal. Produced by Carlo Altobelli at Toxic Basement Studio, the record captures the group's uncompromised artistic vision: a raw, introspective journey celebrating resilience and the untamed road.",
+      "url": "https://www.heavymetalwebzine.it/2026/09/01/petrosa-pubblicato-lalbum-di-debutto-roadburn-chronicles/"
+    },
+    {
+      "id": "argonauta",
+      "publication": "Octopus Rising / Argonauta Records",
+      "author": "Comunicato ufficiale",
+      "verdict": "Must-Have Stoner",
+      "quote": "PETROSA's debut album Roadburn Chronicles delivers 10 tracks of massive riffs, dark atmospheres and introspective songwriting. Blending stoner rock grooves with crushing doom weight, for fans of Dozer, Orange Goblin and The Sword.",
+      "url": "https://shop.argonautarecords.com/cd/880-petrosa-roadburn-chronicles-cd.html"
+    },
+    {
+      "id": "innerstrength",
+      "publication": "Inner-Strength Check Podcast",
+      "author": "Brady Irwin",
+      "verdict": "Single 'Viper'",
+      "quote": "Following the release of their first single 'Revenant' and signing with Octopus Rising, Italian stoner/doom outfit PETROSA unveil 'Viper', embodying one of the darkest sides of the album with relentless hypnotic heaviness.",
+      "url": "https://www.innerstrengthcheckpodcast.com/blog/heavy-news-petrosa-ita-reveal-new-single-viper-debut-album-roadburn-chronicles-out-aug-28th-2026"
+    }
+  ]
+}
