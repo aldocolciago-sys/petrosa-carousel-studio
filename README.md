@@ -45,3 +45,6 @@ Ogni carosello ha uno stile diverso: 9 sfondi generativi (fumo, dune, raggi, ane
 
 ## Canzone al centro e analisi del testo
 Scegliendo un brano nel Focus, tutti i versi citati sono di quel brano (mai di altri) e una slide diventa un'analisi del testo in chiave di *socialita' profonda*; la caption diventa estesa (circa 900 caratteri) e sviluppa la stessa lettura. Le analisi della libreria sono in `data/library.json` (`analyses`) e `test-library.js` controlla che ogni frase tra virgolette sia letterale nel testo. Con l'AI live, Claude riceve il testo completo del brano e le stesse regole; un verso non presente nel brano scelto viene segnalato con l'avviso sulla citazione.
+
+## Accesso con Google
+Con `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` impostati, l'app richiede il login Google e ammette solo le email in `ALLOWED_EMAILS` (default: aldo.colciago@gmail.com e petrosaband@gmail.com). Tutte le API rispondono 401 senza sessione; la sessione dura 7 giorni (cookie firmato, HttpOnly). In Google Cloud Console (OAuth client di tipo *Web application*) vanno registrati i redirect URI `https://<tuo-sito>/api/auth/callback` e `http://localhost:3000/api/auth/callback`. Con il login Google attivo `APP_PASSWORD` non serve piu'. Senza le due variabili l'app funziona come prima (in locale aperta, online con le funzioni a chiave disattivate).

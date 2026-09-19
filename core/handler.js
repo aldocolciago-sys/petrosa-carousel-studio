@@ -29,6 +29,7 @@ const POSTFAST_URL = () => (process.env.POSTFAST_API_URL || 'https://api.postfa.
 
 // ---------- Dati ----------
 const LIB = require('../library');
+const AUTH = require('./auth');
 function readJSON(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
 }
@@ -417,15 +418,24 @@ function authorized(req) {
 async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
   try {
-    if (!authorized(req)) {
+    if (AUTH.enabled()) {
+      if (await AUTH.route(req, res, url)) return;
+      const me = AUTH.readSession(req);
+      if (!me) {
+        if (url.pathname.startsWith('/api/')) return send(res, 401, { error: 'Accesso richiesto', login: '/api/auth/login' });
+        res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+        return res.end(AUTH.loginPage());
+      }
+      req.user = me;
+    } else if (!authorized(req)) {
       res.writeHead(401, { 'www-authenticate': 'Basic realm="Petrosa Carousel Studio"', 'content-type': 'text/plain; charset=utf-8' });
       return res.end('Password richiesta');
     }
     // Online (Vercel) senza password: nessuna funzione che usi chiavi segrete, per evitare abusi
-    if (SERVERLESS && !PASSWORD() && SECRET_PATHS.includes(url.pathname)) throw new Error('Funzione disattivata online: imposta APP_PASSWORD su Vercel per abilitarla.');
+    if (SERVERLESS && !PASSWORD() && !AUTH.enabled() && SECRET_PATHS.includes(url.pathname)) throw new Error('Funzione disattivata online: imposta APP_PASSWORD su Vercel per abilitarla.');
     if (SERVERLESS && WRITE_PATHS.includes(url.pathname + ':' + req.method)) throw new Error('Online non si puo\' salvare: modifica il file in data/ su GitHub e fai il redeploy.');
     if (url.pathname === '/api/config') {
-      return send(res, 200, { anthropic: !!ANTHROPIC_KEY(), postfast: !!POSTFAST_KEY(), model: MODEL() });
+      return send(res, 200, { anthropic: !!ANTHROPIC_KEY(), postfast: !!POSTFAST_KEY(), model: MODEL(), user: req.user ? { email: req.user.email, name: req.user.name, picture: req.user.picture } : null });
     }
     if (url.pathname === '/api/data') {
       const d = loadAll();

@@ -11,9 +11,17 @@
   const api = async (url, body) => {
     const r = await fetch(url, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined);
     const j = await r.json().catch(() => ({}));
+    if (r.status === 401 && j.login) { showLogin(); throw new Error('Accesso richiesto: accedi con Google.'); }
     if (!r.ok) throw new Error(j.error || `Errore ${r.status}`);
     return j;
   };
+  function showLogin() {
+    if (document.getElementById('loginWall')) return;
+    const d = document.createElement('div'); d.id = 'loginWall';
+    d.style.cssText = 'position:fixed;inset:0;z-index:99;display:grid;place-items:center;background:#07030c;color:#f3e8ff;text-align:center;font:16px/1.5 system-ui,sans-serif';
+    d.innerHTML = '<div style="max-width:420px;padding:32px"><h1 style="margin:0 0 4px">PETROSA</h1><div style="color:#a78bfa;margin-bottom:22px">Carousel Studio</div><p>Accesso riservato ai membri della band.</p><a href="/api/auth/login" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#f59e0b;color:#1a0b00;font-weight:700;text-decoration:none">Accedi con Google</a></div>';
+    document.body.appendChild(d);
+  }
   const busy = (btn, on, label) => { if (on) { if (!btn.disabled) btn.dataset.l = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spin"></span>${label}`; } else { btn.disabled = false; btn.innerHTML = btn.dataset.l; } };
 
   // ---------- Tabs ----------
@@ -25,6 +33,11 @@
   // ---------- Init ----------
   async function init() {
     [st.cfg, st.data, st.tags] = await Promise.all([api('/api/config'), api('/api/data'), api('/api/tags')]);
+    if (st.cfg.user) {
+      const u = document.createElement('span'); u.className = 'pill on'; u.style.marginLeft = '6px';
+      u.innerHTML = `${esc(st.cfg.user.email)} &middot; <a href="/api/auth/logout" style="color:inherit">Esci</a>`;
+      $('pillPZ').after(u);
+    }
     $('pillAI').textContent = st.cfg.anthropic ? `AI live: ${st.cfg.model}` : 'Libreria (AI non configurata)';
     $('pillAI').className = 'pill on';
     $('btnClaude').style.display = st.cfg.anthropic ? '' : 'none';
