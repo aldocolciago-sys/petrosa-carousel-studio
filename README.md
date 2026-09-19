@@ -38,3 +38,7 @@ Modifica questi file per aggiornare la base di conoscenza (nuove recensioni si p
 - Online i file sono in sola lettura: per cambiare handle, recensioni o testi modifica `data/*.json` su GitHub e Vercel ripubblica da solo.
 - Funzioni con chiavi (PostFast, Claude, scansione web) sono **disattivate online** a meno che tu imposti la variabile `APP_PASSWORD` su Vercel (poi anche `POSTFAST_API_KEY` / `ANTHROPIC_API_KEY`); cosi' nessuno puo' usare le tue chiavi.
 - Per la pubblicazione manuale non serve altro: scarica la "Cartella per il telefono" dal sito.
+
+
+## Stile visivo
+Ogni carosello ha uno stile diverso: 9 sfondi generativi (fumo, dune, raggi, anelli psichedelici, terra crepata, retino, strada, onde sonore, montagne), 10 palette, 8 font, foto naturali/bicromia/bianco e nero e due tipi di copertina. Lo stile viene scelto "a tono" con mood, band citate e genere (es. Kyuss = deserto, Sabbath = fumo e monocromo); con l'AI live lo sceglie Claude. Sopra le slide puoi cambiarlo a mano o premere *Nuovo stile*.

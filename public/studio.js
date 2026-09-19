@@ -1,7 +1,7 @@
 // Petrosa Carousel Studio - logica interfaccia
 (() => {
   const $ = id => document.getElementById(id);
-  const st = { data: null, cfg: null, tags: null, slides: [], caption: '', hashtags: [], argomento: '', sel: 0, lastParams: null, variant: 0, channels: [] };
+  const st = { theme: null, data: null, cfg: null, tags: null, slides: [], caption: '', hashtags: [], argomento: '', sel: 0, lastParams: null, variant: 0, channels: [] };
   const thumbs = [];
 
   const toast = (msg, bad) => {
@@ -14,7 +14,7 @@
     if (!r.ok) throw new Error(j.error || `Errore ${r.status}`);
     return j;
   };
-  const busy = (btn, on, label) => { if (on) { btn.dataset.l = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spin"></span>${label}`; } else { btn.disabled = false; btn.innerHTML = btn.dataset.l; } };
+  const busy = (btn, on, label) => { if (on) { if (!btn.disabled) btn.dataset.l = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spin"></span>${label}`; } else { btn.disabled = false; btn.innerHTML = btn.dataset.l; } };
 
   // ---------- Tabs ----------
   document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
@@ -40,7 +40,7 @@
     const d = new Date(Date.now() + 24 * 3600e3); d.setHours(18, 0, 0, 0);
     $('pzDate').value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     await Promise.all([Renderer.loadImages(), Renderer.loadFonts()]);
-    renderTags(); renderSources(); onFocus();
+    renderTags(); renderSources(); onFocus(); initStyleBar();
   }
 
   // ---------- Focus ----------
@@ -103,7 +103,7 @@
       const out = await api('/api/swap', { mood: st.mood, focus: st.focus || { type: 'auto' }, slides: st.slides, index: st.sel });
       const keepCap = false;
       st.slides = out.slides; st.caption = out.caption; st.hashtags = out.hashtags;
-      const sel = st.sel; showResult(); selectSlide(sel);
+      const sel = st.sel; showResult(true); selectSlide(sel);
     } catch (e) { toast(e.message, true); } finally { busy($('btnSwap'), false); }
   };
   $('btnRecap').onclick = async () => {
@@ -125,11 +125,11 @@
     try {
       const out = await api('/api/generate', params);
       st.slides = out.slides; st.caption = out.caption; st.hashtags = out.hashtags; st.argomento = out.argomento; st.sel = 0; st.engine = 'claude';
-      st.history.push(`${out.argomento}: ${out.slides.slice(0, 3).map(x => x.titolo).join(' / ')}`); st.history = st.history.slice(-10);
+      st.history.push(`${out.argomento}: ${out.slides.slice(0, 3).map(x => x.titolo).join(' / ')}${out.stile ? ` [stile: ${out.stile.sfondo || ''}/${out.stile.palette || ''}/${out.stile.font || ''}]` : ''}`); st.history = st.history.slice(-10);
       st.capHistory.push(String(out.caption).split('\n')[0]); st.capHistory = st.capHistory.slice(-6);
       $('proposals').style.display = 'none';
       $('demoBanner').style.display = 'none';
-      showResult(); $('result').scrollIntoView({ behavior: 'smooth' });
+      showResult(false, out.stile); $('result').scrollIntoView({ behavior: 'smooth' });
     } catch (e) { toast(e.message, true); } finally { busy($('btnClaude'), false); }
   }
   $('btnClaude').onclick = generate;
@@ -142,11 +142,31 @@
     } catch (e) { toast(e.message, true); } finally { busy($('btnAiCap'), false); }
   };
 
-  function showResult() {
+  // ---------- Stile visivo (sfondo, colori, font) ----------
+  function fillSelect(id, map) { $(id).innerHTML = Object.entries(map).map(([k, v]) => `<option value="${k}">${esc(typeof v === 'string' ? v : v.label)}</option>`).join(''); }
+  function initStyleBar() {
+    fillSelect('stBg', Styles.BG); fillSelect('stPal', Styles.PALETTES); fillSelect('stFont', Styles.FONTS); fillSelect('stPhoto', Styles.PHOTO); fillSelect('stHook', Styles.HOOK);
+    [['stBg', 'bg'], ['stPal', 'pal'], ['stFont', 'font'], ['stPhoto', 'photo'], ['stHook', 'hook']].forEach(([id, k]) => { $(id).onchange = () => { st.theme = { ...st.theme, [k]: $(id).value }; redrawAll(); }; });
+    $('btnStyle').onclick = () => { setTheme(Styles.pick({ slides: st.slides, mood: st.mood, argomento: st.argomento, prev: st.theme })); };
+  }
+  function syncStyleBar() { [['stBg', 'bg'], ['stPal', 'pal'], ['stFont', 'font'], ['stPhoto', 'photo'], ['stHook', 'hook']].forEach(([id, k]) => ($(id).value = st.theme[k])); }
+  async function redrawAll() {
+    await Renderer.ensureFonts(st.theme);
+    syncStyleBar();
+    thumbs.forEach((_, i) => drawThumb(i)); drawBig();
+  }
+  function setTheme(t) { st.theme = { ...Styles.DEFAULT, ...t }; return redrawAll(); }
+
+  function showResult(keepTheme, aiStyle) {
+    if (!keepTheme || !st.theme) {
+      const ai = aiStyle ? { bg: aiStyle.sfondo, pal: aiStyle.palette, font: aiStyle.font, photo: aiStyle.foto, hook: aiStyle.copertina } : {};
+      const ok = Object.fromEntries(Object.entries(Styles.valid(ai)).filter(([, v]) => v));
+      st.theme = { ...Styles.DEFAULT, ...Styles.pick({ slides: st.slides, mood: st.mood, argomento: st.argomento, prev: st.theme }), ...ok };
+    }
     $('btnSwap').style.display = st.engine === 'claude' ? 'none' : '';
     $('empty').style.display = 'none'; $('result').style.display = 'block'; $('argom').textContent = st.argomento ? '- ' + st.argomento : '';
     $('caption').value = st.caption; $('hashtags').value = st.hashtags.join(' ');
-    buildStrip(); selectSlide(0); updateCaptionStats(); updateSpec();
+    buildStrip(); selectSlide(0); updateCaptionStats(); updateSpec(); redrawAll();
   }
 
   function buildStrip() {
@@ -161,11 +181,11 @@
   }
   function badge(s) { return s.citazione ? (s.verified ? '✓ citazione verificata' : '⚠ controlla citazione') : ''; }
   function drawThumb(i) {
-    Renderer.render(thumbs[i].c, st.slides[i], i, st.slides.length, st.data.handle);
+    Renderer.render(thumbs[i].c, st.slides[i], i, st.slides.length, st.data.handle, st.theme);
     thumbs[i].b.textContent = badge(st.slides[i]); thumbs[i].b.style.display = thumbs[i].b.textContent ? 'block' : 'none';
     thumbs[i].b.style.color = st.slides[i].verified === false ? 'var(--amber)' : 'var(--ok)';
   }
-  function drawBig() { Renderer.render($('big'), st.slides[st.sel], st.sel, st.slides.length, st.data.handle); }
+  function drawBig() { Renderer.render($('big'), st.slides[st.sel], st.sel, st.slides.length, st.data.handle, st.theme); }
 
   const FIELDS = ['layout', 'immagine', 'titolo', 'corpo', 'stat', 'citazione', 'fonte', 'visual'];
   function selectSlide(i) {
@@ -211,7 +231,7 @@
   $('btnSpec').onclick = async () => { await navigator.clipboard.writeText(specText() + '\n\nCAPTION:\n' + fullCaption()); toast('Scheda testuale copiata.'); };
 
   // ---------- Export ----------
-  function renderOff(i) { const c = document.createElement('canvas'); Renderer.render(c, st.slides[i], i, st.slides.length, st.data.handle); return c; }
+  function renderOff(i) { const c = document.createElement('canvas'); Renderer.render(c, st.slides[i], i, st.slides.length, st.data.handle, st.theme); return c; }
   const blobOf = c => new Promise(r => c.toBlob(r, 'image/png'));
   const dl = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   const slug = () => (st.argomento || 'carosello').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'carosello';

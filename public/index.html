@@ -7,7 +7,7 @@
 <link rel="icon" href="/assets/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Space+Grotesk:wght@400;500;700&family=Pirata+One&family=Anton&family=Bebas+Neue&family=Abril+Fatface&family=Special+Elite&family=Bungee&family=Rye&family=Barlow+Condensed:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;700&family=Lora:ital,wght@0,400;0,700;1,500&family=Playfair+Display:ital,wght@0,700;1,500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:#07030c; --panel:#130a21; --panel2:#1b0f30; --line:rgba(216,180,254,.16);
@@ -146,6 +146,14 @@
       </div>
      </div>
      <div id="demoBanner" class="hint warn" style="display:none;margin-top:10px"></div>
+     <div id="styleBar" class="row" style="margin-top:12px;align-items:flex-end">
+       <div><label>Sfondo</label><select id="stBg"></select></div>
+       <div><label>Colori</label><select id="stPal"></select></div>
+       <div><label>Font</label><select id="stFont"></select></div>
+       <div><label>Foto</label><select id="stPhoto"></select></div>
+       <div><label>Copertina</label><select id="stHook"></select></div>
+       <button class="btn" id="btnStyle">🎨 Nuovo stile</button>
+     </div>
      <div id="strip"></div>
      <div class="editor">
       <canvas id="big"></canvas>
@@ -222,6 +230,7 @@
 </section>
 </main>
 <div class="toast" id="toast"></div>
+<script src="/styles.js"></script>
 <script src="/render.js"></script>
 <script src="/studio.js"></script>
 </body>

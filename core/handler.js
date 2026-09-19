@@ -136,11 +136,23 @@ const CAROUSEL_TOOL = {
           required: ['tipo', 'layout', 'visual', 'titolo', 'corpo', 'servizio', 'immagine']
         }
       },
+      stile: {
+        type: 'object',
+        description: 'Stile grafico del carosello, scelto per essere a tono con l\'argomento, il genere e le band citate (es. Kyuss/Fu Manchu = dunes+desert, Sabbath/doom = smoke o mountains + mono/bloodmoon, Monster Magnet/psych = psychedelic + acid/ultraviolet, strada = road+rust). VARIA sempre rispetto agli stili gia usati.',
+        properties: {
+          sfondo: { type: 'string', enum: ['smoke', 'dunes', 'sunburst', 'psychedelic', 'cracked', 'halftone', 'road', 'waves', 'mountains'] },
+          palette: { type: 'string', enum: ['ember', 'desert', 'swamp', 'bloodmoon', 'acid', 'mono', 'nordic', 'rust', 'ultraviolet', 'bone'] },
+          font: { type: 'string', enum: ['classic', 'gothic', 'poster', 'bold', 'fashion', 'typewriter', 'chunky', 'western'] },
+          foto: { type: 'string', enum: ['natural', 'duotone', 'mono'] },
+          copertina: { type: 'string', enum: ['photo', 'frame'] }
+        },
+        required: ['sfondo', 'palette', 'font', 'foto', 'copertina']
+      },
       caption: { type: 'string', description: 'Caption completa con call to action, link in bio e @menzioni nel testo (senza hashtag: vanno nel campo hashtags)' },
       menzioni: { type: 'array', items: { type: 'string' }, description: 'Handle (senza @) menzionati nella caption, solo tra quelli consentiti' },
       hashtags: { type: 'array', items: { type: 'string' } }
     },
-    required: ['argomento', 'slides', 'caption', 'menzioni', 'hashtags']
+    required: ['argomento', 'slides', 'stile', 'caption', 'menzioni', 'hashtags']
   }
 };
 

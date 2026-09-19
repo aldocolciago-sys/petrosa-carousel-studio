@@ -2,9 +2,22 @@
 (function () {
   const W = 1080, H = 1350;
   const C = { bg: '#07030c', amber: '#f59e0b', orange: '#ea580c', purple: '#8b5cf6', magenta: '#c026d3', text: '#f3e8ff', soft: '#c4b5fd', green: '#1DB954' };
-  const BRAND = '"Cinzel Decorative", "Trajan Pro", Georgia, serif';
-  const BODY = '"Space Grotesk", "Segoe UI", Arial, sans-serif';
-  const SERIF = 'Georgia, "Times New Roman", serif';
+  let BRAND = '"Cinzel Decorative", "Trajan Pro", Georgia, serif';
+  let BODY = '"Space Grotesk", "Segoe UI", Arial, sans-serif';
+  let SERIF = 'Georgia, "Times New Roman", serif';
+  let DW = 900, QS = 'italic 500', CAPS = false;
+  let T = { bg: 'smoke', pal: 'ember', font: 'classic', photo: 'natural', hook: 'photo', seed: 1 };
+  const lighten = (hex, t) => window.Styles.mix(hex, '#ffffff', t);
+  const HI = () => lighten(C.amber, 0.55);
+  function applyTheme(theme) {
+    T = Object.assign({}, window.Styles.DEFAULT, theme || {});
+    const p = window.Styles.PALETTES[T.pal] || window.Styles.PALETTES.ember;
+    Object.assign(C, { bg: p.bg, amber: p.a1, orange: p.a2, purple: p.a3, magenta: p.a4, text: p.text, soft: p.soft });
+    const f = window.Styles.FONTS[T.font] || window.Styles.FONTS.classic;
+    BRAND = `"${f.display}", Georgia, serif`; BODY = `"${f.body}", "Segoe UI", Arial, sans-serif`;
+    SERIF = `"${f.quote}", Georgia, "Times New Roman", serif`; DW = f.dw; QS = f.qs; CAPS = f.caps;
+    return p;
+  }
   const IMG_KEYS = ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea'];
   const FOCUS = { aldo: [0.62, 0.3], giorgio: [0.62, 0.35], antonio: [0.5, 0.3], andrea: [0.5, 0.3] };
   const images = {};
@@ -17,16 +30,16 @@
       im.src = `/assets/${k}.jpg`;
     })));
   }
-  async function loadFonts() {
+  async function ensureFonts(theme) {
+    const f = window.Styles.FONTS[(theme && theme.font) || 'classic'] || window.Styles.FONTS.classic;
     try {
       await Promise.all([
-        document.fonts.load('900 60px "Cinzel Decorative"'),
-        document.fonts.load('700 60px "Cinzel Decorative"'),
-        document.fonts.load('400 30px "Space Grotesk"'),
-        document.fonts.load('700 30px "Space Grotesk"')
+        document.fonts.load(`${f.dw} 60px "${f.display}"`), document.fonts.load(`500 30px "${f.body}"`),
+        document.fonts.load(`700 30px "${f.body}"`), document.fonts.load(`${f.qs} 30px "${f.quote}"`)
       ]);
     } catch (e) { /* fallback su font di sistema */ }
   }
+  const loadFonts = () => ensureFonts();
 
   // PRNG deterministico: il render e' identico a ogni ridisegno
   function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
@@ -37,26 +50,29 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
-  function coverImg(ctx, img, x, y, w, h, fx = 0.5, fy = 0.5) {
+  function coverImg(ctx, img, x, y, w, h, fx = 0.5, fy = 0.5, treat = true) {
     if (!img) return;
-    const s = Math.max(w / img.width, h / img.height);
-    const dw = img.width * s, dh = img.height * s;
+    const sc = Math.max(w / img.width, h / img.height);
+    const dw = img.width * sc, dh = img.height * sc;
     ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    const base = ctx.filter && ctx.filter !== 'none' ? ctx.filter + ' ' : '';
+    const mode = treat ? T.photo : 'natural';
+    if (mode !== 'natural') ctx.filter = base + 'grayscale(1) contrast(1.25) brightness(1.05)';
     ctx.drawImage(img, x - (dw - w) * fx, y - (dh - h) * fy, dw, dh);
+    if (mode === 'duotone') {
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = lighten(C.amber, 0.15); ctx.fillRect(x, y, w, h);
+      ctx.globalCompositeOperation = 'lighten'; ctx.fillStyle = window.Styles.mix(C.bg, C.purple, 0.55); ctx.fillRect(x, y, w, h);
+    }
     ctx.restore();
   }
 
   function background(ctx, seed) {
-    const r = rng(seed * 7919 + 13);
-    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
-    const blobs = [[C.purple, 0.22], [C.orange, 0.18], [C.magenta, 0.16], [C.amber, 0.1]];
-    blobs.forEach(([col, a]) => {
-      const x = r() * W, y = r() * H, rad = 420 + r() * 380;
-      const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
-      g.addColorStop(0, hexA(col, a)); g.addColorStop(1, hexA(col, 0));
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    });
-    grain(ctx, seed, 0.05);
+    window.Styles.draw(T.bg, ctx, window.Styles.PALETTES[T.pal] || window.Styles.PALETTES.ember, seed);
+    // velo di leggibilita' per il testo, piu' forte nella fascia centrale
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, hexA(C.bg, 0.1)); g.addColorStop(0.3, hexA(C.bg, 0.5)); g.addColorStop(0.85, hexA(C.bg, 0.55)); g.addColorStop(1, hexA(C.bg, 0.75));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
   function grain(ctx, seed, amt) {
     const r = rng(seed * 31 + 5);
@@ -73,7 +89,7 @@
   }
   function shade(ctx, y0, y1, a0, a1) {
     const g = ctx.createLinearGradient(0, y0, 0, y1);
-    g.addColorStop(0, `rgba(7,3,12,${a0})`); g.addColorStop(1, `rgba(7,3,12,${a1})`);
+    g.addColorStop(0, hexA(C.bg, a0)); g.addColorStop(1, hexA(C.bg, a1));
     ctx.fillStyle = g; ctx.fillRect(0, Math.min(y0, y1), W, Math.abs(y1 - y0));
   }
 
@@ -130,13 +146,13 @@
     if (lg) ctx.drawImage(lg, 96 - 46, 96 - 32, 92, 65);
     ctx.restore();
     ctx.beginPath(); ctx.arc(96, 96, 37, 0, Math.PI * 2); ctx.strokeStyle = C.amber; ctx.lineWidth = 3; ctx.stroke();
-    ctx.font = `900 34px ${BRAND}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.font = `${DW} 34px ${BRAND}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     ctx.fillStyle = gradFill(ctx, 150, 360); ctx.fillText('PETROSA', 150, 98);
     // numerazione
     ctx.font = `700 26px ${BODY}`; ctx.textAlign = 'right'; ctx.fillStyle = C.soft;
     ctx.fillText(`${String(i + 1).padStart(2, '0')} / ${String(n).padStart(2, '0')}`, W - 72, 98);
     // footer
-    ctx.strokeStyle = 'rgba(245,158,11,0.45)'; ctx.lineWidth = 2;
+    ctx.strokeStyle = hexA(C.amber, 0.45); ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(72, H - 96); ctx.lineTo(W - 72, H - 96); ctx.stroke();
     ctx.textBaseline = 'middle'; ctx.font = `700 28px ${BODY}`; ctx.fillStyle = C.amber; ctx.textAlign = 'left';
     ctx.fillText(handle || '@petrosa_band', 72, H - 56);
@@ -153,8 +169,8 @@
       if (x + w > W - 72) { x = 72; row++; }
       const yy = y + row * 64;
       rr(ctx, x, yy, w, 50, 25);
-      ctx.fillStyle = 'rgba(139,92,246,0.28)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(245,158,11,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = hexA(C.purple, 0.28); ctx.fill();
+      ctx.strokeStyle = hexA(C.amber, 0.7); ctx.lineWidth = 2; ctx.stroke();
       ctx.fillStyle = C.text; ctx.textAlign = 'left'; ctx.fillText(label, x + 22, yy + 26);
       x += w + 14;
     });
@@ -174,6 +190,18 @@
     const img = images[s.immagine] || images.cover;
     ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
     const f = FOCUS[s.immagine] || [0.5, 0.35];
+    if (img === images.cover && T.hook === 'frame') {
+      // copertina incorniciata e leggermente ruotata sopra uno sfondo generativo
+      background(ctx, i + 1);
+      const sz = 580, cx = W / 2, cy = 430;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(((T.seed % 7) - 3) * 0.014);
+      glow(ctx, hexA(C.amber, 0.55), 60); rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.fillStyle = '#000'; ctx.fill(); noGlow(ctx);
+      ctx.save(); rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.clip(); ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+      rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.strokeStyle = hexA(C.amber, 0.9); ctx.lineWidth = 4; ctx.stroke();
+      ctx.restore();
+      shade(ctx, 0, 220, 0.6, 0); shade(ctx, 700, H, 0, 0.97);
+      return;
+    }
     if (img === images.cover) {
       // copertina quadrata intera (con il logotipo) su sfondo sfocato
       ctx.save(); ctx.filter = 'blur(30px) saturate(1.2)'; coverImg(ctx, img, -60, -60, W + 120, H + 120); ctx.restore(); ctx.filter = 'none';
@@ -188,11 +216,11 @@
     const bottom = H - 130 - tagH;
     const body = fit(ctx, s.corpo || '', z => `500 ${z}px ${BODY}`, W - 144, 200, 40, 28, 1.3);
     const bodyTop = bottom - body.h;
-    const ttl = fit(ctx, s.titolo || '', z => `900 ${z}px ${BRAND}`, W - 144, 460, 110, 52, 1.12);
+    const ttl = fit(ctx, s.titolo || '', z => `${DW} ${z}px ${BRAND}`, W - 144, 460, 110, 52, 1.12);
     const ttlTop = bodyTop - 40 - ttl.h;
     kicker(ctx, s.tipo || 'Petrosa', 72, ttlTop - 56);
-    ctx.font = `900 ${ttl.size}px ${BRAND}`; glow(ctx, 'rgba(234,88,12,0.7)', 30);
-    ctx.fillStyle = gradFill(ctx, 72, W - 72, '#fde68a', C.amber, C.orange);
+    ctx.font = `${DW} ${ttl.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.7), 30);
+    ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
     drawLines(ctx, ttl, 72, ttlTop, 1.12); noGlow(ctx);
     ctx.font = `500 ${body.size}px ${BODY}`; ctx.fillStyle = C.text; drawLines(ctx, body, 72, bodyTop, 1.3);
     tagChips(ctx, s.tag, bottom + 20);
@@ -202,10 +230,10 @@
     background(ctx, i + 3);
     if (images[s.immagine] && s.immagine !== 'none') { ctx.globalAlpha = 0.22; coverImg(ctx, images[s.immagine], 0, 0, W, H, 0.5, 0.35); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.55, 0.85); }
     kicker(ctx, s.tipo || 'Citazione', 72, 190);
-    ctx.font = `900 200px ${BRAND}`; ctx.fillStyle = hexA(C.amber, 0.85); ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+    ctx.font = `${DW} 200px ${BRAND}`; ctx.fillStyle = hexA(C.amber, 0.85); ctx.textBaseline = 'top'; ctx.textAlign = 'left';
     ctx.fillText('“', 60, 200);
     const q = String(s.citazione || s.titolo || '').replace(/\s\/\s/g, '\n');
-    const fontQ = z => `italic 500 ${z}px ${SERIF}`;
+    const fontQ = z => `${QS} ${z}px ${SERIF}`;
     const tagH = tagBlockHeight(ctx, s.tag);
     const hasSrc = !!(s.fonte || s.titolo);
     const boxTop = 400, boxBottom = H - 250 - tagH - (s.corpo ? 90 : 0);
@@ -224,22 +252,23 @@
 
   L.stat = (ctx, s, i) => {
     ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+    background(ctx, i + 9);
     const img = images[s.immagine] || images.cover;
-    if (img) { ctx.save(); ctx.filter = 'blur(28px) saturate(1.3)'; coverImg(ctx, img, -60, -60, W + 120, H + 120, 0.5, 0.5); ctx.restore(); ctx.filter = 'none'; }
-    shade(ctx, 0, H, 0.6, 0.9); grain(ctx, i + 9, 0.05);
+    if (img) { ctx.save(); ctx.globalAlpha = 0.32; ctx.filter = 'blur(26px) saturate(1.3)'; coverImg(ctx, img, -60, -60, W + 120, H + 120, 0.5, 0.5); ctx.restore(); ctx.filter = 'none'; }
+    shade(ctx, 0, H, 0.35, 0.75); grain(ctx, i + 9, 0.05);
     kicker(ctx, s.tipo || 'Album', 72, 190);
     const stat = String(s.stat || '');
     if (stat) {
-      const fs = fit(ctx, stat, z => `900 ${z}px ${BRAND}`, W - 144, 400, 400, 120, 1);
-      ctx.font = `900 ${fs.size}px ${BRAND}`; glow(ctx, 'rgba(245,158,11,0.6)', 50);
-      ctx.fillStyle = gradFill(ctx, 72, W - 72, '#fde68a', C.amber, C.orange);
+      const fs = fit(ctx, stat, z => `${DW} ${z}px ${BRAND}`, W - 144, 400, 400, 120, 1);
+      ctx.font = `${DW} ${fs.size}px ${BRAND}`; glow(ctx, hexA(C.amber, 0.6), 50);
+      ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
       ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(stat, 64, 250); noGlow(ctx);
     }
     const tagH = tagBlockHeight(ctx, s.tag);
     const top = stat ? 720 : 300;
     const bottom = H - 130 - tagH;
-    const ttl = fit(ctx, s.titolo || '', z => `900 ${z}px ${BRAND}`, W - 144, 210, 62, 36, 1.15);
-    ctx.font = `900 ${ttl.size}px ${BRAND}`; ctx.fillStyle = C.text; drawLines(ctx, ttl, 72, top, 1.15);
+    const ttl = fit(ctx, s.titolo || '', z => `${DW} ${z}px ${BRAND}`, W - 144, 210, 62, 36, 1.15);
+    ctx.font = `${DW} ${ttl.size}px ${BRAND}`; ctx.fillStyle = C.text; drawLines(ctx, ttl, 72, top, 1.15);
     const bTop = top + ttl.h + 26;
     const body = fit(ctx, s.corpo || '', z => `500 ${z}px ${BODY}`, W - 144, bottom - bTop, 40, 26, 1.35);
     ctx.font = `500 ${body.size}px ${BODY}`; ctx.fillStyle = C.soft; drawLines(ctx, body, 72, bTop, 1.35);
@@ -262,10 +291,10 @@
     const bottom = H - 130 - tagH;
     const body = fit(ctx, s.corpo || '', z => `500 ${z}px ${BODY}`, W - 144, 170, 34, 24, 1.32);
     const bodyTop = bottom - body.h;
-    const ttl = fit(ctx, s.titolo || '', z => `900 ${z}px ${BRAND}`, W - 144, 220, 76, 40, 1.1);
+    const ttl = fit(ctx, s.titolo || '', z => `${DW} ${z}px ${BRAND}`, W - 144, 220, 76, 40, 1.1);
     const ttlTop = bodyTop - 24 - ttl.h;
     kicker(ctx, s.tipo === 'Band' && s.fonte ? s.fonte : (s.tipo || 'Band'), 72, ttlTop - 54);
-    ctx.font = `900 ${ttl.size}px ${BRAND}`; glow(ctx, 'rgba(0,0,0,0.9)', 20); ctx.fillStyle = C.text; drawLines(ctx, ttl, 72, ttlTop, 1.1); noGlow(ctx);
+    ctx.font = `${DW} ${ttl.size}px ${BRAND}`; glow(ctx, 'rgba(0,0,0,0.9)', 20); ctx.fillStyle = C.text; drawLines(ctx, ttl, 72, ttlTop, 1.1); noGlow(ctx);
     ctx.font = `500 ${body.size}px ${BODY}`; ctx.fillStyle = C.soft; drawLines(ctx, body, 72, bodyTop, 1.32);
     tagChips(ctx, s.tag, bottom + 20);
   };
@@ -275,9 +304,9 @@
     if (images[s.immagine] && s.immagine !== 'none') { ctx.globalAlpha = 0.2; coverImg(ctx, images[s.immagine], 0, 0, W, H, 0.5, 0.35); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.5, 0.85); }
     kicker(ctx, s.tipo || 'Petrosa', 72, 200);
     const tagH = tagBlockHeight(ctx, s.tag);
-    const ttl = fit(ctx, s.titolo || '', z => `900 ${z}px ${BRAND}`, W - 144, 420, 96, 44, 1.14);
-    ctx.font = `900 ${ttl.size}px ${BRAND}`; glow(ctx, 'rgba(234,88,12,0.5)', 24);
-    ctx.fillStyle = gradFill(ctx, 72, W - 72, '#fde68a', C.amber, C.orange); drawLines(ctx, ttl, 72, 270, 1.14); noGlow(ctx);
+    const ttl = fit(ctx, s.titolo || '', z => `${DW} ${z}px ${BRAND}`, W - 144, 420, 96, 44, 1.14);
+    ctx.font = `${DW} ${ttl.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.5), 24);
+    ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange); drawLines(ctx, ttl, 72, 270, 1.14); noGlow(ctx);
     let y = 270 + ttl.h + 30;
     ctx.strokeStyle = C.orange; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(72, y); ctx.lineTo(232, y); ctx.stroke(); y += 40;
     const bottom = H - 130 - tagH;
@@ -291,13 +320,13 @@
     const img = images.cover;
     const sz = 620, x = (W - sz) / 2, y = 190;
     if (img) {
-      ctx.save(); glow(ctx, 'rgba(192,38,211,0.7)', 70); rr(ctx, x, y, sz, sz, 26); ctx.fillStyle = '#000'; ctx.fill(); noGlow(ctx);
+      ctx.save(); glow(ctx, hexA(C.magenta, 0.7), 70); rr(ctx, x, y, sz, sz, 26); ctx.fillStyle = '#000'; ctx.fill(); noGlow(ctx);
       rr(ctx, x, y, sz, sz, 26); ctx.clip(); ctx.drawImage(img, x, y, sz, sz); ctx.restore();
     }
     const tagH = tagBlockHeight(ctx, s.tag);
     let ty = y + sz + 50;
-    const ttl = fit(ctx, s.titolo || '', z => `900 ${z}px ${BRAND}`, W - 144, 200, 64, 36, 1.12);
-    ctx.font = `900 ${ttl.size}px ${BRAND}`; ctx.fillStyle = C.text; drawLines(ctx, ttl, W / 2, ty, 1.12, 'center'); ty += ttl.h + 18;
+    const ttl = fit(ctx, s.titolo || '', z => `${DW} ${z}px ${BRAND}`, W - 144, 200, 64, 36, 1.12);
+    ctx.font = `${DW} ${ttl.size}px ${BRAND}`; ctx.fillStyle = C.text; drawLines(ctx, ttl, W / 2, ty, 1.12, 'center'); ty += ttl.h + 18;
     const body = fit(ctx, s.corpo || '', z => `400 ${z}px ${BODY}`, W - 200, 110, 30, 22, 1.3);
     ctx.font = `400 ${body.size}px ${BODY}`; ctx.fillStyle = C.soft; drawLines(ctx, body, W / 2, ty, 1.3, 'center'); ty += body.h + 26;
     // pulsante Spotify
@@ -310,15 +339,17 @@
     tagChips(ctx, s.tag, H - 120 - tagH + 10);
   };
 
-  function render(canvas, s, i, n, handle) {
+  function render(canvas, s, i, n, handle, theme) {
+    applyTheme(theme);
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, W, H);
+    if (CAPS && s.titolo) s = Object.assign({}, s, { titolo: String(s.titolo).toUpperCase() });
     const layout = ['hook', 'quote', 'stat', 'photo', 'text', 'cta'].includes(s.layout) ? s.layout : 'text';
     L[layout](ctx, s, i, n);
     if (layout === 'hook') L.hookText(ctx, s);
     chrome(ctx, i, n, handle, layout === 'cta' || i === n - 1);
   }
 
-  window.Renderer = { W, H, render, loadImages, loadFonts, images };
+  window.Renderer = { W, H, render, loadImages, loadFonts, ensureFonts, images };
 })();
