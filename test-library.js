@@ -12,7 +12,7 @@ for (const q of lib.quotes) {
   for (const p of parts(q.cit)) if (!s.includes(p)) bad(`citazione non trovata ${q.id}: "${p}"`);
 }
 const ok = new Set(tags.similarBands.concat(tags.community).filter(b => b.handle && b.confirmed).map(b => b.handle.replace(/^@/, '').toLowerCase()));
-const focuses = [{ type: 'auto' }, { type: 'song', item: 6 }, { type: 'member', item: 'aldo' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
+const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
 let n = 0;
 for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of focuses) for (let seed = 1; seed <= 6; seed++) {
   let r; try { r = L.propose({ mood: m.id, focus: f, count, seed }); } catch (e) { bad(`${m.id}/${count}/${f.type}: ${e.message}`); continue; }
@@ -31,9 +31,29 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
     for (const h of (p.caption.match(/@[\w.]*\w/g) || [])) if (!ok.has(h.slice(1).toLowerCase())) bad(id + ' @ non confermato in caption ' + h);
     if (!p.menzioni.length) bad(id + ' nessuna menzione');
     if (!/stonerrock|stonerdoom/.test(p.hashtags.join(' '))) bad(id + ' hashtag core');
-    if (f.type === 'song' && !p.slides.some(s => (s.citazione && s.fonte === band.songs.find(x => x.n === 6).title) || s.titolo.includes('Viper'))) bad(id + ' focus song assente');
+    if (f.type === 'song') {
+      const title = band.songs.find(x => x.n === f.item).title;
+      if (!p.slides.some(s => s.citazione && s.fonte === title)) bad(id + ' nessun verso del brano scelto');
+      for (const s of p.slides) if (s.tipo === 'Song' && s.fonte !== title) bad(id + ' verso di un altro brano: ' + s.fonte);
+      const an = p.slides.filter(s => s.tipo === 'Analysis');
+      if (an.length !== 1) bad(id + ' analisi: ' + an.length);
+      if (!p.caption.startsWith(lib.analyses.find(a => a.song === f.item).caption.split('\n')[0])) bad(id + ' caption senza analisi');
+    } else if (p.slides.some(s => s.tipo === 'Analysis')) bad(id + ' analisi fuori focus');
     if (f.type === 'doomcharts' && !p.slides.some(s => s.stat === '#14')) bad(id + ' doomcharts assente');
     if (/\{\w+\}/.test(JSON.stringify(p))) bad(id + ' placeholder residuo');
+  }
+}
+// analisi: ogni frase tra virgolette deve essere letterale nel testo del brano (slide e caption)
+const allLyrics = norm(band.songs.map(s => s.lyrics).join(' '));
+for (const a of lib.analyses) {
+  const own = norm((band.songs.find(x => x.n === a.song) || {}).lyrics || '');
+  if (a.corpo.length > 300) bad(`analisi ${a.song}: corpo troppo lungo`);
+  for (const [field, text] of [['corpo', a.corpo], ['caption', a.caption]]) {
+    for (const m of text.matchAll(/"([^"]+)"/g)) {
+      const q = norm(m[1]); if (q.length < 4) continue;
+      const pool = (field === 'caption' && a.song === 8) ? allLyrics : own;
+      if (!pool.includes(q)) bad(`analisi ${a.song} ${field}: citazione non letterale "${m[1]}"`);
+    }
   }
 }
 // swap

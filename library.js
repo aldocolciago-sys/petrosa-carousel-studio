@@ -105,9 +105,12 @@ function buildQuote(ctx, step) {
     const p = pool.filter(q => q.kind === 'review' && q.review === reviewFocus(ctx));
     if (p.length) pool = p;
   }
-  pool = pool.filter(q => q.kind === 'song' ? !ctx.songs.has(q.song) : !ctx.reviews.has(q.review) && !ctx.pubs.has((band.reviews.find(r => r.id === q.review) || {}).publication));
-  if (!pool.length) pool = lib.quotes.filter(q => !ctx.used.has(q.id) && (!kind || q.kind === kind));
-  if (!pool.length) pool = lib.quotes.filter(q => !kind || q.kind === kind);
+  // con una canzone al centro, i versi citati sono SOLO di quella canzone (altri passaggi dello stesso testo); se finiscono, si passa alle recensioni
+  const only = q => !sf || q.kind === 'review' || q.song === sf;
+  pool = pool.filter(q => only(q) && (q.kind === 'song' ? (sf ? true : !ctx.songs.has(q.song)) : !ctx.reviews.has(q.review) && !ctx.pubs.has((band.reviews.find(r => r.id === q.review) || {}).publication)));
+  if (!pool.length) pool = lib.quotes.filter(q => only(q) && !ctx.used.has(q.id) && (!kind || q.kind === kind));
+  if (!pool.length && sf && kind === 'song') pool = lib.quotes.filter(q => q.kind === 'review' && !ctx.used.has(q.id) && !ctx.reviews.has(q.review) && !ctx.pubs.has((band.reviews.find(r => r.id === q.review) || {}).publication));
+  if (!pool.length) pool = lib.quotes.filter(q => only(q) && (!kind || q.kind === kind));
   const q = pick(pool, ctx.mood, ctx.rng, ctx.used);
   ctx.used.add(q.id); ctx.firstQuote = false;
   if (q.kind === 'song') {
@@ -118,6 +121,15 @@ function buildQuote(ctx, step) {
   const r = band.reviews.find(x => x.id === q.review);
   ctx.reviews.add(r.id); ctx.pubs.add(r.publication);
   return { tipo: 'Review', layout: 'quote', immagine: 'none', titolo: r.publication, corpo: r.verdict, citazione: q.cit, fonte: `${r.author}, ${r.publication}`, visual: 'Dark background with purple glow. Large quote, publication and author highlighted.', _libId: q.id };
+}
+
+function buildAnalysis(ctx) {
+  const { lib, band } = ctx.D;
+  const n = songFocusN(ctx);
+  const a = (lib.analyses || []).find(x => x.song === n);
+  if (!a) throw new Error('Nessuna analisi disponibile per questo brano.');
+  const s = band.songs.find(x => x.n === n);
+  return { tipo: 'Analysis', layout: 'text', immagine: 'none', titolo: a.titolo, corpo: a.corpo, fonte: s.title, visual: 'Dark generative background, big headline, short reading of the lyrics on deep sociality.', _libId: a.id, _analysis: a.id };
 }
 
 function resolveTags(item, tags) {
@@ -187,11 +199,12 @@ function buildSlide(ctx, step) {
     case 'info': s = buildInfo(ctx, step); break;
     case 'band': s = buildBand(ctx, step); break;
     case 'cta': s = buildCta(ctx); break;
+    case 'analysis': s = buildAnalysis(ctx); break;
     case 'custom': s = { tipo: 'Content', layout: 'text', immagine: 'none', titolo: step.titolo || 'Petrosa.', corpo: step.corpo || '', visual: 'Dark background with purple/orange glow, large text.', _libId: 'custom' }; break;
     default: throw new Error('slot sconosciuto: ' + step.slot);
   }
   s._ref = { slot: step.slot, kind: step.kind, topics: step.topics, who: step.who, libId: s._libId, member: s._member };
-  delete s._libId; delete s._member;
+  delete s._libId; delete s._member; delete s._analysis;
   return s;
 }
 
@@ -220,7 +233,8 @@ function buildCaption(slides, mood, seed, D) {
   const fans = rot(fromSlides.length ? fromSlides : primary).slice(0, 4);
   const pool = lib.captions.filter(c => (c.moods || []).includes(mood));
   const cap = one(pool.length ? pool : lib.captions, rng);
-  let text = fill(cap.text, { fans: fans.map(h => '@' + h).join(' ') });
+  const an = slides.map(s => s._ref && s._ref.slot === 'analysis' ? (lib.analyses || []).find(a => a.id === s._ref.libId) : null).find(Boolean);
+  let text = fill(an ? an.caption : cap.text, { fans: fans.map(h => '@' + h).join(' ') });
   const mentions = fans.filter(h => text.toLowerCase().includes('@' + h.toLowerCase()));
   if (!mentions.length) {
     const list = rot(primary).slice(0, 4);
@@ -264,7 +278,16 @@ function applyFocusToSteps(steps, focus, ctx) {
       return { slot: 'info', topics: ['studio', 'gear', 'themes', 'singles', 'van', 'label'] };
     });
   }
+  if (focus.type === 'song') {
+    // la prima citazione del carosello e' sempre un verso del brano scelto
+    const qi = steps.findIndex(s => s.slot === 'quote');
+    if (qi >= 0) steps[qi] = { slot: 'quote', kind: 'song' };
+  }
   const infos = steps.map((s, i) => s.slot === 'info' ? i : -1).filter(i => i >= 0);
+  if (focus.type === 'song' && (ctx.D.lib.analyses || []).some(a => a.song === parseInt(focus.item, 10)) && infos.length) {
+    // una slide e' dedicata all'analisi del testo (socialita' profonda); si sacrifica la seconda slide informativa
+    steps[infos.length > 1 ? infos[1] : infos[0]] = { slot: 'analysis' };
+  }
   if (focus.type === 'doomcharts' && infos.length) steps[infos[0]]._force = 'charts';
   else if (focus.type === 'album' && infos.length) steps[infos[0]]._force = 'basics';
   else if (focus.type === 'custom' && infos.length && focus.text) {
@@ -308,6 +331,7 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   const cur = slides[index];
   if (!cur || !cur._ref) throw new Error('Questa slide non e\' sostituibile (modificata a mano).');
   const ctx = ctxFrom(mood, { type: 'auto' }, rng, D);
+  if (cur._ref.slot === 'analysis') throw new Error('L\'analisi del brano non ha alternative: e\' scritta apposta per questa canzone.');
   // marca come usato il resto del carosello
   slides.forEach((s, i) => {
     if (!s._ref) return;
@@ -322,6 +346,7 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   const step = { ...cur._ref };
   delete step.libId; delete step.member;
   if (focus && ['song', 'member', 'review'].includes(focus.type) && (step.slot === 'hook' || (step.slot === 'band' && focus.type === 'member'))) ctx.focus = focus;
+  if (focus && focus.type === 'song' && step.slot === 'quote') ctx.focus = focus;
   if (step.slot === 'band' && step.who !== 'all' && cur._ref.member && ctx.focus.type !== 'member') ctx.members.add(cur._ref.member);
   if (step.slot === 'custom') throw new Error('La slide personalizzata non ha alternative.');
   const ns = buildSlide(ctx, step);

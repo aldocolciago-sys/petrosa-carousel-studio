@@ -121,7 +121,7 @@ const CAROUSEL_TOOL = {
         items: {
           type: 'object',
           properties: {
-            tipo: { type: 'string', enum: ['Cover', 'Content', 'Song', 'Review', 'Album', 'Band', 'CTA'] },
+            tipo: { type: 'string', enum: ['Cover', 'Content', 'Song', 'Review', 'Album', 'Band', 'Analysis', 'CTA'] },
             layout: { type: 'string', enum: ['hook', 'quote', 'stat', 'photo', 'text', 'cta'] },
             visual: { type: 'string' },
             titolo: { type: 'string' },
@@ -172,7 +172,15 @@ function describeFocus(p, d) {
   switch (p.focus) {
     case 'song': {
       const s = d.songs.find(x => String(x.n) === String(p.item));
-      return s ? `Focus del carosello: il brano "${s.title}" (traccia ${s.n}). La slide 1 e la slide 2 devono ruotare attorno a questo brano.` : '';
+      return s ? `Focus del carosello: il brano "${s.title}" (traccia ${s.n}). La slide 1 e la slide 2 devono ruotare attorno a questo brano.
+REGOLE PER IL FOCUS SU UN BRANO (obbligatorie):
+1) Ogni verso citato (campo "citazione") deve provenire ESCLUSIVAMENTE dal testo di "${s.title}". Mai versi di altri brani. Puoi usare piu' passaggi dello stesso testo, in slide diverse. Le altre citazioni possono essere solo recensioni.
+2) Inserisci UNA slide con tipo "Analysis" e layout "text": una breve lettura del testo in chiave di SOCIALITA' PROFONDA (relazioni, appartenenza, solitudine condivisa, ascolto, conflitto, lutto, comunita', ruoli imposti dagli altri: cio' che il testo dice davvero sul modo in cui stiamo con gli altri). Titolo forte (max 60 caratteri), corpo max ~260 caratteri, appoggiato a 1-3 frammenti LETTERALI del testo tra virgolette. Presentala come "a reading" / "our reading", mai come intenzione certa degli autori: non inventare significati che il testo non supporta. Se il testo e' brevissimo (es. Dreamer's Sunsets), dichiaralo e non gonfiarlo.
+3) La caption diventa ESTESA (900-1400 caratteri): apre con una riga forte, sviluppa la stessa analisi sulla socialita' profonda citando frammenti letterali del brano tra virgolette, poi indica traccia e "Stream on Spotify (link in bio)", chiude con una domanda vera al pubblico. Le menzioni @ (solo consentite) restano in fondo ("For fans of ...").
+Testo completo del brano, da usare per citare e analizzare:
+<<<
+${s.lyrics}
+>>>` : '';
     }
     case 'review': {
       const r = d.reviews.find(x => x.id === p.item);
@@ -252,6 +260,15 @@ async function generate(p) {
   if (!tu) throw new Error('Risposta senza carosello, riprova.');
   const out = tu.input;
   out.slides = verifyQuotes(out.slides || [], d);
+  if (p.focus === 'song') {
+    // con un brano al centro i versi devono essere di QUEL brano: altrimenti la citazione viene segnalata
+    const own = norm((d.songs.find(x => String(x.n) === String(p.item)) || {}).lyrics || '');
+    for (const sl of out.slides) {
+      if (!sl.citazione || sl.tipo === 'Review') continue;
+      const parts = sl.citazione.split(/\s*(?:\.{3}|…)\s*|\s\/\s/).map(norm).filter(x => x.length > 3);
+      if (!parts.every(x => own.includes(x))) sl.verified = false;
+    }
+  }
   if (p.focus === 'member') {
     // la foto del membro compare in una sola slide; la copertina usa l'album
     const photos = d.members.map(m => m.photo);
@@ -280,7 +297,7 @@ async function aiCaption(p) {
     ],
     tools: [{ name: 'scrivi_caption', description: 'Restituisce caption, menzioni e hashtag.', input_schema: { type: 'object', properties: { caption: { type: 'string' }, menzioni: { type: 'array', items: { type: 'string' } }, hashtags: { type: 'array', items: { type: 'string' } } }, required: ['caption', 'menzioni', 'hashtags'] } }],
     tool_choice: { type: 'tool', name: 'scrivi_caption' },
-    messages: [{ role: 'user', content: `Scrivi SOLO la caption (e menzioni, hashtag) per questo carosello gia' composto. Segui le regole "Caption" e "Strategia dei tag". ${MOODS[p.mood] ? 'Mood: ' + MOODS[p.mood] + '.' : ''}\n\nSLIDE:\n${slides}\n${avoid ? '\nDA NON RIPETERE (caption precedenti):\n' + avoid : ''}\nSeme creativo: ${Math.floor(Math.random() * 1e6)}.` }]
+    messages: [{ role: 'user', content: `Scrivi SOLO la caption (e menzioni, hashtag) per questo carosello gia' composto. Segui le regole "Caption" e "Strategia dei tag". ${(p.slides || []).some(s => s.tipo === 'Analysis') ? 'Il carosello contiene una slide "Analysis": la caption deve essere ESTESA (900-1400 caratteri) e sviluppare quell\'analisi sulla socialita\' profonda citando frammenti letterali del brano tra virgolette, con traccia, "Stream on Spotify (link in bio)" e una domanda finale.' : ''} ${MOODS[p.mood] ? 'Mood: ' + MOODS[p.mood] + '.' : ''}\n\nSLIDE:\n${slides}\n${avoid ? '\nDA NON RIPETERE (caption precedenti):\n' + avoid : ''}\nSeme creativo: ${Math.floor(Math.random() * 1e6)}.` }]
   });
   const tu = (j.content || []).find(c => c.type === 'tool_use');
   if (!tu) throw new Error('Risposta senza caption, riprova.');

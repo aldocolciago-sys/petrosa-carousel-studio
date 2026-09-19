@@ -42,3 +42,6 @@ Modifica questi file per aggiornare la base di conoscenza (nuove recensioni si p
 
 ## Stile visivo
 Ogni carosello ha uno stile diverso: 9 sfondi generativi (fumo, dune, raggi, anelli psichedelici, terra crepata, retino, strada, onde sonore, montagne), 10 palette, 8 font, foto naturali/bicromia/bianco e nero e due tipi di copertina. Lo stile viene scelto "a tono" con mood, band citate e genere (es. Kyuss = deserto, Sabbath = fumo e monocromo); con l'AI live lo sceglie Claude. Sopra le slide puoi cambiarlo a mano o premere *Nuovo stile*.
+
+## Canzone al centro e analisi del testo
+Scegliendo un brano nel Focus, tutti i versi citati sono di quel brano (mai di altri) e una slide diventa un'analisi del testo in chiave di *socialita' profonda*; la caption diventa estesa (circa 900 caratteri) e sviluppa la stessa lettura. Le analisi della libreria sono in `data/library.json` (`analyses`) e `test-library.js` controlla che ogni frase tra virgolette sia letterale nel testo. Con l'AI live, Claude riceve il testo completo del brano e le stesse regole; un verso non presente nel brano scelto viene segnalato con l'avviso sulla citazione.
