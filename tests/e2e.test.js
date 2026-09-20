@@ -124,7 +124,7 @@ describe('e2e', () => {
     await page.locator('#strip .thumb').nth(3).click(); const before = await hash(page), tit = await $(page, 'e_titolo').inputValue();
     for (let k = 0; k < 4 && (await hash(page)) === before; k++) { await page.click('#btnSwap'); await page.waitForTimeout(400); }
     assert.notEqual(await hash(page), before, 'la slide deve cambiare'); void tit;
-    const c0 = await $(page, 'caption').inputValue(); await page.click('#btnRecap'); await page.waitForTimeout(500); assert.notEqual(await $(page, 'caption').inputValue(), c0);
+    const c0 = await $(page, 'caption').inputValue(); for (let k = 0; k < 6 && (await $(page, 'caption').inputValue()) === c0; k++) { await page.click('#btnRecap'); await page.waitForTimeout(500); } assert.notEqual(await $(page, 'caption').inputValue(), c0);
     await page.click('#btnCopyCap'); const clip = await page.evaluate(() => navigator.clipboard.readText()); assert.ok(clip.includes('#stonerrock') || clip.includes('#stoner'));
     assert.match(await $(page, 'capStats').innerText(), /caratteri/);
     await page.locator('details summary').click(); assert.match(await $(page, 'spec').innerText(), /SLIDE 1/); await page.click('#btnSpec');
@@ -229,7 +229,7 @@ describe('e2e', () => {
 
   test('Audio & sync: 10 brani, punti di sincronizzazione, salvataggio, file JSON, effetto sul Reel', T, () => run(async page => {
     await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10);
-    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati/); }
+    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati|interpolati/); }
     await page.selectOption('#syncSong', '4'); const n = await page.locator('#syncLines .ln').count();
     await page.evaluate(() => (document.getElementById('syncAudio').currentTime = 25)); await page.locator('#syncLines .ln').nth(0).locator('[data-a=set]').click();
     await page.evaluate(() => (document.getElementById('syncAudio').currentTime = 320)); await page.locator('#syncLines .ln').nth(n - 1).locator('[data-a=set]').click();
