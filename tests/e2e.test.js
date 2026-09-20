@@ -199,6 +199,34 @@ describe('e2e', () => {
     const b = pf.state.posts.at(-1); assert.equal(b.posts[0].mediaItems[0].type, 'VIDEO'); assert.equal(b.controls.instagramPublishType, 'REEL');
   }));
 
+  test('Reel: la registrazione non si blocca se la scheda e in secondo piano (requestAnimationFrame fermo)', T, () => run(async page => {
+    // il bug reale: con la scheda nascosta il browser ferma requestAnimationFrame, il video si bloccava su una slide e poi saltava avanti
+    await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
+    await page.reload(); await page.waitForFunction(() => window.StudioCtx && window.Reel);
+    await gen(page, { focus: 'song', item: 1, slides: 8 }); await useProposal(page);
+    await page.waitForFunction(() => document.querySelectorAll('#rlSong option').length === 10);
+    await page.selectOption('#rlRes', '720'); await page.click('#rlMake');
+    await page.waitForSelector('#rlOut', { state: 'visible', timeout: 120000 });
+    const st = await page.evaluate(() => window.Reel.stats());
+    assert.equal(st.slides, st.of, 'tutte le slide devono comparire nel video: ' + JSON.stringify(st));
+    assert.ok(st.maxGap < 1, 'la registrazione si e fermata per ' + st.maxGap + ' s');
+    assert.ok(st.ticks > 100, 'pochi fotogrammi: ' + st.ticks);
+    assert.equal(st.fx, 'mid', 'effetti rock di default'); assert.ok(st.beats >= 8, 'l\'analisi ritmica deve trovare dei colpi: ' + st.beats);
+    const size = await page.evaluate(async () => (await (await fetch(document.getElementById('rlVideo').src)).blob()).size); assert.ok(size > 20000);
+  }));
+
+  test('Reel: effetti forti e "nessun effetto" producono entrambi un video completo', T, () => run(async page => {
+    await gen(page, { focus: 'song', item: 6, slides: 7 }); await useProposal(page);
+    await page.waitForFunction(() => document.querySelectorAll('#rlSong option').length === 10);
+    assert.deepEqual(await page.$$eval('#rlFx option', o => o.map(x => x.value)), ['mid', 'hard', 'off']);
+    for (const fxv of ['hard', 'off']) {
+      await page.selectOption('#rlRes', '720'); await page.selectOption('#rlFx', fxv); await page.evaluate(() => { document.getElementById('rlOut').style.display = 'none'; });
+      await page.click('#rlMake'); await page.waitForSelector('#rlOut', { state: 'visible', timeout: 120000 });
+      const st = await page.evaluate(() => window.Reel.stats());
+      assert.equal(st.fx, fxv); assert.equal(st.slides, st.of, 'slide mancanti con effetti ' + fxv); assert.ok(fxv === 'off' ? st.beats === 0 : st.beats >= 8, 'colpi: ' + st.beats);
+    }
+  }));
+
   test('Audio & sync: 10 brani, punti di sincronizzazione, salvataggio, file JSON, effetto sul Reel', T, () => run(async page => {
     await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10);
     for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati/); }

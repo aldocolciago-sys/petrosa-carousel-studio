@@ -122,6 +122,39 @@
     return list.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
   }
 
+  // ---------- analisi ritmica: trova i colpi forti (cassa/basso) nel tratto di brano usato dal Reel ----------
+  function beatHits(buf, from, to) {
+    const sr = buf.sampleRate, ch = buf.getChannelData(0), hop = Math.round(sr * 0.01);
+    const a = Math.max(0, Math.floor(from * sr)), b = Math.min(ch.length, Math.floor(to * sr)), N = Math.floor((b - a) / hop);
+    if (N < 50) return [];
+    const al = 1 - Math.exp(-2 * Math.PI * 180 / sr); let lp = 0; const env = new Float32Array(N);
+    for (let k = 0; k < N; k++) { let e = 0; for (let j = 0; j < hop; j++) { lp += al * (ch[a + k * hop + j] - lp); e += lp * lp; } env[k] = Math.sqrt(e / hop); }
+    const flux = new Float32Array(N);
+    for (let k = 1; k < N; k++) { let m = 0, c = 0; for (let q = Math.max(0, k - 12); q < k; q++) { m += env[q]; c++; } flux[k] = Math.max(0, env[k] - m / Math.max(1, c)); }
+    const sorted = Array.from(flux).sort((x, y) => x - y), top = sorted[Math.floor(N * 0.97)] || 1e-6, thr = Math.max(sorted[Math.floor(N * 0.86)] || 0, top * 0.18);
+    const hits = []; let last = -1;
+    for (let k = 3; k < N - 3; k++) {
+      if (flux[k] < thr) continue; let peak = true; for (let q = k - 5; q <= k + 5; q++) if (q >= 0 && q < N && flux[q] > flux[k]) { peak = false; break; }
+      if (!peak || (k - last) * 0.01 < 0.22) continue; last = k; hits.push({ t: k * 0.01, s: Math.max(0.35, Math.min(1, flux[k] / top)) });
+    }
+    return hits;
+  }
+  // energia "a scatto": sale di colpo sul colpo e si spegne in ~0.2 s (risoluzione 1/60 s)
+  function makePulse(hits, T) {
+    const R = 60, arr = new Float32Array(Math.ceil(T * R) + 2);
+    hits.forEach(h => { const j0 = Math.max(0, Math.floor(h.t * R)); for (let j = j0; j < arr.length && j < j0 + R * 0.9; j++) arr[j] = Math.max(arr[j], h.s * Math.exp(-(j / R - h.t) / 0.13)); });
+    return t => arr[Math.max(0, Math.min(arr.length - 1, Math.floor(t * R)))];
+  }
+
+  // timer che continua anche con la scheda in secondo piano (un Worker non viene rallentato come i timer della pagina)
+  function startTimer(fn, ms) {
+    try {
+      const url = URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},' + Math.round(ms) + ')'], { type: 'text/javascript' }));
+      const w = new Worker(url); w.onmessage = () => fn();
+      return () => { w.terminate(); URL.revokeObjectURL(url); };
+    } catch (e) { const id = setInterval(fn, ms); return () => clearInterval(id); }
+  }
+
   async function makeVideo() {
     if (!st.slides.length) throw new Error('Genera prima un carosello.');
     const s = byN[$('rlSong').value]; if (!s) throw new Error('Scegli una canzone.');
@@ -140,42 +173,99 @@
       x.imageSmoothingQuality = 'high'; x.drawImage(sm, 0, 0, W, H); x.fillStyle = 'rgba(0,0,0,.5)'; x.fillRect(0, 0, W, H); bg.push(b);
     }
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
+    // ---- effetti "rock" (stoner/doom): vibrazione e zoom sui colpi, flash caldo, eco, taglio glitch, grana e vignetta ----
+    const LV = { off: 0, mid: 1, hard: 1.6 }[$('rlFx').value]; const fxOn = LV > 0;
+    const rnd = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+    let pulse = () => 0, lite = 0, gapEma = 33, since = 0;  // lite: 0 pieno, 1 senza eco e grana, 2 anche senza vignetta e flash                                      // sostituita dopo l'analisi dell'audio
+    const grain = [];
+    if (fxOn) for (let g = 0; g < 4; g++) {
+      const gc = document.createElement('canvas'); gc.width = Math.round(W / 4); gc.height = Math.round(H / 4); const gx = gc.getContext('2d'), id = gx.createImageData(gc.width, gc.height);
+      for (let q = 0; q < id.data.length; q += 4) { const r = rnd(q + g * 977), v = r > 0.5 ? 255 : 0; id.data[q] = id.data[q + 1] = id.data[q + 2] = v; id.data[q + 3] = Math.floor(Math.abs(r - 0.5) * 2 * 120); }
+      gx.putImageData(id, 0, 0); grain.push(gc);
+    }
+    const vig = document.createElement('canvas'); vig.width = W; vig.height = H;
+    { const vx = vig.getContext('2d'), g = vx.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.72); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.7)'); vx.fillStyle = g; vx.fillRect(0, 0, W, H); }
+    const TR = 0.3;
+    const geo = (i, lt) => { const z = 1 + (fxOn ? 0.07 : 0.05) * Math.min(1, lt / D[i]), w = 1080 * k * z, h = 1350 * k * z; return { w, h, x: (W - w) / 2, y: (H - h) / 2 }; };
     const drawSlide = (i, lt, alpha) => {
-      const z = 1 + 0.05 * Math.min(1, lt / D[i]), w = 1080 * k * z, h = 1350 * k * z;
-      fx.globalAlpha = alpha; fx.drawImage(bg[i], 0, 0);
-      fx.drawImage(sl[i], (W - w) / 2, (H - h) / 2, w, h); fx.globalAlpha = 1;
+      const g = geo(i, lt);
+      fx.globalAlpha = alpha; fx.drawImage(bg[i], -W * 0.04, -H * 0.04, W * 1.08, H * 1.08);
+      fx.drawImage(sl[i], g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
     };
     const frame = t => {
       let i = S.length - 1; while (i > 0 && t < S[i]) i--;
-      const lt = t - S[i];
-      fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
-      if (i > 0 && lt < 0.3) { drawSlide(i - 1, D[i - 1], 1); drawSlide(i, lt, lt / 0.3); } else drawSlide(i, lt, 1);
+      const lt = t - S[i], fr = Math.floor(t * 30);
+      fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1; fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
+      const P = fxOn ? pulse(t) : 0;
+      fx.save();
+      if (fxOn) {
+        const sh = P * 5.5 * k * LV, punch = 1 + P * 0.024 * LV;
+        fx.translate(W / 2 + (rnd(fr * 2 + 1) - 0.5) * 2 * sh, H / 2 + (rnd(fr * 2 + 2) - 0.5) * 2 * sh);
+        fx.rotate((rnd(fr * 3 + 7) - 0.5) * 2 * P * 0.005 * LV); fx.scale(punch, punch); fx.translate(-W / 2, -H / 2);
+      }
+      if (i > 0 && lt < TR) { drawSlide(i - 1, D[i - 1], 1); drawSlide(i, lt, lt / TR); } else drawSlide(i, lt, 1);
+      if (fxOn && i > 0 && lt < TR * 0.8) {                    // taglio glitch: strisce orizzontali che scivolano al cambio slide
+        const g = geo(i, lt), q = 1 - lt / (TR * 0.8), bands = 8;
+        fx.globalAlpha = Math.min(1, q + 0.15);
+        for (let j = 0; j < bands; j++) {
+          const dx = (rnd(fr * 11 + j) - 0.5) * 110 * k * q * LV;
+          fx.drawImage(sl[i], 0, j * sl[i].height / bands, sl[i].width, sl[i].height / bands, g.x + dx, g.y + j * g.h / bands, g.w, g.h / bands + 1);
+        }
+        fx.globalAlpha = 1;
+      }
+      if (fxOn && lite < 1 && P > 0.05) {                         // eco caldo sui colpi
+        const g = geo(i, lt); fx.globalCompositeOperation = 'lighter'; fx.globalAlpha = Math.min(0.4, P * 0.26 * LV);
+        fx.drawImage(sl[i], g.x + 9 * k * P * LV, g.y, g.w, g.h); fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1;
+      }
+      fx.restore();
+      if (fxOn) {
+        if (lite < 2 && P > 0.02) { fx.globalCompositeOperation = 'lighter'; fx.fillStyle = `rgba(255,110,20,${(P * 0.13 * LV).toFixed(3)})`; fx.fillRect(0, 0, W, H); }   // flash da palco
+        fx.globalCompositeOperation = 'source-over';
+        if (lite < 2) { fx.globalAlpha = 0.72 + 0.2 * P; fx.drawImage(vig, 0, 0); }
+        if (lite < 1) { fx.globalAlpha = 0.16 * LV; fx.drawImage(grain[Math.floor(t * 14) % grain.length], 0, 0, W, H); }
+        fx.globalAlpha = 1;
+      }
     };
     // audio
     const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); if (ac.state === 'suspended') await ac.resume();
     const buf = await ac.decodeAudioData(await (await fetch(clipUrl(s))).arrayBuffer());
+    if (fxOn) { const hits = beatHits(buf, offset, offset + T); S.slice(1).forEach(t => hits.push({ t: t, s: 1 })); pulse = makePulse(hits, T); rl.beats = hits.length; }
     const dest = ac.createMediaStreamDestination(), src = ac.createBufferSource(), gain = ac.createGain();
     src.buffer = buf; src.connect(gain); gain.connect(dest);
     frame(0);
-    const stream = fc.captureStream(30); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    // captureStream(0) + requestFrame(): i frame vengono spinti a mano, cosi' la registrazione non dipende dal rendering della scheda
+    // (con la scheda in secondo piano il browser ferma requestAnimationFrame e la ripaint: il video si bloccava e poi saltava).
+    const stream = fc.captureStream(0); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    const vtrack = stream.getVideoTracks()[0];
+    const push = () => { if (vtrack && typeof vtrack.requestFrame === 'function') vtrack.requestFrame(); };
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: W === 1080 ? 4.5e6 : 2.8e6, audioBitsPerSecond: 160000 });
     const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const done = new Promise(res => (rec.onstop = res));
-    rec.start(1000);
+    rec.start(1000); push();
     const t0 = ac.currentTime + 0.1;
     gain.gain.setValueAtTime(0, t0); gain.gain.linearRampToValueAtTime(1, t0 + 0.4); gain.gain.setValueAtTime(1, t0 + T - 1.3); gain.gain.linearRampToValueAtTime(0, t0 + T - 0.05);
     src.start(t0, offset, T + 0.2);
+    rl.lite = 0; if (!fxOn) rl.beats = 0; const stats = { maxGap: 0, ticks: 0, slides: new Set() };
+    let lastTick = performance.now(), lastGood = performance.now();
     await new Promise(res => {
+      let stop = null, over = false;
       const tick = () => {
+        if (over) return;
+        const now = performance.now(); stats.maxGap = Math.max(stats.maxGap, (now - lastTick) / 1000); lastTick = now;
         const t = ac.currentTime - t0;
-        if (t >= T) return res();
-        frame(Math.max(0, t));
-        busy($('rlMake'), true, `Registro ${Math.max(0, t).toFixed(0)}/${T.toFixed(0)} s...`);
-        requestAnimationFrame(tick);
+        if (t >= T) { over = true; stop && stop(); return res(); }
+        const tt = Math.max(0, t);
+        frame(tt); push(); stats.ticks++;
+        // se il computer non regge il ritmo (meno di ~13 fps) toglie gli effetti piu' pesanti
+        gapEma = gapEma * 0.92 + (performance.now() - lastGood) * 0.08; lastGood = performance.now(); since++;
+        if (fxOn && lite < 2 && since > 25 && gapEma > 75) { lite++; rl.lite = lite; since = 0; }
+        let i = S.length - 1; while (i > 0 && tt < S[i]) i--; stats.slides.add(i);
+        busy($('rlMake'), true, `Registro ${tt.toFixed(0)}/${T.toFixed(0)} s (non cambiare scheda)...`);
       };
-      requestAnimationFrame(tick);
+      stop = startTimer(tick, 1000 / 30);
     });
-    frame(T - 0.01);
+    rl.stats = { maxGap: stats.maxGap, ticks: stats.ticks, slides: stats.slides.size, of: n, beats: rl.beats || 0, fx: $('rlFx').value, lite: rl.lite || 0 };
+    frame(T - 0.01); push();
     await new Promise(r => setTimeout(r, 250));
     rec.stop(); await done; src.stop(); ac.close().catch(() => {});
     const type = mime.split(';')[0];
@@ -189,7 +279,7 @@
       if (rl.url) URL.revokeObjectURL(rl.url);
       rl.blob = out.blob; rl.ext = out.ext; rl.url = URL.createObjectURL(out.blob);
       $('rlVideo').src = rl.url; $('rlOut').style.display = 'block';
-      $('rlFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
+      $('rlFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` + (rl.stats && rl.stats.maxGap > 1 ? ` <span style="color:var(--amber)">Attenzione: la registrazione si e' fermata per ${rl.stats.maxGap.toFixed(0)} s (scheda in secondo piano o computer occupato): controlla il video e, se serve, rigeneralo senza cambiare scheda.</span>` : '') : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
       $('rlOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) { toast(e.message, true); } finally { busy($('rlMake'), false); }
   };
@@ -255,5 +345,5 @@
   };
   document.querySelector('nav button[data-tab="audio"]').addEventListener('click', () => { loadSongs().then(renderSync).catch(e => toast(e.message, true)); });
 
-  window.Reel = { refresh };
+  window.Reel = { refresh, stats: () => rl.stats };
 })();
