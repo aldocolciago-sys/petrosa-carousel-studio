@@ -1,1828 +1,2099 @@
 {
- "_note": "Pre-written library for Petrosa Carousel Studio. All post text is in English (US / Northern Europe audience). Quotes ('cit') are verified against data/songs.txt and data/band.json by 'node test-library.js'. Labels of moods/recipes are UI only.",
- "moods": [
-  {
-   "id": "riff",
-   "label": "Riff & Fuzz",
-   "desc": "Energia, volume alto, groove. Per chi vuole muovere la testa.",
-   "color": "#f59e0b"
-  },
-  {
-   "id": "doom",
-   "label": "Doom & Peso",
-   "desc": "Buio, pietra, peccato. Il lato piu' pesante del disco.",
-   "color": "#8b5cf6"
-  },
-  {
-   "id": "psych",
-   "label": "Desert & Psych",
-   "desc": "Miraggi, fuzz caldo, atmosfera Kyuss. Per i fan del desert rock.",
-   "color": "#ea580c"
-  },
-  {
-   "id": "intro",
-   "label": "Introspettivo",
-   "desc": "Perdita, dubbio, un filo di luce. Il lato umano del disco.",
-   "color": "#c026d3"
-  },
-  {
-   "id": "road",
-   "label": "On the road",
-   "desc": "Furgone, strada aperta, cielo enorme.",
-   "color": "#38bdf8"
-  },
-  {
-   "id": "proof",
-   "label": "Riconoscimenti",
-   "desc": "Doom Charts #14 e recensioni: la prova sociale.",
-   "color": "#34d399"
-  },
-  {
-   "id": "fans",
-   "label": "Per i fan",
-   "desc": "Punta ai follower di Dozer, Orange Goblin, Kyuss e compagnia.",
-   "color": "#f43f5e"
-  }
- ],
- "hooks": [
-  {
-   "id": "h-riff-1",
-   "moods": [
-    "riff"
-   ],
-   "titolo": "Fuzz up. Riffs low.",
-   "corpo": "Roadburn Chronicles. The debut from Petrosa, stoner/doom from Milan, Italy.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-riff-2",
-   "moods": [
-    "riff"
-   ],
-   "titolo": "Recorded live. Eight days.",
-   "corpo": "Tubes, drum room, zero frills. Petrosa, Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-riff-s",
-   "moods": [
-    "riff"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "One riff, one song. From the debut album Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-doom-1",
-   "moods": [
-    "doom"
-   ],
-   "titolo": "Doom Carved in Stone(r).",
-   "corpo": "The weight of classic doom. The groove of stoner. Petrosa.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-doom-2",
-   "moods": [
-    "doom"
-   ],
-   "titolo": "Heavy as stone.",
-   "corpo": "Down-tuned guitars, dense layers of fuzz. The debut from Petrosa.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-doom-s",
-   "moods": [
-    "doom"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "Darkness, weight, redemption. From Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-psych-1",
-   "moods": [
-    "psych"
-   ],
-   "titolo": "Desert. Fuzz. Mirages.",
-   "corpo": "Italian stoner/doom with a desert rock soul. Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-psych-2",
-   "moods": [
-    "psych"
-   ],
-   "titolo": "If you love Kyuss, stop scrolling.",
-   "corpo": "Petrosa: stoner/doom from Milan. Hear the debut Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-psych-s",
-   "moods": [
-    "psych"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "Fuzz, psych and desert rock. From Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-intro-1",
-   "moods": [
-    "intro"
-   ],
-   "titolo": "The human side of doom.",
-   "corpo": "Roadburn Chronicles: a journey through the human condition.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-intro-2",
-   "moods": [
-    "intro"
-   ],
-   "titolo": "Not just heavy.",
-   "corpo": "Loss, doubt, a thread of light. The debut from Petrosa.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-intro-s",
-   "moods": [
-    "intro"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "A song that digs deep. From Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-road-1",
-   "moods": [
-    "road"
-   ],
-   "titolo": "One van. One record.",
-   "corpo": "Roadburn Chronicles: open road, low riffs and a huge sky.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-road-2",
-   "moods": [
-    "road"
-   ],
-   "titolo": "Start the engine.",
-   "corpo": "Petrosa, stoner/doom from Milan. Volume up, windows down.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-road-s",
-   "moods": [
-    "road"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "Put it on for an empty road. Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-proof-1",
-   "moods": [
-    "proof"
-   ],
-   "titolo": "#14 in the world.",
-   "corpo": "Roadburn Chronicles enters the Doom Charts of August 2026.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-proof-2",
-   "moods": [
-    "proof"
-   ],
-   "titolo": "The reviews say it.",
-   "corpo": "Italy, France, Germany and beyond. The debut from Petrosa.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-proof-s",
-   "moods": [
-    "proof"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "From Roadburn Chronicles, #14 in the Doom Charts, August 2026.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-fans-1",
-   "moods": [
-    "fans"
-   ],
-   "titolo": "For fans of Dozer and Orange Goblin.",
-   "corpo": "New Italian stoner/doom. Petrosa, Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-fans-2",
-   "moods": [
-    "fans"
-   ],
-   "titolo": "Your next stoner record.",
-   "corpo": "Fuzz, doom, groove. Petrosa from Milan.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-fans-s",
-   "moods": [
-    "fans"
-   ],
-   "kind": "song",
-   "titolo": "«{song}»",
-   "corpo": "If you live for stoner and doom, hear this one. Roadburn Chronicles.",
-   "immagine": "cover"
-  },
-  {
-   "id": "h-member",
-   "moods": [
-    "all"
-   ],
-   "kind": "member",
-   "titolo": "{member}.",
-   "corpo": "{role} of Petrosa. Stoner/doom from Milan, debut album Roadburn Chronicles.",
-   "immagine": "{photo}"
-  },
-  {
-   "id": "h-review",
-   "moods": [
-    "all"
-   ],
-   "kind": "review",
-   "titolo": "Word from {pub}.",
-   "corpo": "The verdict on Petrosa's Roadburn Chronicles: {verdict}.",
-   "immagine": "cover"
-  }
- ],
- "quotes": [
-  {
-   "id": "q-sure-1",
-   "kind": "song",
-   "song": 1,
-   "moods": [
-    "doom",
-    "riff"
-   ],
-   "cit": "Do you see light / with your closed eyes? / Are you aware that You're dying"
-  },
-  {
-   "id": "q-sure-2",
-   "kind": "song",
-   "song": 1,
-   "moods": [
-    "doom",
-    "intro"
-   ],
-   "cit": "Pillars of sand / The right, the true / the false and the God / An anthill and the Colosseum"
-  },
-  {
-   "id": "q-sure-3",
-   "kind": "song",
-   "song": 1,
-   "moods": [
-    "riff",
-    "fans"
-   ],
-   "cit": "You're dying in silence / between slaves'n'Rulers"
-  },
-  {
-   "id": "q-sinner-1",
-   "kind": "song",
-   "song": 2,
-   "moods": [
-    "doom",
-    "riff",
-    "fans"
-   ],
-   "cit": "I'm a sinner / an enemy of God / Family ruiner / A demon of my time"
-  },
-  {
-   "id": "q-sinner-2",
-   "kind": "song",
-   "song": 2,
-   "moods": [
-    "psych",
-    "intro"
-   ],
-   "cit": "Grey like my skies / And purple like my veins"
-  },
-  {
-   "id": "q-sinner-3",
-   "kind": "song",
-   "song": 2,
-   "moods": [
-    "doom",
-    "proof"
-   ],
-   "cit": "The Earth is calling my body / And stone reveals my name"
-  },
-  {
-   "id": "q-turn-1",
-   "kind": "song",
-   "song": 3,
-   "moods": [
-    "intro",
-    "proof"
-   ],
-   "cit": "Do you feel it? / Your wind is changing / One single moment / A turning Point"
-  },
-  {
-   "id": "q-turn-2",
-   "kind": "song",
-   "song": 3,
-   "moods": [
-    "intro",
-    "road"
-   ],
-   "cit": "It's finally dawn / So much poison'n'mud / An elusive / and shining light"
-  },
-  {
-   "id": "q-turn-3",
-   "kind": "song",
-   "song": 3,
-   "moods": [
-    "doom"
-   ],
-   "cit": "The hardest sowing / The precious yield / A necessary and lonely hard path"
-  },
-  {
-   "id": "q-ifor-1",
-   "kind": "song",
-   "song": 4,
-   "moods": [
-    "riff",
-    "fans"
-   ],
-   "cit": "Monochromatic words yeah / You're teaching me / while truth chokes you"
-  },
-  {
-   "id": "q-ifor-2",
-   "kind": "song",
-   "song": 4,
-   "moods": [
-    "riff",
-    "proof"
-   ],
-   "cit": "Baby oh you're just a joke / but I need you, I need it!"
-  },
-  {
-   "id": "q-ifor-3",
-   "kind": "song",
-   "song": 4,
-   "moods": [
-    "intro",
-    "doom"
-   ],
-   "cit": "'Cause I prefer doubt and fear / I prefer doubt and fear"
-  },
-  {
-   "id": "q-rusty-1",
-   "kind": "song",
-   "song": 5,
-   "moods": [
-    "intro"
-   ],
-   "cit": "The city feels so empty and strange / since you've been gone one summer's night."
-  },
-  {
-   "id": "q-rusty-2",
-   "kind": "song",
-   "song": 5,
-   "moods": [
-    "intro",
-    "road"
-   ],
-   "cit": "And when I meet some old white-haired man / I hope it's you, I hope, I'm wrong"
-  },
-  {
-   "id": "q-rusty-3",
-   "kind": "song",
-   "song": 5,
-   "moods": [
-    "intro"
-   ],
-   "cit": "A sip of wine / A toast for Father's Day"
-  },
-  {
-   "id": "q-viper-1",
-   "kind": "song",
-   "song": 6,
-   "moods": [
-    "doom",
-    "riff",
-    "fans"
-   ],
-   "cit": "My soul is dust, my body is burning / Ready or not, the Viper's coming"
-  },
-  {
-   "id": "q-viper-2",
-   "kind": "song",
-   "song": 6,
-   "moods": [
-    "riff",
-    "psych"
-   ],
-   "cit": "Toxin leaves behind a splinter / Sometimes it burn, sometimes it hurt"
-  },
-  {
-   "id": "q-rev-1",
-   "kind": "song",
-   "song": 7,
-   "moods": [
-    "psych",
-    "doom",
-    "fans"
-   ],
-   "cit": "Shattered moon, the veil is torn / Serpents fill the sky above / Crosses mark the earth below"
-  },
-  {
-   "id": "q-rev-2",
-   "kind": "song",
-   "song": 7,
-   "moods": [
-    "psych",
-    "riff"
-   ],
-   "cit": "Taste my blood / rise again / serpent sun"
-  },
-  {
-   "id": "q-rev-3",
-   "kind": "song",
-   "song": 7,
-   "moods": [
-    "doom",
-    "proof",
-    "road"
-   ],
-   "cit": "Truth bleeds red / Freedom fades fast / The Darkness is deep / But spirit stands tall"
-  },
-  {
-   "id": "q-dream-1",
-   "kind": "song",
-   "song": 8,
-   "moods": [
-    "road",
-    "intro",
-    "psych"
-   ],
-   "cit": "And she said: \"Secret dreams, hold my dreams, side by side with you\""
-  },
-  {
-   "id": "q-monst-1",
-   "kind": "song",
-   "song": 9,
-   "moods": [
-    "intro",
-    "doom"
-   ],
-   "cit": "So, in the end / The silence screams too loud"
-  },
-  {
-   "id": "q-monst-2",
-   "kind": "song",
-   "song": 9,
-   "moods": [
-    "intro"
-   ],
-   "cit": "Are we to blame for losing our light?"
-  },
-  {
-   "id": "q-monst-3",
-   "kind": "song",
-   "song": 9,
-   "moods": [
-    "doom"
-   ],
-   "cit": "So let it be / The wounds will never heal / A shattered dream"
-  },
-  {
-   "id": "q-van-1",
-   "kind": "song",
-   "song": 10,
-   "moods": [
-    "road",
-    "psych",
-    "proof"
-   ],
-   "cit": "Open road / Rolling fields beneath the sky / Feeling free / As the world just passes by"
-  },
-  {
-   "id": "q-van-2",
-   "kind": "song",
-   "song": 10,
-   "moods": [
-    "road",
-    "riff",
-    "fans"
-   ],
-   "cit": "An old van and a couple of beers / Laughing through hundred miles with no fears"
-  },
-  {
-   "id": "q-van-3",
-   "kind": "song",
-   "song": 10,
-   "moods": [
-    "road",
-    "intro"
-   ],
-   "cit": "Endless sky / Feeling small but feeling free"
-  },
-  {
-   "id": "q-van-4",
-   "kind": "song",
-   "song": 10,
-   "moods": [
-    "road",
-    "psych"
-   ],
-   "cit": "Midnight drives / underneath the silver moon"
-  },
-  {
-   "id": "rq-outlaws-1",
-   "kind": "review",
-   "review": "outlaws",
-   "moods": [
-    "riff",
-    "psych",
-    "fans"
-   ],
-   "cit": "there's a gritty realism to PETROSA's music that brings an aggressive level of Fuzz, Psych and Desert Rock with a destructive Nineties Alt-Metal attitude"
-  },
-  {
-   "id": "rq-outlaws-2",
-   "kind": "review",
-   "review": "outlaws",
-   "moods": [
-    "proof",
-    "fans"
-   ],
-   "cit": "Excellent and Highly Recommended."
-  },
-  {
-   "id": "rq-outlaws-3",
-   "kind": "review",
-   "review": "outlaws",
-   "moods": [
-    "psych",
-    "fans"
-   ],
-   "cit": "Influenced by the likes of KYUSS, Orange Goblin and Dozer"
-  },
-  {
-   "id": "rq-outlaws-4",
-   "kind": "review",
-   "review": "outlaws-mm",
-   "moods": [
-    "psych",
-    "fans"
-   ],
-   "cit": "adding some Monster Magnet spaced out heaviness along the way"
-  },
-  {
-   "id": "rq-scream-1",
-   "kind": "review",
-   "review": "screaming",
-   "moods": [
-    "riff",
-    "doom",
-    "proof"
-   ],
-   "cit": "featuring an impressive showing of rich, expressive vocals, extraordinary guitar chops, sinister stoner/doom-style bass, and relentlessly crashing drums"
-  },
-  {
-   "id": "rq-scream-2",
-   "kind": "review",
-   "review": "screaming2",
-   "moods": [
-    "proof",
-    "intro"
-   ],
-   "cit": "Gripping from start to finish, Roadburn Chronicles makes a memorable first impression on both the ears and souls of heavy music fans."
-  },
-  {
-   "id": "rq-scream-3",
-   "kind": "review",
-   "review": "screaming2",
-   "moods": [
-    "intro",
-    "proof"
-   ],
-   "cit": "an emotionally charged album that's all about the treacherous 'journey through the human condition'"
-  },
-  {
-   "id": "rq-pitstop-1",
-   "kind": "review",
-   "review": "pitstop",
-   "moods": [
-    "riff",
-    "doom",
-    "proof"
-   ],
-   "cit": "PETROSA reshapes stoner doom through sheer grit."
-  },
-  {
-   "id": "rq-pitstop-2",
-   "kind": "review",
-   "review": "pitstop",
-   "moods": [
-    "doom",
-    "riff"
-   ],
-   "cit": "Built around low-tuned guitars and dense layers of fuzz"
-  },
-  {
-   "id": "rq-pitstop-3",
-   "kind": "review",
-   "review": "pitstop2",
-   "moods": [
-    "fans",
-    "psych"
-   ],
-   "cit": "The legacy of bands such as KYUSS, DOZER, ORANGE GOBLIN, and MONSTER MAGNET is clearly present"
-  },
-  {
-   "id": "rq-papy-1",
-   "kind": "review",
-   "review": "papyjeff",
-   "moods": [
-    "doom",
-    "riff"
-   ],
-   "cit": "delivering heavy, low-tuned monolithic grooves, fuzzy riffs and classic doom weight"
-  },
-  {
-   "id": "rq-coop-1",
-   "kind": "review",
-   "review": "radiocoop",
-   "moods": [
-    "proof",
-    "riff"
-   ],
-   "cit": "A more than promising debut, played with complete mastery of tone and genre."
-  },
-  {
-   "id": "rq-coop-2",
-   "kind": "review",
-   "review": "radiocoop",
-   "moods": [
-    "doom",
-    "fans"
-   ],
-   "cit": "takes on the clattering rails of stoner rock, draped in sinister doom ballads"
-  },
-  {
-   "id": "rq-hmw-1",
-   "kind": "review",
-   "review": "hmwebzine",
-   "moods": [
-    "road",
-    "intro"
-   ],
-   "cit": "a raw, introspective journey celebrating resilience and the untamed road"
-  },
-  {
-   "id": "rq-hmw-2",
-   "kind": "review",
-   "review": "hmwebzine",
-   "moods": [
-    "doom",
-    "psych"
-   ],
-   "cit": "PETROSA expertly blend the extended groove of stoner rock with the crushing weight of classic doom metal"
-  },
-  {
-   "id": "rq-argo-1",
-   "kind": "review",
-   "review": "argonauta",
-   "moods": [
-    "fans",
-    "doom",
-    "riff"
-   ],
-   "cit": "10 tracks of massive riffs, dark atmospheres and introspective songwriting"
-  },
-  {
-   "id": "rq-argo-2",
-   "kind": "review",
-   "review": "argonauta",
-   "moods": [
-    "fans",
-    "psych"
-   ],
-   "cit": "Blending stoner rock grooves with crushing doom weight, for fans of Dozer, Orange Goblin and The Sword."
-  },
-  {
-   "id": "rq-inner-1",
-   "kind": "review",
-   "review": "innerstrength",
-   "moods": [
-    "doom",
-    "riff"
-   ],
-   "cit": "embodying one of the darkest sides of the album with relentless hypnotic heaviness"
-  }
- ],
- "info": [
-  {
-   "id": "i-charts",
-   "topic": "charts",
-   "moods": [
-    "all"
-   ],
-   "layout": "stat",
-   "tipo": "Album",
-   "stat": "#14",
-   "titolo": "Doom Charts, August 2026",
-   "corpo": "2,678 points. Top 40 out of 166 albums nominated by bloggers, radio hosts and journalists of the heavy underground.",
-   "immagine": "cover",
-   "tagNames": [
-    "Doom Charts"
-   ]
-  },
-  {
-   "id": "i-charts-b",
-   "topic": "charts",
-   "moods": [
-    "proof",
-    "doom",
-    "riff",
-    "fans"
-   ],
-   "layout": "stat",
-   "tipo": "Album",
-   "stat": "#14",
-   "titolo": "Charting in the underground.",
-   "corpo": "Roadburn Chronicles debuts at #14 in the August 2026 Doom Charts, published September 4.",
-   "immagine": "cover",
-   "tagNames": [
-    "Doom Charts"
-   ]
-  },
-  {
-   "id": "i-basics",
-   "topic": "basics",
-   "moods": [
-    "all"
-   ],
-   "layout": "stat",
-   "tipo": "Album",
-   "stat": "10",
-   "titolo": "tracks. 51 minutes.",
-   "corpo": "Roadburn Chronicles, out August 28, 2026 on Octopus Rising / Argonauta Records.",
-   "immagine": "cover"
-  },
-  {
-   "id": "i-genre",
-   "topic": "genre",
-   "moods": [
-    "doom",
-    "psych",
-    "riff",
-    "fans"
-   ],
-   "layout": "text",
-   "tipo": "Genre",
-   "titolo": "Doom and stoner, same riff.",
-   "corpo": "The extended groove of stoner rock. The crushing weight of classic doom. High-voltage fuzz, hypnotic tempos.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-studio",
-   "topic": "studio",
-   "moods": [
-    "riff",
-    "psych",
-    "doom",
-    "road"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Eight days. Live.",
-   "corpo": "Toxic Basement Studio, Carate Brianza, with Carlo Altobelli. November 2024 to January 2025: tubes, drum room, valve saturation.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-themes",
-   "topic": "themes",
-   "moods": [
-    "doom",
-    "intro",
-    "road"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Sin, conflict, redemption.",
-   "corpo": "Roadburn Chronicles is a journey through the human condition: between darkness and redemption, with room for freedom and moments of light.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-singles",
-   "topic": "singles",
-   "moods": [
-    "riff",
-    "doom",
-    "psych",
-    "proof"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Two singles: Revenant and Viper.",
-   "corpo": "Revenant has an official video on YouTube. Viper, as Inner-Strength Check puts it, is one of the darkest sides of the album.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-label",
-   "topic": "label",
-   "moods": [
-    "proof",
-    "fans",
-    "doom",
-    "psych"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Octopus Rising.",
-   "corpo": "A sub-label of Argonauta Records, the Italian home of stoner, doom, sludge and post metal. Distribution across Europe, the Americas and Japan.",
-   "immagine": "none",
-   "tagNames": [
-    "Argonauta Records / Octopus Rising"
-   ]
-  },
-  {
-   "id": "i-tracklist",
-   "topic": "tracklist",
-   "moods": [
-    "all"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Save the tracklist.",
-   "corpo": "01 S.U.R.E. / 02 The Sinner / 03 Turning Point / 04 I For An I / 05 Rusty Blues / 06 Viper / 07 Revenant / 08 Dreamer's Sunsets / 09 Monsters' Conceal / 10 An Old Van and a Couple of Beers",
-   "immagine": "none"
-  },
-  {
-   "id": "i-gear",
-   "topic": "gear",
-   "moods": [
-    "riff",
-    "doom"
-   ],
-   "layout": "text",
-   "tipo": "Band",
-   "titolo": "This is how weight is built.",
-   "corpo": "Guitar with active pickups, Orange tube head, 5-string bass tuned low. British and vintage fuzz.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-van",
-   "topic": "van",
-   "moods": [
-    "road",
-    "psych",
-    "intro"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "The van on the cover.",
-   "corpo": "An old blue van crosses a psychedelic desert. The last track on the record is 'An Old Van and a Couple of Beers'.",
-   "immagine": "cover"
-  },
-  {
-   "id": "i-rusty",
-   "topic": "rusty",
-   "moods": [
-    "intro",
-    "road"
-   ],
-   "layout": "text",
-   "tipo": "Song",
-   "titolo": "Rusty Blues.",
-   "corpo": "A bench, a toast for Father's Day. A dirty, deep blues, as Radiocoop describes it.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-variety",
-   "topic": "variety",
-   "moods": [
-    "riff",
-    "fans",
-    "proof"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Not just stoner.",
-   "corpo": "Radiocoop also hears Motörhead-style speed metal (I For An I) and dirty, deep blues (Rusty Blues).",
-   "immagine": "none",
-   "tagNames": [
-    "Motörhead"
-   ]
-  },
-  {
-   "id": "i-press",
-   "topic": "press",
-   "moods": [
-    "proof",
-    "fans"
-   ],
-   "layout": "text",
-   "tipo": "Press",
-   "titolo": "Reviewed in four languages.",
-   "corpo": "Italian, French, German, English: Radiocoop, Heavy Metal Webzine, W.T.R. Mag', Der Fuzzer, Outlaws Of The Sun, Pitstop Metal.",
-   "immagine": "none"
-  },
-  {
-   "id": "i-infl",
-   "topic": "influences",
-   "moods": [
-    "psych",
-    "fans"
-   ],
-   "layout": "text",
-   "tipo": "Influences",
-   "titolo": "The name that keeps coming back: Kyuss.",
-   "corpo": "Outlaws Of The Sun and Pitstop Metal cite it among the influences. In the Breathing The Core interview, Kyuss is among the reference points named by the band.",
-   "immagine": "none",
-   "tagNames": [
-    "Kyuss"
-   ]
-  },
-  {
-   "id": "i-fans-1",
-   "topic": "fans-primary",
-   "moods": [
-    "fans",
-    "psych",
-    "riff",
-    "proof"
-   ],
-   "layout": "text",
-   "tipo": "For fans of",
-   "titolo": "For fans of these names.",
-   "corpo": "Cited by the press: Kyuss, Orange Goblin, Dozer, Monster Magnet, Fu Manchu. (Outlaws Of The Sun, Pitstop Metal)",
-   "immagine": "none",
-   "tagGroup": "primary"
-  },
-  {
-   "id": "i-fans-1b",
-   "topic": "fans-primary",
-   "moods": [
-    "fans",
-    "proof",
-    "psych"
-   ],
-   "layout": "text",
-   "tipo": "For fans of",
-   "titolo": "The press puts them side by side.",
-   "corpo": "Kyuss, Orange Goblin and Dozer according to Steve Howe of Outlaws Of The Sun. Monster Magnet and Fu Manchu are also cited by Pitstop Metal.",
-   "immagine": "none",
-   "tagGroup": "primary"
-  },
-  {
-   "id": "i-fans-2",
-   "topic": "fans-secondary",
-   "moods": [
-    "doom",
-    "fans",
-    "psych"
-   ],
-   "layout": "text",
-   "tipo": "For fans of",
-   "titolo": "Doom and desert roots.",
-   "corpo": "In the EPK's FFO: The Sword, Black Sabbath, Windhand, Down, Trouble.",
-   "immagine": "none",
-   "tagGroup": "secondary"
-  }
- ],
- "band": [
-  {
-   "id": "b-antonio-1",
-   "member": "antonio",
-   "moods": [
-    "all"
-   ],
-   "corpo": "Guitar and founder. Ex-Orphean (death metal), he started Petrosa in 2019."
-  },
-  {
-   "id": "b-antonio-2",
-   "member": "antonio",
-   "moods": [
-    "riff",
-    "doom"
-   ],
-   "corpo": "Massive tube-driven riffs, pentatonic grooves, British and vintage fuzz. The architect of the Petrosa sound."
-  },
-  {
-   "id": "b-giorgio-1",
-   "member": "giorgio",
-   "moods": [
-    "all"
-   ],
-   "corpo": "Drums. Milanese, raised on skate culture and squat-scene punk."
-  },
-  {
-   "id": "b-giorgio-2",
-   "member": "giorgio",
-   "moods": [
-    "riff",
-    "road",
-    "doom"
-   ],
-   "corpo": "Dynamic control, dry snare, heavy ride and crash. The engine that drives the weight."
-  },
-  {
-   "id": "b-aldo-1",
-   "member": "aldo",
-   "moods": [
-    "all"
-   ],
-   "corpo": "Vocals. Baritone with over twenty years of experience: from clean to distorted."
-  },
-  {
-   "id": "b-aldo-2",
-   "member": "aldo",
-   "moods": [
-    "doom",
-    "intro",
-    "psych"
-   ],
-   "corpo": "Bluesy grit, authoritative melody, cavernous doom timbre. The emotional heart of the band."
-  },
-  {
-   "id": "b-andrea-1",
-   "member": "andrea",
-   "moods": [
-    "all"
-   ],
-   "corpo": "Bass. After Big Crunch, in Petrosa since 2024."
-  },
-  {
-   "id": "b-andrea-2",
-   "member": "andrea",
-   "moods": [
-    "doom",
-    "riff"
-   ],
-   "corpo": "Thick, sinister tone, clean sub-lows, overdrive in the mids. It amplifies every riff."
-  },
-  {
-   "id": "b-all-1",
-   "member": "all",
-   "moods": [
-    "all"
-   ],
-   "titolo": "Four musicians. One wall of sound.",
-   "corpo": "Antonio Buonocore, guitar. Giorgio Monza, drums. Aldo Colciago, vocals. Andrea Vignati, bass. From Milan, Italy."
-  },
-  {
-   "id": "b-all-2",
-   "member": "all",
-   "moods": [
-    "proof",
-    "fans",
-    "road"
-   ],
-   "titolo": "Petrosa. Milan. Since 2019.",
-   "corpo": "Founded by Antonio Buonocore. Now four strong: Antonio, Giorgio, Aldo and Andrea."
-  }
- ],
- "cta": [
-  {
-   "id": "c-riff-1",
-   "moods": [
-    "riff"
-   ],
-   "titolo": "Turn it up.",
-   "corpo": "Roadburn Chronicles, full album on Spotify. Save this post and send it to someone who loves fuzz."
-  },
-  {
-   "id": "c-riff-2",
-   "moods": [
-    "riff"
-   ],
-   "titolo": "Hit play.",
-   "corpo": "Ten tracks of riffs and fuzz. Stream Roadburn Chronicles on Spotify."
-  },
-  {
-   "id": "c-doom-1",
-   "moods": [
-    "doom"
-   ],
-   "titolo": "Step into the dark.",
-   "corpo": "Stream Roadburn Chronicles on Spotify. 51 minutes of weight."
-  },
-  {
-   "id": "c-doom-2",
-   "moods": [
-    "doom"
-   ],
-   "titolo": "Carved in stone.",
-   "corpo": "Roadburn Chronicles, the full album on Spotify. Link in bio."
-  },
-  {
-   "id": "c-psych-1",
-   "moods": [
-    "psych"
-   ],
-   "titolo": "Head for the desert.",
-   "corpo": "Roadburn Chronicles on Spotify. Headphones on, eyes closed."
-  },
-  {
-   "id": "c-psych-2",
-   "moods": [
-    "psych"
-   ],
-   "titolo": "The fuzz is waiting.",
-   "corpo": "Stream the album on Spotify and tell us your favorite track."
-  },
-  {
-   "id": "c-intro-1",
-   "moods": [
-    "intro"
-   ],
-   "titolo": "Listen all the way through.",
-   "corpo": "Roadburn Chronicles on Spotify. Ten tracks, from weight to light."
-  },
-  {
-   "id": "c-intro-2",
-   "moods": [
-    "intro"
-   ],
-   "titolo": "Give the record a chance.",
-   "corpo": "Full album on Spotify. Save the post for tonight."
-  },
-  {
-   "id": "c-road-1",
-   "moods": [
-    "road"
-   ],
-   "titolo": "Hop in the van.",
-   "corpo": "Roadburn Chronicles on Spotify. The soundtrack for your next road."
-  },
-  {
-   "id": "c-road-2",
-   "moods": [
-    "road"
-   ],
-   "titolo": "Open road.",
-   "corpo": "Stream the full album on Spotify. Link in bio."
-  },
-  {
-   "id": "c-proof-1",
-   "moods": [
-    "proof"
-   ],
-   "titolo": "You be the judge.",
-   "corpo": "Roadburn Chronicles, #14 in the Doom Charts. Stream it on Spotify."
-  },
-  {
-   "id": "c-proof-2",
-   "moods": [
-    "proof"
-   ],
-   "titolo": "Your turn.",
-   "corpo": "Ten tracks, one debut. Stream on Spotify and tell us what you think."
-  },
-  {
-   "id": "c-fans-1",
-   "moods": [
-    "fans"
-   ],
-   "titolo": "Into Dozer and Orange Goblin?",
-   "corpo": "Then Roadburn Chronicles is for you. Full album on Spotify."
-  },
-  {
-   "id": "c-fans-2",
-   "moods": [
-    "fans"
-   ],
-   "titolo": "Your next listen is here.",
-   "corpo": "Italian stoner/doom on Spotify. Follow @petrosa_band for more."
-  }
- ],
- "captions": [
-  {
-   "id": "cap-riff-1",
-   "moods": [
-    "riff"
-   ],
-   "text": "Fuzz up, riffs low, zero frills.\n\nRoadburn Chronicles is the debut from Petrosa: stoner/doom from Milan, Italy, recorded in eight days at Toxic Basement Studio.\n\nStream the album on Spotify (link in bio).\n\nWhich riff made you bang your head first?"
-  },
-  {
-   "id": "cap-riff-2",
-   "moods": [
-    "riff"
-   ],
-   "text": "Ten tracks of tubes and fuzz.\n\nPetrosa, Roadburn Chronicles: out August 28 on Octopus Rising / Argonauta Records. Link in bio for the full album on Spotify.\n\nSave this post and send it to someone with one fuzz pedal too many."
-  },
-  {
-   "id": "cap-doom-1",
-   "moods": [
-    "doom"
-   ],
-   "text": "Doom Carved in Stone(r).\n\nThe weight of classic doom, the groove of stoner. Petrosa's Roadburn Chronicles is a journey through sin, conflict and redemption.\n\nFull album on Spotify, link in bio.\n\nDoom or stoner: which side are you on?"
-  },
-  {
-   "id": "cap-doom-2",
-   "moods": [
-    "doom"
-   ],
-   "text": "Down-tuned guitars, dense fuzz, darkness.\n\nPetrosa, from Milan, Italy: the debut Roadburn Chronicles is out on Octopus Rising / Argonauta Records. Stream it on Spotify (link in bio).\n\nWhat's your go-to doom record?"
-  },
-  {
-   "id": "cap-psych-1",
-   "moods": [
-    "psych"
-   ],
-   "text": "Desert, fuzz, mirages.\n\nRoadburn Chronicles: Italian stoner/doom with a desert rock soul. Full album on Spotify (link in bio).\n\nWhat was your first stoner record?"
-  },
-  {
-   "id": "cap-psych-2",
-   "moods": [
-    "psych"
-   ],
-   "text": "If your heart beats for desert rock, stop for a second.\n\nPetrosa, Milan, Italy: Roadburn Chronicles is our debut. Stream it on Spotify (link in bio).\n\nDrop your all-time favorite stoner track in the comments."
-  },
-  {
-   "id": "cap-intro-1",
-   "moods": [
-    "intro"
-   ],
-   "text": "Doom has a human side too.\n\nRoadburn Chronicles is about loss, doubt and a thread of light. Full album on Spotify (link in bio).\n\nIs there a track that dug deep into you? Tell us below."
-  },
-  {
-   "id": "cap-intro-2",
-   "moods": [
-    "intro"
-   ],
-   "text": "It's not just heavy.\n\nFrom the tension of Turning Point to the bench in Rusty Blues: Petrosa's debut looks for light in the dark. Stream it on Spotify (link in bio)."
-  },
-  {
-   "id": "cap-road-1",
-   "moods": [
-    "road"
-   ],
-   "text": "One van, ten tracks, open road.\n\nPetrosa's Roadburn Chronicles: stoner/doom from Milan, Italy. Full album on Spotify (link in bio).\n\nWhere does your road-trip record take you?"
-  },
-  {
-   "id": "cap-road-2",
-   "moods": [
-    "road"
-   ],
-   "text": "Windows down, volume up.\n\nThe soundtrack for your next road: Roadburn Chronicles, out on Octopus Rising / Argonauta Records. Link in bio.\n\nWhat's the record that's always in your car?"
-  },
-  {
-   "id": "cap-proof-1",
-   "moods": [
-    "proof"
-   ],
-   "text": "#14 in the Doom Charts, August 2026.\n\nRoadburn Chronicles lands in the Top 40 out of 166 albums nominated by the heavy underground. Thank you to everyone who voted, reviewed and shared.\n\nStream the album on Spotify (link in bio)."
-  },
-  {
-   "id": "cap-proof-2",
-   "moods": [
-    "proof"
-   ],
-   "text": "The reviews speak clearly, but the last word is yours.\n\nPetrosa's Roadburn Chronicles: from Outlaws Of The Sun to W.T.R. Mag', from Der Fuzzer to Radiocoop. Stream it on Spotify (link in bio)."
-  },
-  {
-   "id": "cap-fans-1",
-   "moods": [
-    "fans"
-   ],
-   "text": "If you love {fans}, this record is for you.\n\nPetrosa, stoner/doom from Milan, Italy: Roadburn Chronicles is out on Octopus Rising / Argonauta Records. Full album on Spotify (link in bio).\n\nWho else should we be listening to? Recommend a band in the comments."
-  },
-  {
-   "id": "cap-fans-2",
-   "moods": [
-    "fans"
-   ],
-   "text": "Italian stoner and doom, for people who live on fuzz.\n\nRoadburn Chronicles: ten tracks between desert groove and classic weight. Link in bio.\n\nTag a friend who listens to {fans}."
-  }
- ],
- "moodHashtags": {
-  "riff": [
-   "riffs",
-   "heavyriffs",
-   "fuzzpedal",
-   "stonerriffs"
+  "_note": "Pre-written library for Petrosa Carousel Studio. All post text is in English (US / Northern Europe audience). Quotes ('cit') are verified against data/songs.txt and data/band.json by 'node test-library.js'. Labels of moods/recipes are UI only.",
+  "moods": [
+    {
+      "id": "riff",
+      "label": "Riff & Fuzz",
+      "desc": "Energia, volume alto, groove. Per chi vuole muovere la testa.",
+      "color": "#f59e0b"
+    },
+    {
+      "id": "doom",
+      "label": "Doom & Peso",
+      "desc": "Buio, pietra, peccato. Il lato piu' pesante del disco.",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "psych",
+      "label": "Desert & Psych",
+      "desc": "Miraggi, fuzz caldo, atmosfera Kyuss. Per i fan del desert rock.",
+      "color": "#ea580c"
+    },
+    {
+      "id": "intro",
+      "label": "Introspettivo",
+      "desc": "Perdita, dubbio, un filo di luce. Il lato umano del disco.",
+      "color": "#c026d3"
+    },
+    {
+      "id": "road",
+      "label": "On the road",
+      "desc": "Furgone, strada aperta, cielo enorme.",
+      "color": "#38bdf8"
+    },
+    {
+      "id": "proof",
+      "label": "Riconoscimenti",
+      "desc": "Doom Charts #14 e recensioni: la prova sociale.",
+      "color": "#34d399"
+    },
+    {
+      "id": "fans",
+      "label": "Per i fan",
+      "desc": "Punta ai follower di Dozer, Orange Goblin, Kyuss e compagnia.",
+      "color": "#f43f5e"
+    }
   ],
-  "doom": [
-   "doomrock",
-   "heavydoom",
-   "traditionaldoom",
-   "doomband"
+  "hooks": [
+    {
+      "id": "h-riff-1",
+      "moods": [
+        "riff"
+      ],
+      "titolo": "Fuzz up. Riffs low.",
+      "corpo": "Roadburn Chronicles. The debut from Petrosa, stoner/doom from Milan, Italy.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-riff-2",
+      "moods": [
+        "riff"
+      ],
+      "titolo": "Recorded live. Eight days.",
+      "corpo": "Tubes, drum room, zero frills. Petrosa, Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-riff-s",
+      "moods": [
+        "riff"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "One riff, one song. From the debut album Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-doom-1",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Doom Carved in Stone(r).",
+      "corpo": "The weight of classic doom. The groove of stoner. Petrosa.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-doom-2",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Heavy as stone.",
+      "corpo": "Down-tuned guitars, dense layers of fuzz. The debut from Petrosa.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-doom-s",
+      "moods": [
+        "doom"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "Darkness, weight, redemption. From Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-psych-1",
+      "moods": [
+        "psych"
+      ],
+      "titolo": "Desert. Fuzz. Mirages.",
+      "corpo": "Italian stoner/doom with a desert rock soul. Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-psych-2",
+      "moods": [
+        "psych"
+      ],
+      "titolo": "If you love Kyuss, stop scrolling.",
+      "corpo": "Petrosa: stoner/doom from Milan. Hear the debut Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-psych-s",
+      "moods": [
+        "psych"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "Fuzz, psych and desert rock. From Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-intro-1",
+      "moods": [
+        "intro"
+      ],
+      "titolo": "The human side of doom.",
+      "corpo": "Roadburn Chronicles: a journey through the human condition.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-intro-2",
+      "moods": [
+        "intro"
+      ],
+      "titolo": "Not just heavy.",
+      "corpo": "Loss, doubt, a thread of light. The debut from Petrosa.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-intro-s",
+      "moods": [
+        "intro"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "A song that digs deep. From Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-road-1",
+      "moods": [
+        "road"
+      ],
+      "titolo": "One van. One record.",
+      "corpo": "Roadburn Chronicles: open road, low riffs and a huge sky.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-road-2",
+      "moods": [
+        "road"
+      ],
+      "titolo": "Start the engine.",
+      "corpo": "Petrosa, stoner/doom from Milan. Volume up, windows down.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-road-s",
+      "moods": [
+        "road"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "Put it on for an empty road. Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-proof-1",
+      "moods": [
+        "proof"
+      ],
+      "titolo": "#14 in the world.",
+      "corpo": "Roadburn Chronicles enters the Doom Charts of August 2026.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-proof-2",
+      "moods": [
+        "proof"
+      ],
+      "titolo": "The reviews say it.",
+      "corpo": "Italy, France, Germany and beyond. The debut from Petrosa.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-proof-s",
+      "moods": [
+        "proof"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "From Roadburn Chronicles, #14 in the Doom Charts, August 2026.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-fans-1",
+      "moods": [
+        "fans"
+      ],
+      "titolo": "For fans of Dozer and Orange Goblin.",
+      "corpo": "New Italian stoner/doom. Petrosa, Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-fans-2",
+      "moods": [
+        "fans"
+      ],
+      "titolo": "Your next stoner record.",
+      "corpo": "Fuzz, doom, groove. Petrosa from Milan.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-fans-s",
+      "moods": [
+        "fans"
+      ],
+      "kind": "song",
+      "titolo": "«{song}»",
+      "corpo": "If you live for stoner and doom, hear this one. Roadburn Chronicles.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-member",
+      "moods": [
+        "all"
+      ],
+      "kind": "member",
+      "titolo": "{member}.",
+      "corpo": "{role} of Petrosa. Stoner/doom from Milan, debut album Roadburn Chronicles.",
+      "immagine": "{photo}"
+    },
+    {
+      "id": "h-review",
+      "moods": [
+        "all"
+      ],
+      "kind": "review",
+      "titolo": "Word from {pub}.",
+      "corpo": "The verdict on Petrosa's Roadburn Chronicles: {verdict}.",
+      "immagine": "cover"
+    },
+    {
+      "id": "h-live-1",
+      "kind": "live",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Petrosa. Live.",
+      "corpo": "Stoner/doom from Milan, on stage. Sets from 30 minutes to 1h30.",
+      "immagine": "live_aldo2"
+    },
+    {
+      "id": "h-live-2",
+      "kind": "live",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Turn it up. Live.",
+      "corpo": "Tube amps, fuzz and a wall of sound. Petrosa on stage.",
+      "immagine": "live_antonio_aldo"
+    },
+    {
+      "id": "h-live-3",
+      "kind": "live",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Built for the stage.",
+      "corpo": "Roadburn Chronicles, played loud. Petrosa live from Milan.",
+      "immagine": "live_andrea_aldo"
+    },
+    {
+      "id": "h-live-4",
+      "kind": "live",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Feel it in your chest.",
+      "corpo": "Low end, fuzz and heavy riffs. This is Petrosa live.",
+      "immagine": "live_andrea1"
+    }
   ],
-  "psych": [
-   "psychedelicrock",
-   "desertrockband",
-   "heavypsychedelic",
-   "kyussmusic"
+  "quotes": [
+    {
+      "id": "q-sure-1",
+      "kind": "song",
+      "song": 1,
+      "moods": [
+        "doom",
+        "riff"
+      ],
+      "cit": "Do you see light / with your closed eyes? / Are you aware that You're dying"
+    },
+    {
+      "id": "q-sure-2",
+      "kind": "song",
+      "song": 1,
+      "moods": [
+        "doom",
+        "intro"
+      ],
+      "cit": "Pillars of sand / The right, the true / the false and the God / An anthill and the Colosseum"
+    },
+    {
+      "id": "q-sure-3",
+      "kind": "song",
+      "song": 1,
+      "moods": [
+        "riff",
+        "fans"
+      ],
+      "cit": "You're dying in silence / between slaves'n'Rulers"
+    },
+    {
+      "id": "q-sinner-1",
+      "kind": "song",
+      "song": 2,
+      "moods": [
+        "doom",
+        "riff",
+        "fans"
+      ],
+      "cit": "I'm a sinner / an enemy of God / Family ruiner / A demon of my time"
+    },
+    {
+      "id": "q-sinner-2",
+      "kind": "song",
+      "song": 2,
+      "moods": [
+        "psych",
+        "intro"
+      ],
+      "cit": "Grey like my skies / And purple like my veins"
+    },
+    {
+      "id": "q-sinner-3",
+      "kind": "song",
+      "song": 2,
+      "moods": [
+        "doom",
+        "proof"
+      ],
+      "cit": "The Earth is calling my body / And stone reveals my name"
+    },
+    {
+      "id": "q-turn-1",
+      "kind": "song",
+      "song": 3,
+      "moods": [
+        "intro",
+        "proof"
+      ],
+      "cit": "Do you feel it? / Your wind is changing / One single moment / A turning Point"
+    },
+    {
+      "id": "q-turn-2",
+      "kind": "song",
+      "song": 3,
+      "moods": [
+        "intro",
+        "road"
+      ],
+      "cit": "It's finally dawn / So much poison'n'mud / An elusive / and shining light"
+    },
+    {
+      "id": "q-turn-3",
+      "kind": "song",
+      "song": 3,
+      "moods": [
+        "doom"
+      ],
+      "cit": "The hardest sowing / The precious yield / A necessary and lonely hard path"
+    },
+    {
+      "id": "q-ifor-1",
+      "kind": "song",
+      "song": 4,
+      "moods": [
+        "riff",
+        "fans"
+      ],
+      "cit": "Monochromatic words yeah / You're teaching me / while truth chokes you"
+    },
+    {
+      "id": "q-ifor-2",
+      "kind": "song",
+      "song": 4,
+      "moods": [
+        "riff",
+        "proof"
+      ],
+      "cit": "Baby oh you're just a joke / but I need you, I need it!"
+    },
+    {
+      "id": "q-ifor-3",
+      "kind": "song",
+      "song": 4,
+      "moods": [
+        "intro",
+        "doom"
+      ],
+      "cit": "'Cause I prefer doubt and fear / I prefer doubt and fear"
+    },
+    {
+      "id": "q-rusty-1",
+      "kind": "song",
+      "song": 5,
+      "moods": [
+        "intro"
+      ],
+      "cit": "The city feels so empty and strange / since you've been gone one summer's night."
+    },
+    {
+      "id": "q-rusty-2",
+      "kind": "song",
+      "song": 5,
+      "moods": [
+        "intro",
+        "road"
+      ],
+      "cit": "And when I meet some old white-haired man / I hope it's you, I hope, I'm wrong"
+    },
+    {
+      "id": "q-rusty-3",
+      "kind": "song",
+      "song": 5,
+      "moods": [
+        "intro"
+      ],
+      "cit": "A sip of wine / A toast for Father's Day"
+    },
+    {
+      "id": "q-viper-1",
+      "kind": "song",
+      "song": 6,
+      "moods": [
+        "doom",
+        "riff",
+        "fans"
+      ],
+      "cit": "My soul is dust, my body is burning / Ready or not, the Viper's coming"
+    },
+    {
+      "id": "q-viper-2",
+      "kind": "song",
+      "song": 6,
+      "moods": [
+        "riff",
+        "psych"
+      ],
+      "cit": "Toxin leaves behind a splinter / Sometimes it burn, sometimes it hurt"
+    },
+    {
+      "id": "q-rev-1",
+      "kind": "song",
+      "song": 7,
+      "moods": [
+        "psych",
+        "doom",
+        "fans"
+      ],
+      "cit": "Shattered moon, the veil is torn / Serpents fill the sky above / Crosses mark the earth below"
+    },
+    {
+      "id": "q-rev-2",
+      "kind": "song",
+      "song": 7,
+      "moods": [
+        "psych",
+        "riff"
+      ],
+      "cit": "Taste my blood / rise again / serpent sun"
+    },
+    {
+      "id": "q-rev-3",
+      "kind": "song",
+      "song": 7,
+      "moods": [
+        "doom",
+        "proof",
+        "road"
+      ],
+      "cit": "Truth bleeds red / Freedom fades fast / The Darkness is deep / But spirit stands tall"
+    },
+    {
+      "id": "q-dream-1",
+      "kind": "song",
+      "song": 8,
+      "moods": [
+        "road",
+        "intro",
+        "psych"
+      ],
+      "cit": "And she said: \"Secret dreams, hold my dreams, side by side with you\""
+    },
+    {
+      "id": "q-monst-1",
+      "kind": "song",
+      "song": 9,
+      "moods": [
+        "intro",
+        "doom"
+      ],
+      "cit": "So, in the end / The silence screams too loud"
+    },
+    {
+      "id": "q-monst-2",
+      "kind": "song",
+      "song": 9,
+      "moods": [
+        "intro"
+      ],
+      "cit": "Are we to blame for losing our light?"
+    },
+    {
+      "id": "q-monst-3",
+      "kind": "song",
+      "song": 9,
+      "moods": [
+        "doom"
+      ],
+      "cit": "So let it be / The wounds will never heal / A shattered dream"
+    },
+    {
+      "id": "q-van-1",
+      "kind": "song",
+      "song": 10,
+      "moods": [
+        "road",
+        "psych",
+        "proof"
+      ],
+      "cit": "Open road / Rolling fields beneath the sky / Feeling free / As the world just passes by"
+    },
+    {
+      "id": "q-van-2",
+      "kind": "song",
+      "song": 10,
+      "moods": [
+        "road",
+        "riff",
+        "fans"
+      ],
+      "cit": "An old van and a couple of beers / Laughing through hundred miles with no fears"
+    },
+    {
+      "id": "q-van-3",
+      "kind": "song",
+      "song": 10,
+      "moods": [
+        "road",
+        "intro"
+      ],
+      "cit": "Endless sky / Feeling small but feeling free"
+    },
+    {
+      "id": "q-van-4",
+      "kind": "song",
+      "song": 10,
+      "moods": [
+        "road",
+        "psych"
+      ],
+      "cit": "Midnight drives / underneath the silver moon"
+    },
+    {
+      "id": "rq-outlaws-1",
+      "kind": "review",
+      "review": "outlaws",
+      "moods": [
+        "riff",
+        "psych",
+        "fans"
+      ],
+      "cit": "there's a gritty realism to PETROSA's music that brings an aggressive level of Fuzz, Psych and Desert Rock with a destructive Nineties Alt-Metal attitude"
+    },
+    {
+      "id": "rq-outlaws-2",
+      "kind": "review",
+      "review": "outlaws",
+      "moods": [
+        "proof",
+        "fans"
+      ],
+      "cit": "Excellent and Highly Recommended."
+    },
+    {
+      "id": "rq-outlaws-3",
+      "kind": "review",
+      "review": "outlaws",
+      "moods": [
+        "psych",
+        "fans"
+      ],
+      "cit": "Influenced by the likes of KYUSS, Orange Goblin and Dozer"
+    },
+    {
+      "id": "rq-outlaws-4",
+      "kind": "review",
+      "review": "outlaws-mm",
+      "moods": [
+        "psych",
+        "fans"
+      ],
+      "cit": "adding some Monster Magnet spaced out heaviness along the way"
+    },
+    {
+      "id": "rq-scream-1",
+      "kind": "review",
+      "review": "screaming",
+      "moods": [
+        "riff",
+        "doom",
+        "proof"
+      ],
+      "cit": "featuring an impressive showing of rich, expressive vocals, extraordinary guitar chops, sinister stoner/doom-style bass, and relentlessly crashing drums"
+    },
+    {
+      "id": "rq-scream-2",
+      "kind": "review",
+      "review": "screaming2",
+      "moods": [
+        "proof",
+        "intro"
+      ],
+      "cit": "Gripping from start to finish, Roadburn Chronicles makes a memorable first impression on both the ears and souls of heavy music fans."
+    },
+    {
+      "id": "rq-scream-3",
+      "kind": "review",
+      "review": "screaming2",
+      "moods": [
+        "intro",
+        "proof"
+      ],
+      "cit": "an emotionally charged album that's all about the treacherous 'journey through the human condition'"
+    },
+    {
+      "id": "rq-pitstop-1",
+      "kind": "review",
+      "review": "pitstop",
+      "moods": [
+        "riff",
+        "doom",
+        "proof"
+      ],
+      "cit": "PETROSA reshapes stoner doom through sheer grit."
+    },
+    {
+      "id": "rq-pitstop-2",
+      "kind": "review",
+      "review": "pitstop",
+      "moods": [
+        "doom",
+        "riff"
+      ],
+      "cit": "Built around low-tuned guitars and dense layers of fuzz"
+    },
+    {
+      "id": "rq-pitstop-3",
+      "kind": "review",
+      "review": "pitstop2",
+      "moods": [
+        "fans",
+        "psych"
+      ],
+      "cit": "The legacy of bands such as KYUSS, DOZER, ORANGE GOBLIN, and MONSTER MAGNET is clearly present"
+    },
+    {
+      "id": "rq-papy-1",
+      "kind": "review",
+      "review": "papyjeff",
+      "moods": [
+        "doom",
+        "riff"
+      ],
+      "cit": "delivering heavy, low-tuned monolithic grooves, fuzzy riffs and classic doom weight"
+    },
+    {
+      "id": "rq-coop-1",
+      "kind": "review",
+      "review": "radiocoop",
+      "moods": [
+        "proof",
+        "riff"
+      ],
+      "cit": "A more than promising debut, played with complete mastery of tone and genre."
+    },
+    {
+      "id": "rq-coop-2",
+      "kind": "review",
+      "review": "radiocoop",
+      "moods": [
+        "doom",
+        "fans"
+      ],
+      "cit": "takes on the clattering rails of stoner rock, draped in sinister doom ballads"
+    },
+    {
+      "id": "rq-hmw-1",
+      "kind": "review",
+      "review": "hmwebzine",
+      "moods": [
+        "road",
+        "intro"
+      ],
+      "cit": "a raw, introspective journey celebrating resilience and the untamed road"
+    },
+    {
+      "id": "rq-hmw-2",
+      "kind": "review",
+      "review": "hmwebzine",
+      "moods": [
+        "doom",
+        "psych"
+      ],
+      "cit": "PETROSA expertly blend the extended groove of stoner rock with the crushing weight of classic doom metal"
+    },
+    {
+      "id": "rq-argo-1",
+      "kind": "review",
+      "review": "argonauta",
+      "moods": [
+        "fans",
+        "doom",
+        "riff"
+      ],
+      "cit": "10 tracks of massive riffs, dark atmospheres and introspective songwriting"
+    },
+    {
+      "id": "rq-argo-2",
+      "kind": "review",
+      "review": "argonauta",
+      "moods": [
+        "fans",
+        "psych"
+      ],
+      "cit": "Blending stoner rock grooves with crushing doom weight, for fans of Dozer, Orange Goblin and The Sword."
+    },
+    {
+      "id": "rq-inner-1",
+      "kind": "review",
+      "review": "innerstrength",
+      "moods": [
+        "doom",
+        "riff"
+      ],
+      "cit": "embodying one of the darkest sides of the album with relentless hypnotic heaviness"
+    }
   ],
-  "intro": [
-   "heavyblues",
-   "bluesrock",
-   "emotionalmetal"
+  "info": [
+    {
+      "id": "i-charts",
+      "topic": "charts",
+      "moods": [
+        "all"
+      ],
+      "layout": "stat",
+      "tipo": "Album",
+      "stat": "#14",
+      "titolo": "Doom Charts, August 2026",
+      "corpo": "2,678 points. Top 40 out of 166 albums nominated by bloggers, radio hosts and journalists of the heavy underground.",
+      "immagine": "cover",
+      "tagNames": [
+        "Doom Charts"
+      ]
+    },
+    {
+      "id": "i-charts-b",
+      "topic": "charts",
+      "moods": [
+        "proof",
+        "doom",
+        "riff",
+        "fans"
+      ],
+      "layout": "stat",
+      "tipo": "Album",
+      "stat": "#14",
+      "titolo": "Charting in the underground.",
+      "corpo": "Roadburn Chronicles debuts at #14 in the August 2026 Doom Charts, published September 4.",
+      "immagine": "cover",
+      "tagNames": [
+        "Doom Charts"
+      ]
+    },
+    {
+      "id": "i-basics",
+      "topic": "basics",
+      "moods": [
+        "all"
+      ],
+      "layout": "stat",
+      "tipo": "Album",
+      "stat": "10",
+      "titolo": "tracks. 51 minutes.",
+      "corpo": "Roadburn Chronicles, out August 28, 2026 on Octopus Rising / Argonauta Records.",
+      "immagine": "cover"
+    },
+    {
+      "id": "i-genre",
+      "topic": "genre",
+      "moods": [
+        "doom",
+        "psych",
+        "riff",
+        "fans"
+      ],
+      "layout": "text",
+      "tipo": "Genre",
+      "titolo": "Doom and stoner, same riff.",
+      "corpo": "The extended groove of stoner rock. The crushing weight of classic doom. High-voltage fuzz, hypnotic tempos.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-studio",
+      "topic": "studio",
+      "moods": [
+        "riff",
+        "psych",
+        "doom",
+        "road"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "Eight days. Live.",
+      "corpo": "Toxic Basement Studio, Carate Brianza, with Carlo Altobelli. November 2024 to January 2025: tubes, drum room, valve saturation.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-themes",
+      "topic": "themes",
+      "moods": [
+        "doom",
+        "intro",
+        "road"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "Sin, conflict, redemption.",
+      "corpo": "Roadburn Chronicles is a journey through the human condition: between darkness and redemption, with room for freedom and moments of light.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-singles",
+      "topic": "singles",
+      "moods": [
+        "riff",
+        "doom",
+        "psych",
+        "proof"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "Two singles: Revenant and Viper.",
+      "corpo": "Revenant has an official video on YouTube. Viper, as Inner-Strength Check puts it, is one of the darkest sides of the album.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-label",
+      "topic": "label",
+      "moods": [
+        "proof",
+        "fans",
+        "doom",
+        "psych"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "Octopus Rising.",
+      "corpo": "A sub-label of Argonauta Records, the Italian home of stoner, doom, sludge and post metal. Distribution across Europe, the Americas and Japan.",
+      "immagine": "none",
+      "tagNames": [
+        "Argonauta Records / Octopus Rising"
+      ]
+    },
+    {
+      "id": "i-tracklist",
+      "topic": "tracklist",
+      "moods": [
+        "all"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "Save the tracklist.",
+      "corpo": "01 S.U.R.E. / 02 The Sinner / 03 Turning Point / 04 I For An I / 05 Rusty Blues / 06 Viper / 07 Revenant / 08 Dreamer's Sunsets / 09 Monsters' Conceal / 10 An Old Van and a Couple of Beers",
+      "immagine": "none"
+    },
+    {
+      "id": "i-gear",
+      "topic": "gear",
+      "moods": [
+        "riff",
+        "doom"
+      ],
+      "layout": "text",
+      "tipo": "Band",
+      "titolo": "This is how weight is built.",
+      "corpo": "Guitar with active pickups, Orange tube head, 5-string bass tuned low. British and vintage fuzz.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-van",
+      "topic": "van",
+      "moods": [
+        "road",
+        "psych",
+        "intro"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "The van on the cover.",
+      "corpo": "An old blue van crosses a psychedelic desert. The last track on the record is 'An Old Van and a Couple of Beers'.",
+      "immagine": "cover"
+    },
+    {
+      "id": "i-rusty",
+      "topic": "rusty",
+      "moods": [
+        "intro",
+        "road"
+      ],
+      "layout": "text",
+      "tipo": "Song",
+      "titolo": "Rusty Blues.",
+      "corpo": "A bench, a toast for Father's Day. A dirty, deep blues, as Radiocoop describes it.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-variety",
+      "topic": "variety",
+      "moods": [
+        "riff",
+        "fans",
+        "proof"
+      ],
+      "layout": "text",
+      "tipo": "Album",
+      "titolo": "Not just stoner.",
+      "corpo": "Radiocoop also hears Motörhead-style speed metal (I For An I) and dirty, deep blues (Rusty Blues).",
+      "immagine": "none",
+      "tagNames": [
+        "Motörhead"
+      ]
+    },
+    {
+      "id": "i-press",
+      "topic": "press",
+      "moods": [
+        "proof",
+        "fans"
+      ],
+      "layout": "text",
+      "tipo": "Press",
+      "titolo": "Reviewed in four languages.",
+      "corpo": "Italian, French, German, English: Radiocoop, Heavy Metal Webzine, W.T.R. Mag', Der Fuzzer, Outlaws Of The Sun, Pitstop Metal.",
+      "immagine": "none"
+    },
+    {
+      "id": "i-infl",
+      "topic": "influences",
+      "moods": [
+        "psych",
+        "fans"
+      ],
+      "layout": "text",
+      "tipo": "Influences",
+      "titolo": "The name that keeps coming back: Kyuss.",
+      "corpo": "Outlaws Of The Sun and Pitstop Metal cite it among the influences. In the Breathing The Core interview, Kyuss is among the reference points named by the band.",
+      "immagine": "none",
+      "tagNames": [
+        "Kyuss"
+      ]
+    },
+    {
+      "id": "i-fans-1",
+      "topic": "fans-primary",
+      "moods": [
+        "fans",
+        "psych",
+        "riff",
+        "proof"
+      ],
+      "layout": "text",
+      "tipo": "For fans of",
+      "titolo": "For fans of these names.",
+      "corpo": "Cited by the press: Kyuss, Orange Goblin, Dozer, Monster Magnet, Fu Manchu. (Outlaws Of The Sun, Pitstop Metal)",
+      "immagine": "none",
+      "tagGroup": "primary"
+    },
+    {
+      "id": "i-fans-1b",
+      "topic": "fans-primary",
+      "moods": [
+        "fans",
+        "proof",
+        "psych"
+      ],
+      "layout": "text",
+      "tipo": "For fans of",
+      "titolo": "The press puts them side by side.",
+      "corpo": "Kyuss, Orange Goblin and Dozer according to Steve Howe of Outlaws Of The Sun. Monster Magnet and Fu Manchu are also cited by Pitstop Metal.",
+      "immagine": "none",
+      "tagGroup": "primary"
+    },
+    {
+      "id": "i-fans-2",
+      "topic": "fans-secondary",
+      "moods": [
+        "doom",
+        "fans",
+        "psych"
+      ],
+      "layout": "text",
+      "tipo": "For fans of",
+      "titolo": "Doom and desert roots.",
+      "corpo": "In the EPK's FFO: The Sword, Black Sabbath, Windhand, Down, Trouble.",
+      "immagine": "none",
+      "tagGroup": "secondary"
+    },
+    {
+      "id": "i-live-flex",
+      "topic": "live",
+      "moods": [
+        "all"
+      ],
+      "layout": "stat",
+      "tipo": "Live",
+      "titolo": "Sets from 30 minutes to 1h30.",
+      "corpo": "The Petrosa repertoire adapts to the occasion: a tight opening slot or a full-length show.",
+      "immagine": "desert1",
+      "stat": "30-90"
+    },
+    {
+      "id": "i-live-flex-b",
+      "topic": "live-alt",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "From 30 minutes to 1h30.",
+      "corpo": "Short slot or headline night: we build the set around your event.",
+      "immagine": "live_aldo1"
+    },
+    {
+      "id": "i-live-power",
+      "topic": "live",
+      "moods": [
+        "riff",
+        "doom",
+        "fans"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Loud. Heavy. Live.",
+      "corpo": "Tube amps, fuzz and a rhythm section that moves the room.",
+      "immagine": "live_antonio1"
+    },
+    {
+      "id": "i-live-stage",
+      "topic": "live",
+      "moods": [
+        "riff",
+        "doom",
+        "road"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "On stage, it gets heavier.",
+      "corpo": "Roadburn Chronicles played live: bigger riffs, more air moved.",
+      "immagine": "live_andrea3"
+    },
+    {
+      "id": "i-live-book",
+      "topic": "live",
+      "moods": [
+        "all"
+      ],
+      "layout": "stat",
+      "tipo": "Live",
+      "titolo": "Book Petrosa.",
+      "corpo": "Promoters, clubs and festivals: write to us. Sets from 30 minutes to 1h30, built around your night.",
+      "immagine": "desert2"
+    },
+    {
+      "id": "i-live-psych",
+      "topic": "live",
+      "moods": [
+        "psych",
+        "intro",
+        "road"
+      ],
+      "layout": "stat",
+      "tipo": "Live",
+      "titolo": "Fuzz, light and volume.",
+      "corpo": "A live show made to be felt: stoner and doom from Milan, Italy.",
+      "immagine": "desert3"
+    },
+    {
+      "id": "lb-aldo1",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Aldo Colciago. Vocals.",
+      "corpo": "The voice of Petrosa, live.",
+      "immagine": "live_aldo1"
+    },
+    {
+      "id": "lb-aldo2",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Aldo. Front and centre.",
+      "corpo": "Vocals on top of the wall of sound.",
+      "immagine": "live_aldo2"
+    },
+    {
+      "id": "lb-aldo3",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Aldo on stage.",
+      "corpo": "Vocals, live in Milan, Italy.",
+      "immagine": "live_aldo3"
+    },
+    {
+      "id": "lb-andrea1",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Andrea Vignati. Bass.",
+      "corpo": "The low end that moves the room.",
+      "immagine": "live_andrea1"
+    },
+    {
+      "id": "lb-andrea2",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Andrea. Deep and loud.",
+      "corpo": "Bass, live.",
+      "immagine": "live_andrea2"
+    },
+    {
+      "id": "lb-andrea3",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Andrea on stage.",
+      "corpo": "Bass rumble, blue lights.",
+      "immagine": "live_andrea3"
+    },
+    {
+      "id": "lb-antonio1",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Antonio Buonocore. Guitar.",
+      "corpo": "Founder of Petrosa. Tube-driven riffs, live.",
+      "immagine": "live_antonio1"
+    },
+    {
+      "id": "lb-aa",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Andrea + Aldo.",
+      "corpo": "Bass and vocals, locked in.",
+      "immagine": "live_andrea_aldo"
+    },
+    {
+      "id": "lb-ta",
+      "topic": "live-band",
+      "moods": [
+        "all"
+      ],
+      "layout": "photo",
+      "tipo": "Live",
+      "titolo": "Antonio + Aldo.",
+      "corpo": "Guitar and vocals, front line.",
+      "immagine": "live_antonio_aldo"
+    }
   ],
-  "road": [
-   "roadtrip",
-   "vanlife",
-   "openroad"
+  "band": [
+    {
+      "id": "b-antonio-1",
+      "member": "antonio",
+      "moods": [
+        "all"
+      ],
+      "corpo": "Guitar and founder. Ex-Orphean (death metal), he started Petrosa in 2019."
+    },
+    {
+      "id": "b-antonio-2",
+      "member": "antonio",
+      "moods": [
+        "riff",
+        "doom"
+      ],
+      "corpo": "Massive tube-driven riffs, pentatonic grooves, British and vintage fuzz. The architect of the Petrosa sound."
+    },
+    {
+      "id": "b-giorgio-1",
+      "member": "giorgio",
+      "moods": [
+        "all"
+      ],
+      "corpo": "Drums. Milanese, raised on skate culture and squat-scene punk."
+    },
+    {
+      "id": "b-giorgio-2",
+      "member": "giorgio",
+      "moods": [
+        "riff",
+        "road",
+        "doom"
+      ],
+      "corpo": "Dynamic control, dry snare, heavy ride and crash. The engine that drives the weight."
+    },
+    {
+      "id": "b-aldo-1",
+      "member": "aldo",
+      "moods": [
+        "all"
+      ],
+      "corpo": "Vocals. Baritone with over twenty years of experience: from clean to distorted."
+    },
+    {
+      "id": "b-aldo-2",
+      "member": "aldo",
+      "moods": [
+        "doom",
+        "intro",
+        "psych"
+      ],
+      "corpo": "Bluesy grit, authoritative melody, cavernous doom timbre. The emotional heart of the band."
+    },
+    {
+      "id": "b-andrea-1",
+      "member": "andrea",
+      "moods": [
+        "all"
+      ],
+      "corpo": "Bass. After Big Crunch, in Petrosa since 2024."
+    },
+    {
+      "id": "b-andrea-2",
+      "member": "andrea",
+      "moods": [
+        "doom",
+        "riff"
+      ],
+      "corpo": "Thick, sinister tone, clean sub-lows, overdrive in the mids. It amplifies every riff."
+    },
+    {
+      "id": "b-all-1",
+      "member": "all",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Four musicians. One wall of sound.",
+      "corpo": "Antonio Buonocore, guitar. Giorgio Monza, drums. Aldo Colciago, vocals. Andrea Vignati, bass. From Milan, Italy."
+    },
+    {
+      "id": "b-all-2",
+      "member": "all",
+      "moods": [
+        "proof",
+        "fans",
+        "road"
+      ],
+      "titolo": "Petrosa. Milan. Since 2019.",
+      "corpo": "Founded by Antonio Buonocore. Now four strong: Antonio, Giorgio, Aldo and Andrea."
+    }
   ],
-  "proof": [
-   "albumreview",
-   "newmusic",
-   "metalnews",
-   "underground"
+  "cta": [
+    {
+      "id": "c-riff-1",
+      "moods": [
+        "riff"
+      ],
+      "titolo": "Turn it up.",
+      "corpo": "Roadburn Chronicles, full album on Spotify. Save this post and send it to someone who loves fuzz."
+    },
+    {
+      "id": "c-riff-2",
+      "moods": [
+        "riff"
+      ],
+      "titolo": "Hit play.",
+      "corpo": "Ten tracks of riffs and fuzz. Stream Roadburn Chronicles on Spotify."
+    },
+    {
+      "id": "c-doom-1",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Step into the dark.",
+      "corpo": "Stream Roadburn Chronicles on Spotify. 51 minutes of weight."
+    },
+    {
+      "id": "c-doom-2",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Carved in stone.",
+      "corpo": "Roadburn Chronicles, the full album on Spotify. Link in bio."
+    },
+    {
+      "id": "c-psych-1",
+      "moods": [
+        "psych"
+      ],
+      "titolo": "Head for the desert.",
+      "corpo": "Roadburn Chronicles on Spotify. Headphones on, eyes closed."
+    },
+    {
+      "id": "c-psych-2",
+      "moods": [
+        "psych"
+      ],
+      "titolo": "The fuzz is waiting.",
+      "corpo": "Stream the album on Spotify and tell us your favorite track."
+    },
+    {
+      "id": "c-intro-1",
+      "moods": [
+        "intro"
+      ],
+      "titolo": "Listen all the way through.",
+      "corpo": "Roadburn Chronicles on Spotify. Ten tracks, from weight to light."
+    },
+    {
+      "id": "c-intro-2",
+      "moods": [
+        "intro"
+      ],
+      "titolo": "Give the record a chance.",
+      "corpo": "Full album on Spotify. Save the post for tonight."
+    },
+    {
+      "id": "c-road-1",
+      "moods": [
+        "road"
+      ],
+      "titolo": "Hop in the van.",
+      "corpo": "Roadburn Chronicles on Spotify. The soundtrack for your next road."
+    },
+    {
+      "id": "c-road-2",
+      "moods": [
+        "road"
+      ],
+      "titolo": "Open road.",
+      "corpo": "Stream the full album on Spotify. Link in bio."
+    },
+    {
+      "id": "c-proof-1",
+      "moods": [
+        "proof"
+      ],
+      "titolo": "You be the judge.",
+      "corpo": "Roadburn Chronicles, #14 in the Doom Charts. Stream it on Spotify."
+    },
+    {
+      "id": "c-proof-2",
+      "moods": [
+        "proof"
+      ],
+      "titolo": "Your turn.",
+      "corpo": "Ten tracks, one debut. Stream on Spotify and tell us what you think."
+    },
+    {
+      "id": "c-fans-1",
+      "moods": [
+        "fans"
+      ],
+      "titolo": "Into Dozer and Orange Goblin?",
+      "corpo": "Then Roadburn Chronicles is for you. Full album on Spotify."
+    },
+    {
+      "id": "c-fans-2",
+      "moods": [
+        "fans"
+      ],
+      "titolo": "Your next listen is here.",
+      "corpo": "Italian stoner/doom on Spotify. Follow @petrosa_band for more."
+    }
   ],
-  "fans": [
-   "stonerfans",
-   "doomfans",
-   "desertrock"
+  "captions": [
+    {
+      "id": "cap-riff-1",
+      "moods": [
+        "riff"
+      ],
+      "text": "Fuzz up, riffs low, zero frills.\n\nRoadburn Chronicles is the debut from Petrosa: stoner/doom from Milan, Italy, recorded in eight days at Toxic Basement Studio.\n\nStream the album on Spotify (link in bio).\n\nWhich riff made you bang your head first?"
+    },
+    {
+      "id": "cap-riff-2",
+      "moods": [
+        "riff"
+      ],
+      "text": "Ten tracks of tubes and fuzz.\n\nPetrosa, Roadburn Chronicles: out August 28 on Octopus Rising / Argonauta Records. Link in bio for the full album on Spotify.\n\nSave this post and send it to someone with one fuzz pedal too many."
+    },
+    {
+      "id": "cap-doom-1",
+      "moods": [
+        "doom"
+      ],
+      "text": "Doom Carved in Stone(r).\n\nThe weight of classic doom, the groove of stoner. Petrosa's Roadburn Chronicles is a journey through sin, conflict and redemption.\n\nFull album on Spotify, link in bio.\n\nDoom or stoner: which side are you on?"
+    },
+    {
+      "id": "cap-doom-2",
+      "moods": [
+        "doom"
+      ],
+      "text": "Down-tuned guitars, dense fuzz, darkness.\n\nPetrosa, from Milan, Italy: the debut Roadburn Chronicles is out on Octopus Rising / Argonauta Records. Stream it on Spotify (link in bio).\n\nWhat's your go-to doom record?"
+    },
+    {
+      "id": "cap-psych-1",
+      "moods": [
+        "psych"
+      ],
+      "text": "Desert, fuzz, mirages.\n\nRoadburn Chronicles: Italian stoner/doom with a desert rock soul. Full album on Spotify (link in bio).\n\nWhat was your first stoner record?"
+    },
+    {
+      "id": "cap-psych-2",
+      "moods": [
+        "psych"
+      ],
+      "text": "If your heart beats for desert rock, stop for a second.\n\nPetrosa, Milan, Italy: Roadburn Chronicles is our debut. Stream it on Spotify (link in bio).\n\nDrop your all-time favorite stoner track in the comments."
+    },
+    {
+      "id": "cap-intro-1",
+      "moods": [
+        "intro"
+      ],
+      "text": "Doom has a human side too.\n\nRoadburn Chronicles is about loss, doubt and a thread of light. Full album on Spotify (link in bio).\n\nIs there a track that dug deep into you? Tell us below."
+    },
+    {
+      "id": "cap-intro-2",
+      "moods": [
+        "intro"
+      ],
+      "text": "It's not just heavy.\n\nFrom the tension of Turning Point to the bench in Rusty Blues: Petrosa's debut looks for light in the dark. Stream it on Spotify (link in bio)."
+    },
+    {
+      "id": "cap-road-1",
+      "moods": [
+        "road"
+      ],
+      "text": "One van, ten tracks, open road.\n\nPetrosa's Roadburn Chronicles: stoner/doom from Milan, Italy. Full album on Spotify (link in bio).\n\nWhere does your road-trip record take you?"
+    },
+    {
+      "id": "cap-road-2",
+      "moods": [
+        "road"
+      ],
+      "text": "Windows down, volume up.\n\nThe soundtrack for your next road: Roadburn Chronicles, out on Octopus Rising / Argonauta Records. Link in bio.\n\nWhat's the record that's always in your car?"
+    },
+    {
+      "id": "cap-proof-1",
+      "moods": [
+        "proof"
+      ],
+      "text": "#14 in the Doom Charts, August 2026.\n\nRoadburn Chronicles lands in the Top 40 out of 166 albums nominated by the heavy underground. Thank you to everyone who voted, reviewed and shared.\n\nStream the album on Spotify (link in bio)."
+    },
+    {
+      "id": "cap-proof-2",
+      "moods": [
+        "proof"
+      ],
+      "text": "The reviews speak clearly, but the last word is yours.\n\nPetrosa's Roadburn Chronicles: from Outlaws Of The Sun to W.T.R. Mag', from Der Fuzzer to Radiocoop. Stream it on Spotify (link in bio)."
+    },
+    {
+      "id": "cap-fans-1",
+      "moods": [
+        "fans"
+      ],
+      "text": "If you love {fans}, this record is for you.\n\nPetrosa, stoner/doom from Milan, Italy: Roadburn Chronicles is out on Octopus Rising / Argonauta Records. Full album on Spotify (link in bio).\n\nWho else should we be listening to? Recommend a band in the comments."
+    },
+    {
+      "id": "cap-fans-2",
+      "moods": [
+        "fans"
+      ],
+      "text": "Italian stoner and doom, for people who live on fuzz.\n\nRoadburn Chronicles: ten tracks between desert groove and classic weight. Link in bio.\n\nTag a friend who listens to {fans}."
+    },
+    {
+      "id": "cap-live-1",
+      "moods": [
+        "riff",
+        "doom",
+        "psych",
+        "intro",
+        "road",
+        "proof",
+        "fans"
+      ],
+      "live": true,
+      "text": "Petrosa live: stoner and doom from Milan, Italy, played loud.\n\nThe Roadburn Chronicles repertoire fits the night: sets from 30 minutes up to 1h30, depending on the occasion. A short opening slot or a full headline show.\n\nPromoters, clubs, festivals: write to us or use the link in bio.\n\nFor fans of {fans}\n\nWhat was the last gig that shook your chest?"
+    },
+    {
+      "id": "cap-live-2",
+      "moods": [
+        "riff",
+        "doom",
+        "psych",
+        "intro",
+        "road",
+        "proof",
+        "fans"
+      ],
+      "live": true,
+      "text": "Tube amps. Fuzz. A rhythm section that moves the room.\n\nThat is Petrosa on stage. Our set can run from 30 minutes to 1h30, built around your event.\n\nBooking: message us, link in bio. And if you have not heard Roadburn Chronicles yet, stream it on Spotify (link in bio).\n\nFor fans of {fans}\n\nWhich band would you love to see us share a stage with?"
+    }
+  ],
+  "moodHashtags": {
+    "riff": [
+      "riffs",
+      "heavyriffs",
+      "fuzzpedal",
+      "stonerriffs"
+    ],
+    "doom": [
+      "doomrock",
+      "heavydoom",
+      "traditionaldoom",
+      "doomband"
+    ],
+    "psych": [
+      "psychedelicrock",
+      "desertrockband",
+      "heavypsychedelic",
+      "kyussmusic"
+    ],
+    "intro": [
+      "heavyblues",
+      "bluesrock",
+      "emotionalmetal"
+    ],
+    "road": [
+      "roadtrip",
+      "vanlife",
+      "openroad"
+    ],
+    "proof": [
+      "albumreview",
+      "newmusic",
+      "metalnews",
+      "underground"
+    ],
+    "fans": [
+      "stonerfans",
+      "doomfans",
+      "desertrock"
+    ],
+    "live": [
+      "livemusic",
+      "livedoom",
+      "stonerlive",
+      "gigs",
+      "concert",
+      "bookinglive"
+    ]
+  },
+  "recipes": [
+    {
+      "id": "r7a",
+      "n": 7,
+      "label": "Rapido",
+      "desc": "Hook, un verso, album, band, singoli, tracklist da salvare, CTA.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "basics",
+            "charts",
+            "genre"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "singles",
+            "gear",
+            "studio",
+            "live"
+          ]
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "tracklist"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r7b",
+      "n": 7,
+      "label": "Prova sociale",
+      "desc": "Punta su recensioni e Doom Charts.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "charts"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "all"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "press",
+            "label",
+            "variety",
+            "live"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r8a",
+      "n": 8,
+      "label": "Canzone al centro",
+      "desc": "Un brano, una recensione, il tuo pubblico e la tracklist.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "genre",
+            "basics",
+            "charts"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "fans-primary",
+            "fans-secondary"
+          ]
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "tracklist"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r8b",
+      "n": 8,
+      "label": "Per i fan",
+      "desc": "Costruito per far incontrare i follower di altre band stoner/doom.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "genre",
+            "basics"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "fans-primary"
+          ]
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "influences",
+            "variety",
+            "fans-secondary",
+            "live"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r9a",
+      "n": 9,
+      "label": "Dietro le quinte",
+      "desc": "Studio, strumenti, due membri e i temi del disco.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "studio",
+            "gear",
+            "live"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "themes",
+            "singles",
+            "van",
+            "rusty",
+            "live"
+          ]
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "tracklist"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r9b",
+      "n": 9,
+      "label": "Storia del disco",
+      "desc": "Dal debutto alla classifica, con etichetta e pubblico di riferimento.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "basics",
+            "charts"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "all"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "label",
+            "studio",
+            "live"
+          ]
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "fans-primary",
+            "fans-secondary"
+          ]
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r10a",
+      "n": 10,
+      "label": "Completo",
+      "desc": "Il carosello piu' ricco: versi, recensioni, band, studio, fan e tracklist.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "charts",
+            "basics"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "studio",
+            "gear",
+            "live"
+          ]
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "fans-primary"
+          ]
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "tracklist"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    },
+    {
+      "id": "r10b",
+      "n": 10,
+      "label": "Deep dive fan",
+      "desc": "Doppia slide 'Per chi ama' per catturare pubblici diversi.",
+      "steps": [
+        {
+          "slot": "hook"
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "genre"
+          ]
+        },
+        {
+          "slot": "band",
+          "who": "member"
+        },
+        {
+          "slot": "quote",
+          "kind": "song"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "fans-primary"
+          ]
+        },
+        {
+          "slot": "quote",
+          "kind": "review"
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "fans-secondary",
+            "influences",
+            "variety",
+            "live"
+          ]
+        },
+        {
+          "slot": "info",
+          "topics": [
+            "tracklist"
+          ]
+        },
+        {
+          "slot": "cta"
+        }
+      ]
+    }
+  ],
+  "analyses": [
+    {
+      "id": "an-1",
+      "song": 1,
+      "theme": "deep sociality",
+      "titolo": "Eyes shut. Ears shut. Alone together.",
+      "corpo": "S.U.R.E. asks: do you see light \"with your closed eyes\"? Feel safe \"with your closed ears\"? A reading: the real danger is a crowd that stops perceiving. \"You're dying in silence between slaves'n'Rulers.\" Connection starts with open senses.",
+      "caption": "Deep sociality, through one song.\n\nS.U.R.E. opens with questions aimed at your senses: \"Do you see light with your closed eyes?\" \"Do you feel safe enough with your closed ears?\" \"Do you feel like a prophet with your evil tongue?\" Read socially, they map how a group breaks down: we stop looking, we stop listening, we start preaching.\n\nThen the picture widens: \"An anthill and the Colosseum\", people caught \"between slaves'n'Rulers\", each one \"dying in silence\" next to the others. Anger is an acid that does more harm to the \"vessel in which it is stored\" than to anything on which it is poured, a line about how resentment eats the bonds we live inside.\n\nOur reading: the song doesn't say we are doomed. It says connection is a practice. Open your eyes, open your ears, and \"such a simple sum\" gets simpler.\n\nS.U.R.E. is track 01 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhich lyric made YOU stop and listen?"
+    },
+    {
+      "id": "an-2",
+      "song": 2,
+      "theme": "deep sociality",
+      "titolo": "Who gives you your name?",
+      "corpo": "The Sinner lets the crowd's labels, \"an enemy of God\", \"family ruiner\", turn into \"an enemy of myself\". A reading: we inherit our names from the people around us. The answer here is ownership: \"Any color you prefer, they're just a part of me.\"",
+      "caption": "Who gives us our names?\n\nThe Sinner opens with a list of verdicts: \"a sinner\", \"an enemy of God\", \"family ruiner\", \"a demon of my time\". Read through the lens of deep sociality, they are labels handed down by the people around him. By the last verse the voice has adopted them: \"an enemy of myself\".\n\nThe turn comes with \"Any color you prefer, they're just a part of me\". Not denial, but ownership. He is \"the only one awake among my enemies\", which is lonely, and the song ends where it started: \"Between fog, dust and rivers\", a landscape we all cross with other people's eyes on us.\n\nOur reading, not the last word: belonging is not only being accepted, it is deciding what to do with the names others give you.\n\nThe Sinner is track 02 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhich label did you have to grow out of?"
+    },
+    {
+      "id": "an-3",
+      "song": 3,
+      "theme": "deep sociality",
+      "titolo": "A lonely path, with other people in it",
+      "corpo": "Turning Point calls change \"a necessary and lonely hard path\". Yet the song keeps talking to a \"you\": \"times you killed\", \"times you hurt\". A reading: you turn alone, but the debts, the damage and the dawn are shared with everyone you touched.",
+      "caption": "A lonely path, with other people in it.\n\nTurning Point describes change as \"a necessary and lonely hard path\". The images are solitary: a broken compass, breath that is poisonous in the greenest meadows, mud that \"tastes like the blood\". But read the pronouns. The song never stops talking to a \"you\": \"What will you do now?\", \"But you raised your head\", \"times you killed\" and \"times you hurt\".\n\nThat is the deep-sociality angle: nobody turns in a vacuum. The dawn (\"It's finally dawn\") arrives after counting what the old road cost the people around us.\n\nOur reading of the lyrics; yours may differ.\n\nTurning Point is track 03 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhat was the moment your wind changed?"
+    },
+    {
+      "id": "an-4",
+      "song": 4,
+      "theme": "deep sociality",
+      "titolo": "Two people, one broken conversation",
+      "corpo": "I For An I sets \"Careful boy\" against \"Old one, old one\". Each wants the last word, neither listens: \"One blind, one deaf\". Yet \"I need you, I need it!\" A reading: conflict can be a bond wearing armor.",
+      "caption": "A conversation where nobody listens.\n\nI For An I sets two voices against each other: \"Careful boy\" on one side, \"Old one, old one, how sad you are\" on the other. Each tells the other to know their place. Each insists on the last word. And then the mask slips: \"I need you, I need it!\"\n\nRead as deep sociality, it is a portrait of conflict as a form of attachment: the two sides are joined by the very thing they argue about. The line that sums it up is \"One blind, one deaf\". Nobody sees, nobody hears, and still they are locked together.\n\nThe exit the singer chooses is a refusal of the assigned role: \"I prefer doubt and fear\". Not comfortable, but honest.\n\nOur reading only. Track 04 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho do you argue with because you can't afford to lose them?"
+    },
+    {
+      "id": "an-5",
+      "song": 5,
+      "theme": "deep sociality",
+      "titolo": "Grief is a bench you keep talking to",
+      "corpo": "Rusty Blues is sung to an absent father: \"I sit and I can talk to you\". Life walks by, \"young folks and families pass by\", and the city feels \"so empty and strange\". A reading: love outlives presence, and a toast keeps the bond alive.",
+      "caption": "Some conversations continue after the goodbye.\n\nRusty Blues is addressed to a father who is gone. \"Your bench ain't empty anymore\", the singer says, \"young folks and families pass by\", but \"when night falls and darkness creeps, I sit and I can talk to you\". A toast for Father's Day, red sparkling wine, and the promise to tell it all \"to you and mama\" someday.\n\nThrough the deep-sociality lens, this is grief as a relationship rather than an ending. The city feels \"so empty and strange\" since he left, and the singer keeps looking for him in strangers: \"And when I meet some old white-haired man, I hope it's you, I hope I'm wrong\". The community keeps walking by; the bond stays at the bench.\n\nOur reading of the lyrics. Track 05 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho would you still talk to, if you could?"
+    },
+    {
+      "id": "an-6",
+      "song": 6,
+      "theme": "deep sociality",
+      "titolo": "The bite that changes who stands close",
+      "corpo": "Viper follows a toxin that brings \"Isolation, exile\". A reading: temptation is rarely solitary, it lives between two people (\"My perversion, your innocence\"), and it is paid for socially: \"hate, regret, side effects\". Then: \"Now I see their blinded faces.\"",
+      "caption": "What does a toxin cost you socially?\n\nViper is a single about a temptation, a substance or a bond that tastes \"so sweet\" and arrives with a warning: \"Isolation, exile\" or \"hate, regret, side effects\". The elements are two people, not one: \"My perversion, your innocence\".\n\nFor deep sociality, the interesting part is the aftermath. Piece by piece the skin is \"polluted by sin\", and only then: \"Now I see their blinded faces, and now I understand their perturbations\". The narrator looks at the people around him and finally understands why they flinched.\n\nOur reading: the real bite of the Viper is not the poison, it is how it rearranges who stands close to you.\n\nViper is track 06 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nEver been on either side of that bite?"
+    },
+    {
+      "id": "an-7",
+      "song": 7,
+      "theme": "deep sociality",
+      "titolo": "Chains for the many, defiance for the few",
+      "corpo": "In Revenant \"Mortals bow their heads\" and someone wants to \"Tighten chains\", leaving \"hearts alone\". A reading on deep sociality: obedience is a collective act, and so is rising again. \"Defiance burns\", \"But spirit stands tall\".",
+      "caption": "Obedience is collective. So is rising again.\n\nRevenant, the single with the official video, paints a scene where \"Mortals bow their heads\" and someone wants to \"Tighten chains, cold\". Freedom \"fades fast\", hope's embers dim, \"Leaving hearts alone\". Nobody bows by themselves; it takes a crowd.\n\nBut the song keeps answering itself: \"Defiance burns\", \"But spirit stands tall\", \"Taste my blood, rise again\". Deep sociality here means the fragile moment when one person refuses and the others notice.\n\nA reading, not a manifesto. Revenant is track 07 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhat would it take to make you stand first?"
+    },
+    {
+      "id": "an-8",
+      "song": 8,
+      "theme": "deep sociality",
+      "titolo": "The most intimate sentence on the album",
+      "corpo": "Dreamer's Sunsets is one line: \"Secret dreams, hold my dreams, side by side with you.\" Deep sociality in a sentence: intimacy is handing someone what you keep hidden and asking them to hold it, together.",
+      "caption": "The shortest lyric on the album says a lot about us.\n\nDreamer's Sunsets is a single line: \"And she said: Secret dreams, hold my dreams, side by side with you\". Deep sociality can be that small. Intimacy is not sharing everything, it is trusting someone with what you keep hidden and asking them to hold it, side by side.\n\nThe words come back on track 10: \"Secret dreams hoping morning comes too soon. Hold my dreams as the night turns into day. Side by side\". Same phrases, told from the road at midnight.\n\nThis is our reading, and a very open one: the song leaves you room. Track 08 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho holds your secret dreams?"
+    },
+    {
+      "id": "an-9",
+      "song": 9,
+      "theme": "deep sociality",
+      "titolo": "When there is no \"we\" left",
+      "corpo": "Monsters' Conceal is a breakup told in silence: \"In our route there wasn't you and me\". A reading on deep sociality: a relationship lives in the \"we\", and when it thins, \"the silence screams too loud\". Even then the song asks together: \"Are we to blame?\"",
+      "caption": "When the \"we\" disappears, what is left?\n\nMonsters' Conceal is a breakup told without shouting. \"No angry cries\", just \"the hurt we can disguise\". The most telling line is about arithmetic: \"In our route there wasn't you and me\". Two travelers, no shared road.\n\nThrough the deep-sociality lens: a relationship is a third thing that exists between two people, and it can quietly stop existing. What remains is that \"the silence screams too loud\".\n\nStill, the song's questions are collective. \"Are we to blame for losing our light?\" \"Could it be true, have we become monsters?\" It is not \"you\" or \"I\", it is \"we\". Even while ending, the song grieves the shared thing.\n\nOur reading only. Track 09 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhat is the quietest way a relationship ever ended for you?"
+    },
+    {
+      "id": "an-10",
+      "song": 10,
+      "theme": "deep sociality",
+      "titolo": "Free, but never quite alone",
+      "corpo": "An Old Van and a Couple of Beers celebrates the open road, then admits \"Lonely nights\" and \"Echoes of my travels past\". A reading: freedom is better shared, \"Laughing through hundred miles\", and even the road becomes company: \"Side by side with the road\".",
+      "caption": "Freedom is better with company.\n\nAn Old Van and a Couple of Beers sounds like pure road-trip joy: \"Open road\", \"Empty lanes\", \"no place I have to be\". Look closer and the song keeps circling company: \"Laughing through hundred miles with no fears\". And when night falls: \"Lonely nights\", \"Echoes of my travels past\".\n\nDeep sociality here is not an argument against solitude. The singer is \"feeling small but feeling free\" under a sky so vast, yet asking \"Hold my dreams as the night turns into day\". By the end the road itself is the companion: \"Side by side with the road, I'll find my way\".\n\nOur reading of the lyrics. Track 10 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho is in your van?"
+    }
   ]
- },
- "recipes": [
-  {
-   "id": "r7a",
-   "n": 7,
-   "label": "Rapido",
-   "desc": "Hook, un verso, album, band, singoli, tracklist da salvare, CTA.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "basics",
-      "charts",
-      "genre"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "singles",
-      "gear",
-      "studio"
-     ]
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "tracklist"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r7b",
-   "n": 7,
-   "label": "Prova sociale",
-   "desc": "Punta su recensioni e Doom Charts.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "charts"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "all"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "press",
-      "label",
-      "variety"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r8a",
-   "n": 8,
-   "label": "Canzone al centro",
-   "desc": "Un brano, una recensione, il tuo pubblico e la tracklist.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "genre",
-      "basics",
-      "charts"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "fans-primary",
-      "fans-secondary"
-     ]
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "tracklist"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r8b",
-   "n": 8,
-   "label": "Per i fan",
-   "desc": "Costruito per far incontrare i follower di altre band stoner/doom.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "genre",
-      "basics"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "fans-primary"
-     ]
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "influences",
-      "variety",
-      "fans-secondary"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r9a",
-   "n": 9,
-   "label": "Dietro le quinte",
-   "desc": "Studio, strumenti, due membri e i temi del disco.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "studio",
-      "gear"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "themes",
-      "singles",
-      "van",
-      "rusty"
-     ]
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "tracklist"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r9b",
-   "n": 9,
-   "label": "Storia del disco",
-   "desc": "Dal debutto alla classifica, con etichetta e pubblico di riferimento.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "basics",
-      "charts"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "all"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "label",
-      "studio"
-     ]
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "fans-primary",
-      "fans-secondary"
-     ]
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r10a",
-   "n": 10,
-   "label": "Completo",
-   "desc": "Il carosello piu' ricco: versi, recensioni, band, studio, fan e tracklist.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "charts",
-      "basics"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "studio",
-      "gear"
-     ]
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "fans-primary"
-     ]
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "tracklist"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  },
-  {
-   "id": "r10b",
-   "n": 10,
-   "label": "Deep dive fan",
-   "desc": "Doppia slide 'Per chi ama' per catturare pubblici diversi.",
-   "steps": [
-    {
-     "slot": "hook"
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "genre"
-     ]
-    },
-    {
-     "slot": "band",
-     "who": "member"
-    },
-    {
-     "slot": "quote",
-     "kind": "song"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "fans-primary"
-     ]
-    },
-    {
-     "slot": "quote",
-     "kind": "review"
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "fans-secondary",
-      "influences",
-      "variety"
-     ]
-    },
-    {
-     "slot": "info",
-     "topics": [
-      "tracklist"
-     ]
-    },
-    {
-     "slot": "cta"
-    }
-   ]
-  }
- ],
- "analyses": [
-  {
-   "id": "an-1",
-   "song": 1,
-   "theme": "deep sociality",
-   "titolo": "Eyes shut. Ears shut. Alone together.",
-   "corpo": "S.U.R.E. asks: do you see light \"with your closed eyes\"? Feel safe \"with your closed ears\"? A reading: the real danger is a crowd that stops perceiving. \"You're dying in silence between slaves'n'Rulers.\" Connection starts with open senses.",
-   "caption": "Deep sociality, through one song.\n\nS.U.R.E. opens with questions aimed at your senses: \"Do you see light with your closed eyes?\" \"Do you feel safe enough with your closed ears?\" \"Do you feel like a prophet with your evil tongue?\" Read socially, they map how a group breaks down: we stop looking, we stop listening, we start preaching.\n\nThen the picture widens: \"An anthill and the Colosseum\", people caught \"between slaves'n'Rulers\", each one \"dying in silence\" next to the others. Anger is an acid that does more harm to the \"vessel in which it is stored\" than to anything on which it is poured, a line about how resentment eats the bonds we live inside.\n\nOur reading: the song doesn't say we are doomed. It says connection is a practice. Open your eyes, open your ears, and \"such a simple sum\" gets simpler.\n\nS.U.R.E. is track 01 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhich lyric made YOU stop and listen?"
-  },
-  {
-   "id": "an-2",
-   "song": 2,
-   "theme": "deep sociality",
-   "titolo": "Who gives you your name?",
-   "corpo": "The Sinner lets the crowd's labels, \"an enemy of God\", \"family ruiner\", turn into \"an enemy of myself\". A reading: we inherit our names from the people around us. The answer here is ownership: \"Any color you prefer, they're just a part of me.\"",
-   "caption": "Who gives us our names?\n\nThe Sinner opens with a list of verdicts: \"a sinner\", \"an enemy of God\", \"family ruiner\", \"a demon of my time\". Read through the lens of deep sociality, they are labels handed down by the people around him. By the last verse the voice has adopted them: \"an enemy of myself\".\n\nThe turn comes with \"Any color you prefer, they're just a part of me\". Not denial, but ownership. He is \"the only one awake among my enemies\", which is lonely, and the song ends where it started: \"Between fog, dust and rivers\", a landscape we all cross with other people's eyes on us.\n\nOur reading, not the last word: belonging is not only being accepted, it is deciding what to do with the names others give you.\n\nThe Sinner is track 02 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhich label did you have to grow out of?"
-  },
-  {
-   "id": "an-3",
-   "song": 3,
-   "theme": "deep sociality",
-   "titolo": "A lonely path, with other people in it",
-   "corpo": "Turning Point calls change \"a necessary and lonely hard path\". Yet the song keeps talking to a \"you\": \"times you killed\", \"times you hurt\". A reading: you turn alone, but the debts, the damage and the dawn are shared with everyone you touched.",
-   "caption": "A lonely path, with other people in it.\n\nTurning Point describes change as \"a necessary and lonely hard path\". The images are solitary: a broken compass, breath that is poisonous in the greenest meadows, mud that \"tastes like the blood\". But read the pronouns. The song never stops talking to a \"you\": \"What will you do now?\", \"But you raised your head\", \"times you killed\" and \"times you hurt\".\n\nThat is the deep-sociality angle: nobody turns in a vacuum. The dawn (\"It's finally dawn\") arrives after counting what the old road cost the people around us.\n\nOur reading of the lyrics; yours may differ.\n\nTurning Point is track 03 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhat was the moment your wind changed?"
-  },
-  {
-   "id": "an-4",
-   "song": 4,
-   "theme": "deep sociality",
-   "titolo": "Two people, one broken conversation",
-   "corpo": "I For An I sets \"Careful boy\" against \"Old one, old one\". Each wants the last word, neither listens: \"One blind, one deaf\". Yet \"I need you, I need it!\" A reading: conflict can be a bond wearing armor.",
-   "caption": "A conversation where nobody listens.\n\nI For An I sets two voices against each other: \"Careful boy\" on one side, \"Old one, old one, how sad you are\" on the other. Each tells the other to know their place. Each insists on the last word. And then the mask slips: \"I need you, I need it!\"\n\nRead as deep sociality, it is a portrait of conflict as a form of attachment: the two sides are joined by the very thing they argue about. The line that sums it up is \"One blind, one deaf\". Nobody sees, nobody hears, and still they are locked together.\n\nThe exit the singer chooses is a refusal of the assigned role: \"I prefer doubt and fear\". Not comfortable, but honest.\n\nOur reading only. Track 04 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho do you argue with because you can't afford to lose them?"
-  },
-  {
-   "id": "an-5",
-   "song": 5,
-   "theme": "deep sociality",
-   "titolo": "Grief is a bench you keep talking to",
-   "corpo": "Rusty Blues is sung to an absent father: \"I sit and I can talk to you\". Life walks by, \"young folks and families pass by\", and the city feels \"so empty and strange\". A reading: love outlives presence, and a toast keeps the bond alive.",
-   "caption": "Some conversations continue after the goodbye.\n\nRusty Blues is addressed to a father who is gone. \"Your bench ain't empty anymore\", the singer says, \"young folks and families pass by\", but \"when night falls and darkness creeps, I sit and I can talk to you\". A toast for Father's Day, red sparkling wine, and the promise to tell it all \"to you and mama\" someday.\n\nThrough the deep-sociality lens, this is grief as a relationship rather than an ending. The city feels \"so empty and strange\" since he left, and the singer keeps looking for him in strangers: \"And when I meet some old white-haired man, I hope it's you, I hope I'm wrong\". The community keeps walking by; the bond stays at the bench.\n\nOur reading of the lyrics. Track 05 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho would you still talk to, if you could?"
-  },
-  {
-   "id": "an-6",
-   "song": 6,
-   "theme": "deep sociality",
-   "titolo": "The bite that changes who stands close",
-   "corpo": "Viper follows a toxin that brings \"Isolation, exile\". A reading: temptation is rarely solitary, it lives between two people (\"My perversion, your innocence\"), and it is paid for socially: \"hate, regret, side effects\". Then: \"Now I see their blinded faces.\"",
-   "caption": "What does a toxin cost you socially?\n\nViper is a single about a temptation, a substance or a bond that tastes \"so sweet\" and arrives with a warning: \"Isolation, exile\" or \"hate, regret, side effects\". The elements are two people, not one: \"My perversion, your innocence\".\n\nFor deep sociality, the interesting part is the aftermath. Piece by piece the skin is \"polluted by sin\", and only then: \"Now I see their blinded faces, and now I understand their perturbations\". The narrator looks at the people around him and finally understands why they flinched.\n\nOur reading: the real bite of the Viper is not the poison, it is how it rearranges who stands close to you.\n\nViper is track 06 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nEver been on either side of that bite?"
-  },
-  {
-   "id": "an-7",
-   "song": 7,
-   "theme": "deep sociality",
-   "titolo": "Chains for the many, defiance for the few",
-   "corpo": "In Revenant \"Mortals bow their heads\" and someone wants to \"Tighten chains\", leaving \"hearts alone\". A reading on deep sociality: obedience is a collective act, and so is rising again. \"Defiance burns\", \"But spirit stands tall\".",
-   "caption": "Obedience is collective. So is rising again.\n\nRevenant, the single with the official video, paints a scene where \"Mortals bow their heads\" and someone wants to \"Tighten chains, cold\". Freedom \"fades fast\", hope's embers dim, \"Leaving hearts alone\". Nobody bows by themselves; it takes a crowd.\n\nBut the song keeps answering itself: \"Defiance burns\", \"But spirit stands tall\", \"Taste my blood, rise again\". Deep sociality here means the fragile moment when one person refuses and the others notice.\n\nA reading, not a manifesto. Revenant is track 07 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhat would it take to make you stand first?"
-  },
-  {
-   "id": "an-8",
-   "song": 8,
-   "theme": "deep sociality",
-   "titolo": "The most intimate sentence on the album",
-   "corpo": "Dreamer's Sunsets is one line: \"Secret dreams, hold my dreams, side by side with you.\" Deep sociality in a sentence: intimacy is handing someone what you keep hidden and asking them to hold it, together.",
-   "caption": "The shortest lyric on the album says a lot about us.\n\nDreamer's Sunsets is a single line: \"And she said: Secret dreams, hold my dreams, side by side with you\". Deep sociality can be that small. Intimacy is not sharing everything, it is trusting someone with what you keep hidden and asking them to hold it, side by side.\n\nThe words come back on track 10: \"Secret dreams hoping morning comes too soon. Hold my dreams as the night turns into day. Side by side\". Same phrases, told from the road at midnight.\n\nThis is our reading, and a very open one: the song leaves you room. Track 08 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho holds your secret dreams?"
-  },
-  {
-   "id": "an-9",
-   "song": 9,
-   "theme": "deep sociality",
-   "titolo": "When there is no \"we\" left",
-   "corpo": "Monsters' Conceal is a breakup told in silence: \"In our route there wasn't you and me\". A reading on deep sociality: a relationship lives in the \"we\", and when it thins, \"the silence screams too loud\". Even then the song asks together: \"Are we to blame?\"",
-   "caption": "When the \"we\" disappears, what is left?\n\nMonsters' Conceal is a breakup told without shouting. \"No angry cries\", just \"the hurt we can disguise\". The most telling line is about arithmetic: \"In our route there wasn't you and me\". Two travelers, no shared road.\n\nThrough the deep-sociality lens: a relationship is a third thing that exists between two people, and it can quietly stop existing. What remains is that \"the silence screams too loud\".\n\nStill, the song's questions are collective. \"Are we to blame for losing our light?\" \"Could it be true, have we become monsters?\" It is not \"you\" or \"I\", it is \"we\". Even while ending, the song grieves the shared thing.\n\nOur reading only. Track 09 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWhat is the quietest way a relationship ever ended for you?"
-  },
-  {
-   "id": "an-10",
-   "song": 10,
-   "theme": "deep sociality",
-   "titolo": "Free, but never quite alone",
-   "corpo": "An Old Van and a Couple of Beers celebrates the open road, then admits \"Lonely nights\" and \"Echoes of my travels past\". A reading: freedom is better shared, \"Laughing through hundred miles\", and even the road becomes company: \"Side by side with the road\".",
-   "caption": "Freedom is better with company.\n\nAn Old Van and a Couple of Beers sounds like pure road-trip joy: \"Open road\", \"Empty lanes\", \"no place I have to be\". Look closer and the song keeps circling company: \"Laughing through hundred miles with no fears\". And when night falls: \"Lonely nights\", \"Echoes of my travels past\".\n\nDeep sociality here is not an argument against solitude. The singer is \"feeling small but feeling free\" under a sky so vast, yet asking \"Hold my dreams as the night turns into day\". By the end the road itself is the companion: \"Side by side with the road, I'll find my way\".\n\nOur reading of the lyrics. Track 10 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho is in your van?"
-  }
- ]
 }

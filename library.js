@@ -64,7 +64,7 @@ function buildHook(ctx, isFirstPick = true) {
   const { lib, band } = ctx.D;
   const f = ctx.focus.type;
   let kind = null;
-  if (['song', 'member', 'review'].includes(f)) kind = f;
+  if (['song', 'member', 'review', 'live'].includes(f)) kind = f;
   let pool = lib.hooks.filter(h => kind ? h.kind === kind : !h.kind);
   if (!pool.length) pool = lib.hooks.filter(h => !h.kind);
   const moodPool = pool.filter(h => (h.moods || []).includes(ctx.mood));
@@ -145,6 +145,7 @@ function buildInfo(ctx, step) {
   if (step._force) topics = [step._force];
   if (!topics.length) topics = step.topics || [];
   let pool = lib.info.filter(i => topics.includes(i.topic) && !ctx.used.has(i.id));
+  if (step._ids) pool = lib.info.filter(i => step._ids.includes(i.id) && !ctx.used.has(i.id));
   if (!pool.length) pool = lib.info.filter(i => topics.includes(i.topic));
   // scegli un topic a caso fra quelli ammessi, poi l'elemento migliore per il mood
   const avail = [...new Set(pool.map(i => i.topic))];
@@ -231,7 +232,8 @@ function buildCaption(slides, mood, seed, D) {
   const fromSlides = [...new Set(slides.flatMap(s => s.tag || []))];
   const rot = arr => { const k = Math.floor(rng() * Math.max(1, arr.length)); return arr.slice(k).concat(arr.slice(0, k)); };
   const fans = rot(fromSlides.length ? fromSlides : primary).slice(0, 4);
-  const pool = lib.captions.filter(c => (c.moods || []).includes(mood));
+  const liveN = slides.filter(s => s.tipo === 'Live').length;
+  const pool = lib.captions.filter(c => (c.moods || []).includes(mood) && !!c.live === (liveN >= 2));
   const cap = one(pool.length ? pool : lib.captions, rng);
   const an = slides.map(s => s._ref && s._ref.slot === 'analysis' ? (lib.analyses || []).find(a => a.id === s._ref.libId) : null).find(Boolean);
   let text = fill(an ? an.caption : cap.text, { fans: fans.map(h => '@' + h).join(' ') });
@@ -252,6 +254,7 @@ function buildCaption(slides, mood, seed, D) {
   add(tags.hashtags.core || []);
   add(['petrosa', 'roadburnchronicles', 'stonerdoom']);
   add((lib.moodHashtags || {})[mood] || []);
+  if (liveN >= 2) add((lib.moodHashtags || {}).live || []);
   add(rot(tags.similarBands.filter(b => b.tier === 'primary').map(b => b.hashtag)));
   add(rot(tags.similarBands.filter(b => b.tier === 'secondary').map(b => b.hashtag)).slice(0, 3));
   add(tags.hashtags.identity || []);
@@ -277,6 +280,17 @@ function applyFocusToSteps(steps, focus, ctx) {
       if (!seen) { seen = true; return { slot: 'band', who: 'member' }; }
       return { slot: 'info', topics: ['studio', 'gear', 'themes', 'singles', 'van', 'label'] };
     });
+  }
+  if (focus.type === 'live') {
+    // sezione live: le slide Band diventano foto dal vivo, le prime slide informative parlano di concerti e di durata dei set (30' - 1h30)
+    let li = 0;
+    steps = steps.map(s => {
+      if (s.slot === 'band') return { slot: 'info', topics: ['live-band'] };
+      if (s.slot === 'info' && li < 3) { li++; return { slot: 'info', topics: ['live'] }; }
+      return s;
+    });
+    const ii = steps.findIndex((s, k) => s.slot === 'info' && s.topics[0] === 'live');
+    if (ii >= 0) steps[ii]._ids = ['i-live-flex', 'i-live-flex-b'];
   }
   if (focus.type === 'song') {
     // la prima citazione del carosello e' sempre un verso del brano scelto
@@ -345,7 +359,7 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   ctx.firstQuote = false;
   const step = { ...cur._ref };
   delete step.libId; delete step.member;
-  if (focus && ['song', 'member', 'review'].includes(focus.type) && (step.slot === 'hook' || (step.slot === 'band' && focus.type === 'member'))) ctx.focus = focus;
+  if (focus && ['song', 'member', 'review', 'live'].includes(focus.type) && (step.slot === 'hook' || (step.slot === 'band' && focus.type === 'member'))) ctx.focus = focus;
   if (focus && focus.type === 'song' && step.slot === 'quote') ctx.focus = focus;
   if (step.slot === 'band' && step.who !== 'all' && cur._ref.member && ctx.focus.type !== 'member') ctx.members.add(cur._ref.member);
   if (step.slot === 'custom') throw new Error('La slide personalizzata non ha alternative.');

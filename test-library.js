@@ -12,7 +12,7 @@ for (const q of lib.quotes) {
   for (const p of parts(q.cit)) if (!s.includes(p)) bad(`citazione non trovata ${q.id}: "${p}"`);
 }
 const ok = new Set(tags.similarBands.concat(tags.community).filter(b => b.handle && b.confirmed).map(b => b.handle.replace(/^@/, '').toLowerCase()));
-const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
+const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'live' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
 let n = 0;
 for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of focuses) for (let seed = 1; seed <= 6; seed++) {
   let r; try { r = L.propose({ mood: m.id, focus: f, count, seed }); } catch (e) { bad(`${m.id}/${count}/${f.type}: ${e.message}`); continue; }
@@ -39,6 +39,14 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
       if (an.length !== 1) bad(id + ' analisi: ' + an.length);
       if (!p.caption.startsWith(lib.analyses.find(a => a.song === f.item).caption.split('\n')[0])) bad(id + ' caption senza analisi');
     } else if (p.slides.some(s => s.tipo === 'Analysis')) bad(id + ' analisi fuori focus');
+    if (f.type === 'live') {
+      const lv = p.slides.filter(s => s.tipo === 'Live');
+      if (lv.length < 2) bad(id + ' poche slide live');
+      if (!/30/.test(JSON.stringify(lv)) || !/1h30/.test(JSON.stringify(lv))) bad(id + ' durata set 30min-1h30 assente');
+      if (!/live/i.test(p.slides[0].titolo + p.slides[0].corpo)) bad(id + ' hook non live');
+      if (!/1h30/.test(p.caption)) bad(id + ' caption live senza durata');
+      if (!p.hashtags.includes('livemusic')) bad(id + ' hashtag live');
+    }
     if (f.type === 'doomcharts' && !p.slides.some(s => s.stat === '#14')) bad(id + ' doomcharts assente');
     if (/\{\w+\}/.test(JSON.stringify(p))) bad(id + ' placeholder residuo');
   }

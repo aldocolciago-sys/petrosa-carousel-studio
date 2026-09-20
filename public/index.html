@@ -117,7 +117,8 @@
     #styleBar label { margin-top:0; }
     #btnStyle { grid-column:1 / -1; }
     .acts { display:grid !important; grid-template-columns:1fr 1fr; width:100%; }
-    .acts #btnPhone { grid-column:1 / -1; }
+    .acts #btnPhone, .acts #btnSwap { grid-column:1 / -1; }
+    .sthead { grid-column:1 / -1; }
     .thumb { flex-basis:150px; }
     .toast { left:12px; right:12px; bottom:calc(92px + env(safe-area-inset-bottom)); max-width:none; }
   }
@@ -155,6 +156,7 @@
       <option value="member">Un membro della band</option>
       <option value="album">L'album Roadburn Chronicles</option>
       <option value="doomcharts">Doom Charts #14</option>
+      <option value="live">Live / concerti (set 30 min - 1h30)</option>
       <option value="custom">Testo libero / notizia</option>
     </select>
     <div id="itemWrap" style="display:none"><label for="item" id="itemLabel">Scelta</label><select id="item"></select></div>
@@ -204,7 +206,7 @@
       <div>
        <div class="two">
         <div><label>Layout</label><select id="e_layout"><option value="hook">hook (copertina)</option><option value="quote">quote (citazione)</option><option value="stat">stat (numero)</option><option value="photo">photo (membro)</option><option value="text">text</option><option value="cta">cta (Spotify)</option></select></div>
-        <div><label>Immagine</label><select id="e_immagine"><option value="none">nessuna</option><option value="cover">copertina album</option><option value="logo">logo</option><option value="antonio">Antonio</option><option value="giorgio">Giorgio</option><option value="aldo">Aldo</option><option value="andrea">Andrea</option></select></div>
+        <div><label>Immagine</label><select id="e_immagine"><option value="none">nessuna</option><option value="cover">copertina album</option><option value="logo">logo</option><option value="antonio">Antonio</option><option value="giorgio">Giorgio</option><option value="aldo">Aldo</option><option value="andrea">Andrea</option><option value="live_aldo1">Live: Aldo 1</option><option value="live_aldo2">Live: Aldo 2</option><option value="live_aldo3">Live: Aldo 3</option><option value="live_andrea1">Live: Andrea 1</option><option value="live_andrea2">Live: Andrea 2</option><option value="live_andrea3">Live: Andrea 3</option><option value="live_andrea_aldo">Live: Andrea + Aldo</option><option value="live_antonio1">Live: Antonio</option><option value="live_antonio_aldo">Live: Antonio + Aldo</option><option value="desert1">sfondo deserto 1</option><option value="desert2">sfondo deserto 2</option><option value="desert3">sfondo deserto 3</option></select></div>
        </div>
        <label>Titolo / testo principale</label><textarea id="e_titolo" rows="2"></textarea>
        <label>Corpo</label><textarea id="e_corpo" rows="3"></textarea>

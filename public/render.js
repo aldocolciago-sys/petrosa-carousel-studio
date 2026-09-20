@@ -18,7 +18,7 @@
     SERIF = `"${f.quote}", Georgia, "Times New Roman", serif`; DW = f.dw; QS = f.qs; CAPS = f.caps;
     return p;
   }
-  const IMG_KEYS = ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea'];
+  const IMG_KEYS = ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea', 'live_aldo1', 'live_aldo2', 'live_aldo3', 'live_andrea1', 'live_andrea2', 'live_andrea3', 'live_andrea_aldo', 'live_antonio1', 'live_antonio_aldo', 'desert1', 'desert2', 'desert3'];
   const FOCUS = { aldo: [0.62, 0.3], giorgio: [0.62, 0.35], antonio: [0.5, 0.3], andrea: [0.5, 0.3] };
   const images = {};
 

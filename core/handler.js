@@ -62,6 +62,7 @@ function knowledgeBase(d) {
   s += `# BAND\nNome: ${d.band.name} (${d.band.city}), fondata nel ${d.band.founded}. Genere: ${d.band.genre}. Motto: "${d.band.tagline}".\nFFO: ${d.band.ffo}.\n${d.band.bio}\nHandle Instagram: ${d.handle}\n\n`;
   s += `# ALBUM\n${a.title}, uscito il ${a.release} per ${a.label}. ${a.tracks} tracce, durata ${a.runtime}. Singoli: ${a.singles.join(', ')}.\nStudio: ${a.studio}. Registrazione: ${a.recording}.\nTemi: ${a.themes}.\nTracklist: ${a.tracklist.map((t, i) => `${i + 1}. ${t}`).join(' | ')}\n`;
   s += `Doom Charts: ${a.doomCharts.issue} - posizione #${a.doomCharts.position} con ${a.doomCharts.points} punti su ${a.doomCharts.pool} album nominati. ${a.doomCharts.note}\n\n`;
+  s += `# LIVE\nI Petrosa suonano dal vivo. Informazione fornita dalla band: il repertorio copre live da 30 minuti fino a 1h30, a seconda delle occasioni. Foto live disponibili: Aldo (voce), Andrea (basso), Antonio (chitarra), Andrea+Aldo, Antonio+Aldo; nessuna foto live di Giorgio (batteria). Non sono forniti date, locali o tour: non inventarli.\n\n`;
   s += `# LINK\nSpotify: ${d.links.spotify}\nVideo Revenant: ${d.links.youtubeRevenant}\nBandcamp: ${d.links.bandcamp}\nCD: ${d.links.cd}\n\n`;
   s += `# MEMBRI (id foto tra parentesi)\n` + d.members.map(m => `- ${m.name} - ${m.role} (foto: ${m.photo}). ${m.bio}`).join('\n') + '\n\n';
   s += `# RECENSIONI E ARTICOLI (citazioni originali, da riportare letteralmente)\n` + d.reviews.map(r => `- [${r.id}] ${r.publication} | autore: ${r.author} | esito: ${r.verdict}\n  "${r.quote}"\n  URL: ${r.url}`).join('\n') + '\n\n';
@@ -96,7 +97,8 @@ Diretto, autorevole, amichevole ma senza fronzoli. Frasi corte. Spazi bianchi me
 - Usa SOLO i fatti presenti nella base di conoscenza. Non inventare recensioni, punteggi, date, nomi o versi.
 - Ogni citazione (campo "citazione") deve essere copiata LETTERALMENTE dai testi o dalle recensioni forniti. Se accorci, usa "..." tra i frammenti, senza riscrivere nulla. Le citazioni devono stare in 260 caratteri al massimo.
 - Nel campo "fonte" indica titolo del brano oppure "Autore, Testata".
-- Le foto disponibili sono: cover (copertina album), logo, antonio, giorgio, aldo, andrea. Nella slide Band usa la foto di un membro o (per tutta la band) "logo".
+- Le foto disponibili sono: cover (copertina album), logo, antonio, giorgio, aldo, andrea (ritratti); FOTO LIVE (concerto, luci blu): live_aldo1, live_aldo2, live_aldo3, live_andrea1, live_andrea2, live_andrea3, live_andrea_aldo, live_antonio1, live_antonio_aldo; sfondi artistici (deserto psichedelico, senza persone): desert1, desert2, desert3. Nella slide Band usa la foto di un membro o (per tutta la band) "logo". Le foto live vanno usate SOLO nelle slide che parlano di concerti/live (tipo "Live", layout photo o hook); non c'e' nessuna foto live di Giorgio (non abbinarne una a lui). Gli sfondi desert1-3 vanno bene per layout stat/hook in slide su live o atmosfera, mai come foto di un membro.
+- Quando una slide parla di concerti/esibizioni usa tipo "Live". Fatto da dichiarare nelle slide live e nella caption: il repertorio dei Petrosa copre live da 30 minuti fino a 1h30, a seconda delle occasioni (informazione fornita dalla band). Non inventare date, locali, festival o tour: usa solo quelli presenti nella base di conoscenza, se ci sono.
 - Titoli brevi (massimo ~60 caratteri), corpo massimo ~200 caratteri: le slide sono immagini 1080x1350 con testo grande.
 - Layout ammessi: hook (copertina con immagine a tutto schermo), quote (citazione), stat (numero grande, es. "#14"), photo (foto membro), text (titolo + testo), cta (invito finale).
 
@@ -122,13 +124,13 @@ const CAROUSEL_TOOL = {
         items: {
           type: 'object',
           properties: {
-            tipo: { type: 'string', enum: ['Cover', 'Content', 'Song', 'Review', 'Album', 'Band', 'Analysis', 'CTA'] },
+            tipo: { type: 'string', enum: ['Cover', 'Content', 'Song', 'Review', 'Album', 'Band', 'Analysis', 'Live', 'CTA'] },
             layout: { type: 'string', enum: ['hook', 'quote', 'stat', 'photo', 'text', 'cta'] },
             visual: { type: 'string' },
             titolo: { type: 'string' },
             corpo: { type: 'string' },
             servizio: { type: 'string' },
-            immagine: { type: 'string', enum: ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea', 'none'] },
+            immagine: { type: 'string', enum: ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea', 'live_aldo1', 'live_aldo2', 'live_aldo3', 'live_andrea1', 'live_andrea2', 'live_andrea3', 'live_andrea_aldo', 'live_antonio1', 'live_antonio_aldo', 'desert1', 'desert2', 'desert3', 'none'] },
             citazione: { type: 'string' },
             fonte: { type: 'string' },
             stat: { type: 'string' },
@@ -191,6 +193,7 @@ ${s.lyrics}
       const m = d.members.find(x => x.id === p.item);
       return m ? `Focus del carosello: ${m.name} (${m.role}). La slide 4 mostra la sua foto; la slide 1 fa riferimento a lui.` : '';
     }
+    case 'live': return 'Focus del carosello: i CONCERTI dei Petrosa (sezione live). Enfasi sulle performance dal vivo: potenza, volume, valvole e fuzz, sezione ritmica. Il carosello deve: aprire con una copertina (layout hook, tipo Cover) con una FOTO LIVE; includere una slide (tipo Live) che dichiara che il repertorio copre live da 30 minuti fino a 1h30, a seconda delle occasioni (layout stat con stat "30-90" oppure photo); usare 2-3 foto live diverse in slide di tipo Live (layout photo) con i membri che hanno foto live (Aldo, Andrea, Antonio; Giorgio no); inserire una slide di booking ("Book Petrosa": promoter, club e festival possono scriverci, senza inventare contatti); mantenere una slide con un verso o una recensione e la CTA finale su Spotify. La caption cita i set da 30 minuti a 1h30 e invita i promoter a contattare la band (link in bio). Hashtag live: livemusic, livedoom, stonerlive, gigs.';
     case 'album': return 'Focus del carosello: l\'album Roadburn Chronicles nel suo insieme (temi, registrazione, singoli).';
     case 'doomcharts': return 'Focus del carosello: l\'ingresso al #14 delle Doom Charts di agosto 2026.';
     case 'custom': return `Focus del carosello, testo fornito dall'utente (usalo come punto di partenza, verificando i fatti sulla base di conoscenza):\n"""${p.custom || ''}"""`;
