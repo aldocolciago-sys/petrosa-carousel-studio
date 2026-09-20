@@ -224,7 +224,7 @@ function finalize(slides, D) {
 }
 
 // ---------- Caption & hashtag ----------
-function buildCaption(slides, mood, seed, D) {
+function buildCaption(slides, mood, seed, D, exclude) {
   const { lib, tags } = D;
   const rng = mulberry(seed + 77);
   const primary = confirmed(tags.similarBands.filter(b => b.tier === 'primary'));
@@ -234,7 +234,8 @@ function buildCaption(slides, mood, seed, D) {
   const fans = rot(fromSlides.length ? fromSlides : primary).slice(0, 4);
   const liveN = slides.filter(s => s.tipo === 'Live').length;
   const pool = lib.captions.filter(c => (c.moods || []).includes(mood) && !!c.live === (liveN >= 2));
-  const cap = one(pool.length ? pool : lib.captions, rng);
+  const fresh = pool.filter(c => c.id !== exclude);
+  const cap = one(fresh.length ? fresh : (pool.length ? pool : lib.captions), rng);
   const an = slides.map(s => s._ref && s._ref.slot === 'analysis' ? (lib.analyses || []).find(a => a.id === s._ref.libId) : null).find(Boolean);
   let text = fill(an ? an.caption : cap.text, { fans: fans.map(h => '@' + h).join(' ') });
   const mentions = fans.filter(h => text.toLowerCase().includes('@' + h.toLowerCase()));
@@ -370,10 +371,10 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   return { slides: out, ...cap };
 }
 
-function recaption({ mood = 'riff', slides = [], seed } = {}) {
+function recaption({ mood = 'riff', slides = [], seed, exclude } = {}) {
   const D = load();
   seed = Number.isFinite(+seed) ? +seed : Math.floor(Math.random() * 1e9);
-  return buildCaption(slides, mood, seed, D);
+  return buildCaption(slides, mood, seed, D, exclude);
 }
 
 module.exports = { propose, swap, recaption, catalog, load, assemble, mulberry, norm, finalize };

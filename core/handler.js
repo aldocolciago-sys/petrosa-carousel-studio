@@ -366,19 +366,30 @@ async function uploadSlide(p) {
   return { key: u.key };
 }
 
+// URL firmato per caricare un VIDEO direttamente dal browser (evita il limite di 4,5 MB delle funzioni Vercel)
+async function videoUploadUrl(p) {
+  const type = p.contentType === 'video/quicktime' ? 'video/quicktime' : 'video/mp4';
+  const urls = await postfast('/file/get-signed-upload-urls', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: type, count: 1 }) });
+  const u = Array.isArray(urls) ? urls[0] : (urls.urls || urls.data || [])[0];
+  if (!u?.signedUrl || !u?.key) throw new Error('PostFast non ha restituito un URL di upload: ' + JSON.stringify(urls).slice(0, 200));
+  return { signedUrl: u.signedUrl, key: u.key, contentType: type };
+}
+
 async function publish(p) {
   const { caption, keys, accounts, mode, date } = p;
-  if (!keys?.length) throw new Error('Nessuna slide caricata.');
-  if (keys.length < 2 || keys.length > 10) throw new Error('Un carosello richiede da 2 a 10 slide.');
+  const isVideo = p.video === true;
+  if (!keys?.length) throw new Error(isVideo ? 'Nessun video caricato.' : 'Nessuna slide caricata.');
+  if (isVideo && keys.length !== 1) throw new Error('Un Reel e\' un solo video.');
+  if (!isVideo && (keys.length < 2 || keys.length > 10)) throw new Error('Un carosello richiede da 2 a 10 slide.');
   if (!accounts?.length) throw new Error('Seleziona almeno un account.');
   const draft = mode === 'draft';
   const when = mode === 'now' ? new Date(Date.now() + 90 * 1000).toISOString() : (date || new Date(Date.now() + 10 * 60000).toISOString());
-  const mediaItems = keys.map((key, i) => ({ key, type: 'IMAGE', sortOrder: i }));
+  const mediaItems = keys.map((key, i) => ({ key, type: isVideo ? 'VIDEO' : 'IMAGE', sortOrder: i }));
   const controls = {};
   const has = pl => accounts.some(a => a.platform === pl);
-  if (has('INSTAGRAM')) controls.instagramPublishType = 'TIMELINE';
+  if (has('INSTAGRAM')) controls.instagramPublishType = isVideo ? 'REEL' : 'TIMELINE';
   if (has('TIKTOK')) Object.assign(controls, {
-    tiktokTitle: String(caption).split('\n')[0].slice(0, 90), tiktokPrivacy: 'PUBLIC', tiktokAllowComments: true, tiktokAutoAddMusic: !draft, tiktokIsDraft: draft
+    tiktokTitle: String(caption).split('\n')[0].slice(0, 90), tiktokPrivacy: 'PUBLIC', tiktokAllowComments: true, tiktokAutoAddMusic: !draft && !isVideo, tiktokIsDraft: draft
   });
   const posts = accounts.map(a => ({
     content: caption, mediaItems, socialMediaId: a.id, ...(draft ? {} : { scheduledAt: when })
@@ -389,7 +400,7 @@ async function publish(p) {
 }
 
 // ---------- HTTP ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4', '.webm': 'video/webm' };
 function send(res, code, obj) {
   const body = typeof obj === 'string' ? obj : JSON.stringify(obj);
   res.writeHead(code, { 'content-type': typeof obj === 'string' ? 'text/plain; charset=utf-8' : 'application/json; charset=utf-8' });
@@ -407,7 +418,7 @@ function readBody(req, limit = 80 * 1024 * 1024) {
 const SERVERLESS = !!process.env.VERCEL;
 const PASSWORD = () => process.env.APP_PASSWORD || '';
 // Endpoint che usano chiavi segrete o scrivono su disco
-const SECRET_PATHS = ['/api/generate', '/api/ai-caption', '/api/scan-web', '/api/find-handle', '/api/social/accounts', '/api/social/upload', '/api/social/publish'];
+const SECRET_PATHS = ['/api/generate', '/api/ai-caption', '/api/scan-web', '/api/find-handle', '/api/social/accounts', '/api/social/upload', '/api/social/upload-url', '/api/social/publish'];
 const WRITE_PATHS = ['/api/tags:POST', '/api/reviews:POST'];
 
 function authorized(req) {
@@ -480,6 +491,11 @@ async function handler(req, res) {
       fs.writeFileSync(f, JSON.stringify(arr, null, 2));
       return send(res, 200, { ok: true });
     }
+    if (url.pathname === '/api/audio') {
+      const d = loadAll(), au = readJSON(path.join(DATA, 'audio.json'), { songs: {} }), sy = readJSON(path.join(DATA, 'audio-sync.json'), {});
+      return send(res, 200, { songs: d.songs.map(x => ({ n: x.n, title: x.title, lyrics: x.lyrics, ...(au.songs[x.n] || {}), anchors: sy[x.n] || [] })) });
+    }
+    if (url.pathname === '/api/social/upload-url' && req.method === 'POST') return send(res, 200, await videoUploadUrl(await readBody(req)));
     if (url.pathname === '/api/social/accounts') return send(res, 200, (await listAccounts()).filter(a => a.status !== 'DISABLED'));
     if (url.pathname === '/api/social/upload' && req.method === 'POST') return send(res, 200, await uploadSlide(await readBody(req)));
     if (url.pathname === '/api/social/publish' && req.method === 'POST') return send(res, 200, await publish(await readBody(req)));
@@ -489,7 +505,16 @@ async function handler(req, res) {
     if (rel === '/') rel = '/index.html';
     const file = path.normalize(path.join(PUBLIC, rel));
     if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return send(res, 404, 'Non trovato');
-    res.writeHead(200, { 'content-type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream' });
+    const ctype = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
+    const size = fs.statSync(file).size, rg = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (rg && (rg[1] || rg[2])) { // Range: serve per poter cercare dentro l'audio
+      let a = rg[1] ? parseInt(rg[1], 10) : Math.max(0, size - parseInt(rg[2], 10)), b = rg[1] && rg[2] ? parseInt(rg[2], 10) : size - 1;
+      if (a > b || a >= size) { res.writeHead(416, { 'content-range': `bytes */${size}` }); return res.end(); }
+      b = Math.min(b, size - 1);
+      res.writeHead(206, { 'content-type': ctype, 'accept-ranges': 'bytes', 'content-range': `bytes ${a}-${b}/${size}`, 'content-length': b - a + 1 });
+      return fs.createReadStream(file, { start: a, end: b }).pipe(res);
+    }
+    res.writeHead(200, { 'content-type': ctype, 'accept-ranges': 'bytes', 'content-length': size });
     fs.createReadStream(file).pipe(res);
   } catch (e) {
     console.error(e);

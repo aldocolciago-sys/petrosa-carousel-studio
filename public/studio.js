@@ -67,7 +67,9 @@
     if (f === 'song') { $('itemLabel').textContent = 'Brano'; opts = st.data.songs.map(s => [s.n, `${String(s.n).padStart(2, '0')} - ${s.title}`]); }
     if (f === 'review') { $('itemLabel').textContent = 'Recensione'; opts = st.data.reviews.map(r => [r.id, `${r.publication} - ${r.author}`]); }
     if (f === 'member') { $('itemLabel').textContent = 'Membro'; opts = st.data.members.map(m => [m.id, `${m.name} (${m.role})`]); }
+    const prev = sel.value;
     sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l.replace(/</g, '&lt;')}</option>`).join('');
+    if (opts.some(([v]) => String(v) === prev)) sel.value = prev; // non perdere la scelta se l'elenco viene ricostruito
   }
   $('focus').onchange = onFocus;
   $('slides').oninput = () => ($('slidesVal').textContent = $('slides').value);
@@ -106,7 +108,7 @@
   }
   function useProposal(i) {
     const p = JSON.parse(JSON.stringify(st.proposals[i]));
-    st.slides = p.slides; st.caption = p.caption; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0; st.engine = 'library';
+    st.slides = p.slides; st.caption = p.caption; st.capId = p.captionId; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0; st.engine = 'library';
     showResult(); $('result').scrollIntoView({ behavior: 'smooth' });
   }
   $('btnGen').onclick = () => propose(false);
@@ -124,7 +126,8 @@
   };
   $('btnRecap').onclick = async () => {
     try {
-      const out = await api('/api/caption', { mood: st.mood, slides: st.slides });
+      const out = await api('/api/caption', { mood: st.mood, slides: st.slides, exclude: st.capId });
+      st.capId = out.captionId;
       $('caption').value = out.caption; $('hashtags').value = out.hashtags.join(' '); updateCaptionStats();
     } catch (e) { toast(e.message, true); }
   };
@@ -196,6 +199,7 @@
     $('empty').style.display = 'none'; $('result').style.display = 'block'; $('argom').textContent = st.argomento ? '- ' + st.argomento : '';
     $('caption').value = st.caption; $('hashtags').value = st.hashtags.join(' ');
     buildStrip(); selectSlide(0); updateCaptionStats(); updateSpec(); redrawAll();
+    if (window.Reel) window.Reel.refresh();
   }
 
   function buildStrip() {
@@ -407,5 +411,6 @@
     } catch (e) { toast(e.message, true); } finally { busy($('btnScan'), false); }
   };
 
+  window.StudioCtx = { st, $, api, toast, busy, renderOff, fullCaption };
   init().catch(e => toast('Errore di avvio: ' + e.message, true));
 })();

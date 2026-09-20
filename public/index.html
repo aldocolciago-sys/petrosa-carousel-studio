@@ -71,6 +71,12 @@
   pre { white-space:pre-wrap; background:#0d0616; border:1px solid var(--line); border-radius:10px; padding:12px; font:12px/1.5 ui-monospace,Consolas,monospace; max-height:340px; overflow:auto; }
   .spin { display:inline-block; width:14px; height:14px; border:2px solid rgba(0,0,0,.3); border-top-color:#000; border-radius:50%; animation:sp .8s linear infinite; vertical-align:-2px; margin-right:6px; }
   @keyframes sp { to { transform:rotate(360deg);} }
+  .ln { display:flex; align-items:center; gap:8px; padding:5px 8px; border-bottom:1px solid var(--line); }
+  .ln .tm { width:58px; flex:none; color:var(--mut); font-variant-numeric:tabular-nums; font-size:13px; }
+  .ln.set .tm { color:var(--amber); font-weight:700; }
+  .ln button { padding:3px 9px; font-size:12px; flex:none; }
+  .ln .tx { flex:1; min-width:0; }
+  #syncLines { max-height:62vh; overflow:auto; border:1px solid var(--line); border-radius:10px; margin-top:10px; }
   .moods { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
   .mood { text-align:left; background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--c,#f59e0b); border-radius:10px; padding:9px 10px; cursor:pointer; color:var(--text); font:inherit; }
   .mood b { display:block; font-size:13px; } .mood span { display:block; color:var(--mut); font-size:11.5px; margin-top:2px; line-height:1.35; }
@@ -137,6 +143,7 @@
 <nav>
   <button class="active" data-tab="studio">Studio</button>
   <button data-tab="tags">Tag &amp; band simili</button>
+  <button data-tab="audio">Audio &amp; sync</button>
 </nav>
 
 <main>
@@ -249,6 +256,35 @@
      </div>
     </div>
 
+    <div class="card" id="reelCard">
+     <h2>7 &middot; Video Reel con musica</h2>
+     <div id="rlNone" class="hint warn" style="display:none">Nessun brano audio trovato in public/assets/clips.</div>
+     <div id="rlBox">
+      <div class="hint" style="margin-top:0">Trasforma il carosello in un video verticale (Instagram Reel / TikTok) con la canzone in sottofondo. Se una slide cita un verso, l'audio parte in modo che quel verso venga cantato proprio quando la slide compare.</div>
+      <div class="two">
+       <div><label>Canzone di sottofondo</label><select id="rlSong"></select></div>
+       <div><label>Durata di ogni slide</label><select id="rlDur"><option value="3">3 s</option><option value="3.5" selected>3,5 s</option><option value="4">4 s</option><option value="5">5 s</option></select></div>
+      </div>
+      <div class="hint" id="rlQuote"></div>
+      <div class="row" style="margin-top:8px">
+       <label style="margin:0">Inizio audio (s)</label><input type="number" id="rlStart" step="0.5" min="0" style="width:90px">
+       <button class="ghost" id="rlMinus" title="2 secondi prima">-2</button><button class="ghost" id="rlMinus1">-0,5</button><button class="ghost" id="rlPlus1">+0,5</button><button class="ghost" id="rlPlus">+2</button>
+       <button class="ghost" id="rlListen">&#9654; Ascolta</button><span class="hint" id="rlInfo" style="margin:0"></span>
+      </div>
+      <div class="row" style="margin-top:12px">
+       <label style="margin:0">Qualita'</label><select id="rlRes" style="width:auto"><option value="1080">1080x1920</option><option value="720">720x1280 (piu' leggero)</option></select>
+       <button class="btn" id="rlMake">&#127916; Crea video</button>
+      </div>
+      <div class="hint">La registrazione dura quanto il video (tieni questa scheda aperta e in primo piano).</div>
+      <div id="rlOut" style="display:none;margin-top:12px">
+       <video id="rlVideo" controls playsinline style="max-width:270px;width:100%;border-radius:10px;background:#000"></video>
+       <div class="hint" id="rlFmt"></div>
+       <div class="row"><button class="ghost" id="rlDl">Scarica video</button><button class="btn" id="rlPub">Invia Reel a PostFast</button></div>
+       <div class="hint">L'invio usa gli account e il modo scelti nella sezione 6 (Instagram esce come Reel).</div>
+      </div>
+     </div>
+    </div>
+
     <details class="card"><summary style="cursor:pointer;color:var(--amber);font-weight:700">Scheda testuale (formato del progetto)</summary><pre id="spec"></pre></details>
    </div>
   </div>
@@ -282,8 +318,21 @@
   <button class="btn" id="dkAi" style="display:none">&#10024; AI</button>
   <button class="ghost" id="dkStyle">&#127912; Stile</button>
 </div>
+<!-- ===================== AUDIO ===================== -->
+<section id="tab-audio" class="tab">
+ <div class="card">
+  <h2>Audio &amp; sync</h2>
+  <div class="hint" style="margin-top:0">Serve a dire all'app <b>quando viene cantato ogni verso</b>, cosi' nel Reel la citazione e la musica coincidono. Va fatto una volta per brano: ascolta, e nel punto in cui inizia una riga premi <b>&#9201; Qui</b>. Basta segnare il primo verso, l'ultimo e l'inizio delle strofe/ritornelli; il resto viene calcolato. I punti restano salvati in questo browser; per averli su tutti i dispositivi scarica <b>audio-sync.json</b> e caricalo in <code>data/</code> su GitHub.</div>
+  <div class="row" style="margin-top:10px"><select id="syncSong" style="width:auto"></select><button class="ghost" id="syncReset">Azzera brano</button><button class="btn" id="syncDl">Scarica audio-sync.json</button></div>
+  <audio id="syncAudio" controls preload="metadata" style="width:100%;margin-top:10px"></audio>
+  <div class="hint" id="syncStatus"></div>
+  <div id="syncLines"></div>
+ </div>
+</section>
+
 <script src="/styles.js"></script>
 <script src="/render.js"></script>
 <script src="/studio.js"></script>
+<script src="/reel.js"></script>
 </body>
 </html>

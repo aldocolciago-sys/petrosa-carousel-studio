@@ -3,7 +3,15 @@
   "version": "1.0.0",
   "description": "Generatore automatico di caroselli Instagram/TikTok per i Petrosa (stoner/doom)",
   "main": "run.js",
-  "scripts": { "start": "node run.js" },
+  "scripts": {
+    "start": "node run.js",
+    "test": "node tests/run-all.js",
+    "test:fast": "node tests/run-all.js unit api",
+    "test:unit": "node tests/run-all.js unit",
+    "test:api": "node tests/run-all.js api",
+    "test:e2e": "node tests/run-all.js e2e"
+  },
   "engines": { "node": ">=18" },
+  "devDependencies": { "playwright": "^1.56.0" },
   "license": "UNLICENSED"
 }

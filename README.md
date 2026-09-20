@@ -48,3 +48,21 @@ Scegliendo un brano nel Focus, tutti i versi citati sono di quel brano (mai di a
 
 ## Accesso con Google
 Con `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` impostati, l'app richiede il login Google e ammette solo le email in `ALLOWED_EMAILS` (default: aldo.colciago@gmail.com e petrosaband@gmail.com). Tutte le API rispondono 401 senza sessione; la sessione dura 7 giorni (cookie firmato, HttpOnly). In Google Cloud Console (OAuth client di tipo *Web application*) vanno registrati i redirect URI `https://<tuo-sito>/api/auth/callback` e `http://localhost:3000/api/auth/callback`. Con il login Google attivo `APP_PASSWORD` non serve piu'. Senza le due variabili l'app funziona come prima (in locale aperta, online con le funzioni a chiave disattivate).
+
+## Reel con musica (video verticale + canzone)
+
+- Scheda **Studio, sezione 7**: sceglie la canzone (di default quella citata nella slide con il verso), fa partire l'audio in modo che il verso venga cantato quando compare la slide, registra un video 9:16 nel browser (MP4 con Chrome) e lo puo' inviare a PostFast come Reel/TikTok.
+- Scheda **Audio & sync**: si segnano una volta per brano i punti in cui vengono cantati i versi (bottone "Qui"). I punti stanno nel browser; scarica `audio-sync.json` e mettilo in `data/` per averli ovunque.
+- Audio: i brani compressi (96 kbps) sono in `public/assets/clips/01.mp3 ... 10.mp3`. Non caricare su GitHub la cartella `public/assets/Audio` con gli MP3 originali (troppo pesanti).
+
+## Test automatici
+
+Servono a controllare che ogni funzione dell'app continui a funzionare dopo ogni modifica. Non usano chiavi vere e non pubblicano nulla: Anthropic, PostFast e Google sono simulati, e i test lavorano su una copia temporanea del progetto (i tuoi dati non vengono toccati).
+
+- `npm test`: tutto (unit + API + interfaccia nel browser, circa 3-4 minuti).
+- `npm run test:fast`: solo unit e API (circa 25 secondi, senza browser).
+- `npm run test:e2e`: solo l'interfaccia. Prima volta: `npm install` e `npx playwright install chromium`.
+
+Cosa verificano: citazioni fedeli ai testi, tutti i mood/argomenti/ricette (7-10 slide), menzioni solo confermate, ogni endpoint dell'API, generazione AI (citazioni inventate segnalate, tag ripuliti), PostFast (carosello e Reel, bozza/programma/subito), accesso Google e password, file audio e immagini, e nel browser ogni pulsante: proposte, editor slide (6 layout x tutte le foto), stili (9 sfondi, 10 colori, 8 font), esportazioni PNG/ZIP/telefono, pubblicazione, Reel con musica, Audio & sync, tag, mobile.
+
+Su GitHub la cartella `.github/workflows/tests.yml` li esegue a ogni push: nella scheda **Actions** vedi il segno verde o rosso.
