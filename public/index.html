@@ -81,6 +81,46 @@
   .prop ol { margin:0; padding-left:20px; font-size:12.5px; line-height:1.5; } .prop ol li span { color:var(--mut); }
   .btn.ai { background:linear-gradient(90deg,#c026d3,#8b5cf6); color:#fff; }
   .empty { text-align:center; color:var(--mut); padding:60px 10px; }
+  .status { display:contents; }
+  .sthead { flex:1 0 100%; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); font-weight:700; }
+  .cfgsum { display:none; margin:2px 0 10px; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--soft); font-size:13px; text-decoration:none; }
+  #dock { display:none; position:fixed; left:0; right:0; bottom:0; z-index:10; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:rgba(13,6,22,.95); backdrop-filter:blur(12px); border-top:1px solid var(--line); }
+  #dock button { flex:1; min-height:48px; padding:8px 6px; }
+  body.tab-tags #dock { display:none !important; }
+  @media (max-width:700px){
+    body { font-size:16px; padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+    header { padding:10px 14px; gap:10px; }
+    header img { width:36px; height:36px; }
+    h1 { font-size:18px; }
+    header small, .grow { display:none; }
+    .status { display:flex; gap:8px; width:100%; overflow-x:auto; padding:2px 0 4px; }
+    .pill { font-size:13px; padding:7px 13px; white-space:nowrap; background:rgba(255,255,255,.04); }
+    nav { padding:8px 14px 0; overflow-x:auto; }
+    nav button { padding:12px 14px; font-size:15px; white-space:nowrap; }
+    main { padding:14px 14px 30px; }
+    .card { padding:14px; border-radius:14px; }
+    select, input[type=text], input[type=datetime-local], textarea, input[type=number] { font-size:16px; padding:12px; }
+    button.btn, button.ghost { min-height:46px; font-size:15px; }
+    input[type=range] { height:32px; }
+    #dock { display:flex; }
+    .cfgsum { display:block; }
+    .cols { grid-template-columns:minmax(0,1fr); }
+    .cols > div, .card, #result { min-width:0; max-width:100%; }
+    #strip { max-width:100%; }
+    .cfgsum { flex:1 1 100%; }
+    #result .card > .row > h2 { flex:1 1 100%; min-width:0; }
+    .editor { grid-template-columns:minmax(0,1fr); }
+    #big { max-width:100%; }
+    pre, table { max-width:100%; overflow:auto; }
+    #styleBar { display:grid !important; grid-template-columns:1fr 1fr; gap:10px; align-items:end; padding:12px; margin-top:12px !important; border:1px solid var(--line); border-radius:12px; background:var(--panel2); }
+    #styleBar > div { min-width:0; }
+    #styleBar label { margin-top:0; }
+    #btnStyle { grid-column:1 / -1; }
+    .acts { display:grid !important; grid-template-columns:1fr 1fr; width:100%; }
+    .acts #btnPhone { grid-column:1 / -1; }
+    .thumb { flex-basis:150px; }
+    .toast { left:12px; right:12px; bottom:calc(92px + env(safe-area-inset-bottom)); max-width:none; }
+  }
 </style>
 </head>
 <body>
@@ -88,8 +128,10 @@
   <img src="/assets/logo.jpg" alt="Petrosa">
   <div><h1>PETROSA</h1><small>Carousel Studio - stoner / doom social automation</small></div>
   <div class="grow"></div>
-  <span id="pillAI" class="pill">Claude API</span>
-  <span id="pillPZ" class="pill">PostFast</span>
+  <div class="status" id="statusBar">
+    <span id="pillAI" class="pill">Claude API</span>
+    <span id="pillPZ" class="pill">PostFast</span>
+  </div>
 </header>
 <nav>
   <button class="active" data-tab="studio">Studio</button>
@@ -101,7 +143,7 @@
 <section id="tab-studio" class="tab active">
  <div class="cols">
   <div>
-   <div class="card">
+   <div class="card" id="cfg">
     <h2>1 &middot; Mood</h2>
     <div class="moods" id="moods"></div>
     <h2 style="margin-top:18px">2 &middot; Argomento</h2>
@@ -136,8 +178,9 @@
    <div id="result" style="display:none">
     <div class="card">
      <div class="row" style="justify-content:space-between">
+      <a href="#cfg" class="cfgsum" id="cfgSum"></a>
       <h2 style="margin:0">4 &middot; Slide <span id="argom" style="color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500"></span></h2>
-      <div class="row">
+      <div class="row acts">
         <button class="ghost" id="btnSwap">Cambia questa slide</button>
         <button class="btn" id="btnPhone">Cartella per il telefono</button>
         <button class="ghost" id="btnZip">Scarica ZIP</button>
@@ -147,6 +190,7 @@
      </div>
      <div id="demoBanner" class="hint warn" style="display:none;margin-top:10px"></div>
      <div id="styleBar" class="row" style="margin-top:12px;align-items:flex-end">
+       <div class="sthead">&#127912; Stile grafico</div>
        <div><label>Sfondo</label><select id="stBg"></select></div>
        <div><label>Colori</label><select id="stPal"></select></div>
        <div><label>Font</label><select id="stFont"></select></div>
@@ -230,6 +274,12 @@
 </section>
 </main>
 <div class="toast" id="toast"></div>
+<div id="dock">
+  <button class="ghost" id="dkCfg">&#9881; Config</button>
+  <button class="btn" id="dkGen">Proponi</button>
+  <button class="btn" id="dkAi" style="display:none">&#10024; AI</button>
+  <button class="ghost" id="dkStyle">&#127912; Stile</button>
+</div>
 <script src="/styles.js"></script>
 <script src="/render.js"></script>
 <script src="/studio.js"></script>

@@ -28,6 +28,7 @@
   document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
     document.querySelectorAll('nav button,.tab').forEach(x => x.classList.remove('active'));
     b.classList.add('active'); $('tab-' + b.dataset.tab).classList.add('active');
+    document.body.classList.toggle('tab-tags', b.dataset.tab !== 'studio');
   });
 
   // ---------- Init ----------
@@ -41,6 +42,7 @@
     $('pillAI').textContent = st.cfg.anthropic ? `AI live: ${st.cfg.model}` : 'Libreria (AI non configurata)';
     $('pillAI').className = 'pill on';
     $('btnClaude').style.display = st.cfg.anthropic ? '' : 'none';
+    $('dkAi').style.display = st.cfg.anthropic ? '' : 'none';
     $('notesWrap').style.display = st.cfg.anthropic ? 'block' : 'none';
     $('btnAiCap').style.display = st.cfg.anthropic ? '' : 'none';
     if (st.cfg.anthropic) $('btnGen').textContent = 'Assembla dalla libreria';
@@ -91,6 +93,7 @@
       const out = await api('/api/propose', { mood: st.mood, focus, count: +$('slides').value, seed: again ? undefined : undefined });
       st.proposals = out.proposals; st.seed = out.seed;
       $('empty').style.display = 'none'; $('proposals').style.display = 'block'; $('btnVar').disabled = false;
+      if (window.matchMedia('(max-width:700px)').matches) setTimeout(() => $('proposals').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
       renderProposals();
     } catch (e) { toast(e.message, true); } finally { busy(btn, false); }
   }
@@ -170,7 +173,20 @@
   }
   function setTheme(t) { st.theme = { ...Styles.DEFAULT, ...t }; return redrawAll(); }
 
+  // ---------- Barra fissa (mobile) ----------
+  const scrollTo = el => el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('dkCfg').onclick = () => scrollTo($('cfg'));
+  $('dkGen').onclick = () => $('btnGen').click();
+  $('dkAi').onclick = () => $('btnClaude').click();
+  $('dkStyle').onclick = () => { if ($('result').style.display === 'none') return toast('Genera prima un carosello: poi qui scegli sfondo, colori e font.', true); scrollTo($('styleBar')); };
+  function updateSummary() {
+    const m = (st.lib && st.lib.moods.find(x => x.id === st.mood) || {}).label || '';
+    const f = $('focus').selectedOptions[0].text + (['song', 'review', 'member'].includes($('focus').value) && $('item').selectedOptions[0] ? ': ' + $('item').selectedOptions[0].text : '');
+    $('cfgSum').textContent = `⚙ ${m} · ${f} · ${st.slides.length} slide — tocca per modificare`;
+  }
+
   function showResult(keepTheme, aiStyle) {
+    updateSummary();
     if (!keepTheme || !st.theme) {
       const ai = aiStyle ? { bg: aiStyle.sfondo, pal: aiStyle.palette, font: aiStyle.font, photo: aiStyle.foto, hook: aiStyle.copertina } : {};
       const ok = Object.fromEntries(Object.entries(Styles.valid(ai)).filter(([, v]) => v));
