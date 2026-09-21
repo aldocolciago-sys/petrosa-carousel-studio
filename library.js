@@ -25,7 +25,54 @@ function load() {
     return { n: parseInt(num, 10), title, lyrics: lines.join('\n').trim() };
   });
   const tags = readJSON('tags.json', { similarBands: [], community: [], hashtags: { core: [], identity: [], local: [] } });
-  return { lib, band, tags };
+  const photos = readJSON('photos.json', []);
+  addPhotos(lib, band, photos);
+  return { lib, band, tags, photos };
+}
+
+// ---------- Foto live: dal catalogo data/photos.json nascono le slide "Live" (assegnazione automatica per membro e mood) ----------
+const ROLE_WORD = { antonio: 'guitar', giorgio: 'drums', aldo: 'vocals', andrea: 'bass' };
+const BODY = {
+  doom: ['Slow. Heavy. Unhurried.', 'Long notes. No rush.', 'Doom needs room to breathe.'],
+  riff: ['Riffs first. Everything else follows.', 'Amps up. Ears open.', 'Big riff. Bigger room.'],
+  psych: ['Smoke, light and volume.', 'Colour bleeds into the sound.', 'Lost in the haze.'],
+  intro: ['Meet Petrosa.', 'Eyes on the music.', 'This is what heavy looks like.'],
+  road: ['Daylight. Open air. Full volume.', 'Desert rock, out in the open.', 'The road turns into a stage.'],
+  proof: ['Caught mid-set.', 'Crowd in the frame. Band in the moment.', 'Live. Loud. Real.'],
+  fans: ['The moment the room connects.', 'Good nights end with a smile.', 'Sharing the stage. Sharing the noise.']
+};
+const DUO = ['{a} and {b}, locked in.', '{a} and {b}. Same stage, same weight.', '{a} meets {b} in the noise.'];
+const hash = str => { let h = 7; for (const c of String(str)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+function photoItem(p, band) {
+  const mem = id => band.members.find(m => m.id === id) || { id, name: id, role: '' };
+  const h = hash(p.id), tag = p.id.replace(/^live_/, '');
+  const ms = (p.members || []).map(mem);
+  const mood0 = (p.moods || ['intro'])[0];
+  const pool = BODY[mood0] || BODY.intro;
+  let titolo, corpo;
+  if (p.kind === 'solo') {
+    const m = ms[0], role = m.role.replace(/\s*\(.*\)/, '');
+    titolo = [`${m.name}. ${role}.`, `${m.name.split(' ')[0]}, live.`, `${m.name.split(' ')[0]}. ${role}.`][h % 3];
+    corpo = pool[(h >> 3) % pool.length];
+  } else if (p.kind === 'duo') {
+    titolo = ms.map(m => m.name.split(' ')[0]).join(' + ') + '.';
+    corpo = DUO[h % DUO.length].replace('{a}', cap(ROLE_WORD[ms[0].id] || 'music')).replace('{b}', ROLE_WORD[ms[1].id] || 'music');
+  } else if (p.kind === 'group') {
+    titolo = 'Petrosa. All four.'; corpo = ['Four players. One wall of sound.', 'Antonio, Giorgio, Aldo and Andrea. Live.'][h % 2];
+  } else { titolo = 'Petrosa.'; corpo = 'Stoner and doom, live.'; }
+  if (p.titolo) titolo = p.titolo;
+  if (p.corpo) corpo = p.corpo;
+  return { id: 'lb-' + tag, topic: 'live-band', moods: p.moods && p.moods.length ? p.moods : ['all'], layout: 'photo', tipo: 'Live', titolo, corpo, immagine: p.id, members: p.members || [], kind: p.kind, q: p.q };
+}
+const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
+function addPhotos(lib, band, photos) {
+  const good = photos.filter(p => (p.q || 0) >= 2);                     // le foto di qualita' 1 restano scegliabili a mano, mai in automatico
+  lib.info = (lib.info || []).filter(i => i.topic !== 'live-band').concat(good.map(p => photoItem(p, band)));
+  // foto di gruppo / brand: diventano anche testi "band" per la slide di tutta la band
+  lib.band = (lib.band || []).filter(b => !b._photo).concat(good.filter(p => p.kind === 'group' || p.kind === 'brand').map(p => {
+    const it = photoItem(p, band);
+    return { id: 'bp-' + p.id.replace(/^live_/, ''), member: 'all', moods: it.moods, layout: 'photo', titolo: it.titolo, corpo: it.corpo, immagine: p.id, _photo: true };
+  }));
 }
 
 const cleanH = h => String(h || '').replace(/^@/, '').trim();
@@ -38,9 +85,11 @@ function score(item, mood) {
   if (m.includes('all')) return 1.5;
   return 0.4;
 }
+let AVOID = new Set();   // ids usati di recente nei caroselli precedenti: evitati se c'e' alternativa (mai obbligatorio)
 function pick(items, mood, rng, used = new Set()) {
   const pool = items.filter(i => !used.has(i.id));
-  const list = pool.length ? pool : items;
+  const fresh = pool.filter(i => !AVOID.has(i.id));
+  const list = fresh.length ? fresh : pool.length ? pool : items;
   if (!list.length) return null;
   const w = list.map(i => score(i, mood));
   let r = rng() * w.reduce((a, b) => a + b, 0);
@@ -53,7 +102,7 @@ function fill(str, vars) { return String(str || '').replace(/\{(\w+)\}/g, (m, k)
 
 // ---------- Costruzione di una slide da uno step ----------
 function ctxFrom(mood, focus, rng, D) {
-  return { mood, focus: focus || { type: 'auto' }, rng, D, used: new Set(), songs: new Set(), reviews: new Set(), pubs: new Set(), topics: new Set(), members: new Set(), firstQuote: true };
+  return { mood, focus: focus || { type: 'auto' }, rng, D, used: new Set(), songs: new Set(), reviews: new Set(), pubs: new Set(), topics: new Set(), titles: new Set(), members: new Set(), firstQuote: true };
 }
 
 function songFocusN(ctx) { return ctx.focus.type === 'song' ? parseInt(ctx.focus.item, 10) : null; }
@@ -64,19 +113,19 @@ function buildHook(ctx, isFirstPick = true) {
   const { lib, band } = ctx.D;
   const f = ctx.focus.type;
   let kind = null;
-  if (['song', 'member', 'review', 'live'].includes(f)) kind = f;
+  if (['song', 'member', 'review', 'live', 'band'].includes(f)) kind = f;
   let pool = lib.hooks.filter(h => kind ? h.kind === kind : !h.kind);
   if (!pool.length) pool = lib.hooks.filter(h => !h.kind);
-  const moodPool = pool.filter(h => (h.moods || []).includes(ctx.mood));
+  const moodPool = pool.filter(h => (h.moods || []).includes(ctx.mood) || (h.moods || []).includes('all'));
   const h = pick(moodPool.length ? moodPool : pool, ctx.mood, ctx.rng, ctx.used);
   const vars = {};
   let layout = 'hook', immagine = h.immagine || 'cover';
   if (h.kind === 'song') {
     const s = band.songs.find(x => x.n === songFocusN(ctx)) || band.songs[0];
-    vars.song = s.title; ctx.songs.add(s.n);
+    vars.song = s.title; vars.n = String(s.n).padStart(2, '0'); ctx.songs.add(s.n);
   } else if (h.kind === 'member') {
     const m = band.members.find(x => x.id === memberFocus(ctx)) || band.members[0];
-    vars.member = m.name; vars.role = m.role.replace(/\s*\(.*\)/, ''); vars.photo = m.photo;
+    vars.member = m.name; vars.role = m.role.replace(/\s*\(.*\)/, ''); vars.rolel = vars.role.toLowerCase(); vars.photo = m.photo;
     immagine = 'cover'; ctx.members.add(m.id); // copertina album: la foto del membro compare solo nella slide Band
   } else if (h.kind === 'review') {
     const r = band.reviews.find(x => x.id === reviewFocus(ctx)) || band.reviews[0];
@@ -89,6 +138,17 @@ function buildHook(ctx, isFirstPick = true) {
     visual: 'Album cover over a blurred purple/black background, big amber title.',
     _libId: h.id
   };
+}
+
+// con una recensione al centro: le citazioni sono della stessa testata (la recensione scelta per prima), senza essere scartate dal filtro anti-ripetizione
+function focusPubQuote(ctx) {
+  const { lib, band } = ctx.D; const rf = reviewFocus(ctx); if (!rf) return null;
+  const pubOf = q => (band.reviews.find(r => r.id === q.review) || {}).publication;
+  const fpub = pubOf({ review: rf }); if (!fpub) return null;
+  let p = lib.quotes.filter(q => q.kind === 'review' && pubOf(q) === fpub && !ctx.used.has(q.id));
+  const exact = p.filter(q => q.review === rf);
+  if (ctx.firstQuote && exact.length) p = exact;
+  return p.length ? pick(p, ctx.mood, ctx.rng, ctx.used) : null;
 }
 
 function buildQuote(ctx, step) {
@@ -111,16 +171,18 @@ function buildQuote(ctx, step) {
   if (!pool.length) pool = lib.quotes.filter(q => only(q) && !ctx.used.has(q.id) && (!kind || q.kind === kind));
   if (!pool.length && sf && kind === 'song') pool = lib.quotes.filter(q => q.kind === 'review' && !ctx.used.has(q.id) && !ctx.reviews.has(q.review) && !ctx.pubs.has((band.reviews.find(r => r.id === q.review) || {}).publication));
   if (!pool.length) pool = lib.quotes.filter(q => only(q) && (!kind || q.kind === kind));
-  const q = pick(pool, ctx.mood, ctx.rng, ctx.used);
+  const q = (step._pub && focusPubQuote(ctx)) || pick(pool, ctx.mood, ctx.rng, ctx.used);
   ctx.used.add(q.id); ctx.firstQuote = false;
   if (q.kind === 'song') {
     const s = band.songs.find(x => x.n === q.song);
     ctx.songs.add(s.n);
-    return { tipo: 'Song', layout: 'quote', immagine: 'none', titolo: s.title, corpo: `From the album Roadburn Chronicles - track ${String(s.n).padStart(2, '0')}.`, citazione: q.cit, fonte: s.title, visual: 'Black background with orange and purple glow. Lyric in large type, song title highlighted.', _libId: q.id };
+    return { tipo: 'Song', layout: 'quote', immagine: 'none', titolo: s.title, corpo: (lib.songNotes || {})[s.n] || `From the album Roadburn Chronicles - track ${String(s.n).padStart(2, '0')}.`, citazione: q.cit, fonte: s.title, visual: 'Black background with orange and purple glow. Lyric in large type, song title highlighted.', _libId: q.id };
   }
   const r = band.reviews.find(x => x.id === q.review);
+  const again = ctx.pubs.has(r.publication) && ctx.reviews.size > 0 && ctx.quotedPubs && ctx.quotedPubs.has(r.publication);
+  (ctx.quotedPubs = ctx.quotedPubs || new Set()).add(r.publication);
   ctx.reviews.add(r.id); ctx.pubs.add(r.publication);
-  return { tipo: 'Review', layout: 'quote', immagine: 'none', titolo: r.publication, corpo: r.verdict, citazione: q.cit, fonte: `${r.author}, ${r.publication}`, visual: 'Dark background with purple glow. Large quote, publication and author highlighted.', _libId: q.id };
+  return { tipo: 'Review', layout: 'quote', immagine: 'none', titolo: r.publication, corpo: again ? 'Same review, another line.' : r.verdict, citazione: q.cit, fonte: `${r.author}, ${r.publication}`, visual: 'Dark background with purple glow. Large quote, publication and author highlighted.', _libId: q.id };
 }
 
 function buildAnalysis(ctx) {
@@ -148,10 +210,12 @@ function buildInfo(ctx, step) {
   if (step._ids) pool = lib.info.filter(i => step._ids.includes(i.id) && !ctx.used.has(i.id));
   if (!pool.length) pool = lib.info.filter(i => topics.includes(i.topic));
   // scegli un topic a caso fra quelli ammessi, poi l'elemento migliore per il mood
+  const newT = pool.filter(i => !ctx.titles.has(i.titolo));   // mai due slide con lo stesso titolo (es. due foto dello stesso membro)
+  if (newT.length) pool = newT;
   const avail = [...new Set(pool.map(i => i.topic))];
   const topic = one(avail, ctx.rng);
   const it = pick(pool.filter(i => i.topic === topic), ctx.mood, ctx.rng, ctx.used);
-  ctx.used.add(it.id); ctx.topics.add(it.topic);
+  ctx.used.add(it.id); ctx.topics.add(it.topic); ctx.titles.add(it.titolo);
   const s = { tipo: it.tipo || 'Album', layout: it.layout || 'text', immagine: it.immagine || 'none', titolo: it.titolo, corpo: it.corpo, visual: '', _libId: it.id };
   if (it.stat) s.stat = it.stat;
   const tg = resolveTags(it, tags);
@@ -182,12 +246,13 @@ function buildBand(ctx, step) {
   const pool = lib.band.filter(b => b.member === mid);
   const b = pick(pool, ctx.mood, ctx.rng, ctx.used);
   ctx.used.add(b.id);
-  return { tipo: 'Band', layout: 'photo', immagine: m.photo, titolo: b.titolo || m.name, corpo: b.corpo, visual: `Full-height photo of ${m.name} with dark gradient from the bottom.`, _libId: b.id, _member: mid };
+  return { tipo: 'Band', layout: 'photo', immagine: m.photo, titolo: step._role ? `${m.name}. ${m.role.replace(/\s*\(.*\)/, '')}.` : (b.titolo || m.name), corpo: b.corpo, visual: `Full-height photo of ${m.name} with dark gradient from the bottom.`, _libId: b.id, _member: mid };
 }
 
 function buildCta(ctx) {
   const { lib } = ctx.D;
-  const c = pick(lib.cta, ctx.mood, ctx.rng, ctx.used);
+  const cm = lib.cta.filter(c => (c.moods || []).includes(ctx.mood));   // la CTA e' sempre del mood scelto
+  const c = pick(cm.length ? cm : lib.cta, ctx.mood, ctx.rng, ctx.used);
   ctx.used.add(c.id);
   return { tipo: 'CTA', layout: 'cta', immagine: 'cover', titolo: c.titolo, corpo: c.corpo, visual: 'Album cover with dark veil and a big green Spotify button.', _libId: c.id };
 }
@@ -233,9 +298,12 @@ function buildCaption(slides, mood, seed, D, exclude) {
   const rot = arr => { const k = Math.floor(rng() * Math.max(1, arr.length)); return arr.slice(k).concat(arr.slice(0, k)); };
   const fans = rot(fromSlides.length ? fromSlides : primary).slice(0, 4);
   const liveN = slides.filter(s => s.tipo === 'Live').length;
-  const pool = lib.captions.filter(c => (c.moods || []).includes(mood) && !!c.live === (liveN >= 2));
-  const fresh = pool.filter(c => c.id !== exclude);
-  const cap = one(fresh.length ? fresh : (pool.length ? pool : lib.captions), rng);
+  const bandN = new Set(slides.filter(s => s._ref && s._ref.slot === 'band' && s._ref.member).map(s => s._ref.member)).size;
+  const wholeBand = bandN >= 4;   // carosello sull'intera band: caption che nomina tutti e quattro
+  const pool = lib.captions.filter(c => (c.moods || []).includes(mood) && !!c.live === (liveN >= 2) && !!c.band === wholeBand);
+  const fresh = pool.filter(c => c.id !== exclude && !AVOID.has(c.id));
+  const fresh2 = fresh.length ? fresh : pool.filter(c => c.id !== exclude);
+  const cap = one(fresh2.length ? fresh2 : (pool.length ? pool : lib.captions.filter(c => !!c.band === wholeBand)), rng);
   const an = slides.map(s => s._ref && s._ref.slot === 'analysis' ? (lib.analyses || []).find(a => a.id === s._ref.libId) : null).find(Boolean);
   let text = fill(an ? an.caption : cap.text, { fans: fans.map(h => '@' + h).join(' ') });
   const mentions = fans.filter(h => text.toLowerCase().includes('@' + h.toLowerCase()));
@@ -268,7 +336,7 @@ function buildCaption(slides, mood, seed, D, exclude) {
 function getMoods() { const { lib } = load(); return lib.moods; }
 function catalog() {
   const D = load();
-  return { moods: D.lib.moods, recipes: D.lib.recipes.map(({ id, n, label, desc }) => ({ id, n, label, desc })), counts: { hooks: D.lib.hooks.length, quotes: D.lib.quotes.length, info: D.lib.info.length, band: D.lib.band.length, cta: D.lib.cta.length, captions: D.lib.captions.length } };
+  return { moods: D.lib.moods, recipes: D.lib.recipes.map(({ id, n, label, desc }) => ({ id, n, label, desc })), counts: { hooks: D.lib.hooks.length, quotes: D.lib.quotes.length, info: D.lib.info.length, band: D.lib.band.length, cta: D.lib.cta.length, captions: D.lib.captions.length, photos: D.photos.length } };
 }
 
 function applyFocusToSteps(steps, focus, ctx) {
@@ -292,6 +360,35 @@ function applyFocusToSteps(steps, focus, ctx) {
     });
     const ii = steps.findIndex((s, k) => s.slot === 'info' && s.topics[0] === 'live');
     if (ii >= 0) steps[ii]._ids = ['i-live-flex', 'i-live-flex-b'];
+  }
+  if (focus.type === 'band') {
+    // tutta la band: ogni membro ha la sua slide con foto (tutti e 4 citati), una recensione a meta', poi album e CTA
+    const M = id => ({ slot: 'band', who: 'member', _member: id, _role: true });
+    const [A, Al, An, G] = ['antonio', 'aldo', 'andrea', 'giorgio'].map(M);
+    const hook = { slot: 'hook' }, all = { slot: 'band', who: 'all' }, Q = { slot: 'quote', kind: 'review' }, cta = { slot: 'cta' };
+    const inf = t => ({ slot: 'info', topics: t });
+    const seq = { 7: [hook, A, Al, An, G, Q, cta], 8: [hook, all, A, Al, Q, An, G, cta], 9: [hook, all, A, Al, Q, An, G, inf(['basics', 'charts']), cta], 10: [hook, all, A, Al, Q, An, G, inf(['studio']), inf(['charts', 'basics']), cta] };
+    if (seq[steps.length]) steps = seq[steps.length];
+  }
+  if (focus.type === 'review') {
+    // le prime due citazioni sono della testata scelta (recensione + un secondo passaggio, se esiste)
+    let c = 0;
+    steps = steps.map(s => (s.slot === 'quote' && c++ < 2) ? { slot: 'quote', kind: 'review', _pub: true } : s);
+  }
+  if (focus.type === 'member') {
+    // niente foto live di altri membri: il tema "live" generico esce dalle altre slide; se il membro ha foto dal vivo, ne compare una
+    const ids = (ctx.D.lib.info || []).filter(i => i.topic === 'live-band' && i.kind === 'solo' && (i.members || [])[0] === focus.item).map(i => i.id);
+    const noLive = s => (s.slot === 'info' && (s.topics || []).some(t => /^live/.test(t)))
+      ? { ...s, topics: s.topics.filter(t => !/^live/.test(t)).concat(s.topics.length > 1 ? [] : ['studio']) } : s;
+    const inf = steps.map((s, i) => s.slot === 'info' ? i : -1).filter(i => i >= 0);
+    const k = steps.findIndex(s => s.slot === 'info' && (s.topics || []).some(t => /^live/.test(t)));
+    const at = ids.length && inf.length ? (k >= 0 ? k : inf[Math.min(1, inf.length - 1)]) : -1;
+    steps = steps.map((s, i) => i === at ? { slot: 'info', topics: ['live-band'], _ids: ids } : noLive(s));
+  }
+  if (focus.type === 'auto' && steps.filter(s => s.slot === 'info').length >= 3 && ctx.rng() < 0.5) {
+    // argomento libero: a volte una slide informativa diventa una foto live scelta per mood
+    const inf = steps.map((s, i) => s.slot === 'info' ? i : -1).filter(i => i >= 0);
+    steps[inf[inf.length - 1]] = { slot: 'info', topics: ['live-band'] };
   }
   if (focus.type === 'song') {
     // la prima citazione del carosello e' sempre un verso del brano scelto
@@ -323,7 +420,8 @@ function assemble(recipe, mood, focus, seed, D) {
   return { recipeId: recipe.id, label: recipe.label, desc: recipe.desc, slides, ...cap };
 }
 
-function propose({ mood = 'riff', focus = { type: 'auto' }, count = 8, seed } = {}) {
+function propose({ mood = 'riff', focus = { type: 'auto' }, count = 8, seed, avoid = [] } = {}) {
+  AVOID = new Set(Array.isArray(avoid) ? avoid.map(String) : []);
   const D = load();
   const n = Math.min(10, Math.max(7, parseInt(count, 10) || 8));
   seed = Number.isFinite(+seed) ? +seed : Math.floor(Math.random() * 1e9);
@@ -339,7 +437,8 @@ function propose({ mood = 'riff', focus = { type: 'auto' }, count = 8, seed } = 
 }
 
 // Sostituisce una singola slide con un'altra alternativa dello stesso tipo
-function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1, seed } = {}) {
+function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1, seed, avoid = [] } = {}) {
+  AVOID = new Set(Array.isArray(avoid) ? avoid.map(String) : []);
   const D = load();
   seed = Number.isFinite(+seed) ? +seed : Math.floor(Math.random() * 1e9);
   const rng = mulberry(seed);
@@ -360,9 +459,10 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   ctx.firstQuote = false;
   const step = { ...cur._ref };
   delete step.libId; delete step.member;
-  if (focus && ['song', 'member', 'review', 'live'].includes(focus.type) && (step.slot === 'hook' || (step.slot === 'band' && focus.type === 'member'))) ctx.focus = focus;
+  if (focus && ['song', 'member', 'review', 'live', 'band'].includes(focus.type) && (step.slot === 'hook' || (step.slot === 'band' && focus.type === 'member'))) ctx.focus = focus;
   if (focus && focus.type === 'song' && step.slot === 'quote') ctx.focus = focus;
   if (step.slot === 'band' && step.who !== 'all' && cur._ref.member && ctx.focus.type !== 'member') ctx.members.add(cur._ref.member);
+  if (focus && focus.type === 'band' && step.slot === 'band' && cur._ref.member) { step._member = cur._ref.member; step._role = true; ctx.members.delete(cur._ref.member); }   // ogni membro resta al suo posto: cambia solo il testo
   if (step.slot === 'custom') throw new Error('La slide personalizzata non ha alternative.');
   const ns = buildSlide(ctx, step);
   const out = slides.map((s, i) => i === index ? ns : s);
@@ -377,4 +477,7 @@ function recaption({ mood = 'riff', slides = [], seed, exclude } = {}) {
   return buildCaption(slides, mood, seed, D, exclude);
 }
 
-module.exports = { propose, swap, recaption, catalog, load, assemble, mulberry, norm, finalize };
+// lo stato "avoid" vale solo per la singola richiesta (in serverless l'istanza resta viva fra una richiesta e l'altra)
+const scoped = fn => (...a) => { try { return fn(...a); } finally { AVOID = new Set(); } };
+function photos() { return readJSON('photos.json', []); }
+module.exports = { photos, propose: scoped(propose), swap: scoped(swap), recaption, catalog, load, assemble, mulberry, norm, finalize };

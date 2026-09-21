@@ -66,7 +66,7 @@ describe('e2e', () => {
     assert.equal(await page.locator('#moods .mood').count(), 7);
     assert.match(await $(page, 'pillAI').innerText(), /AI live/); assert.match(await $(page, 'pillPZ').innerText(), /PostFast collegato/);
     const opts = await page.locator('#focus option').evaluateAll(o => o.map(x => x.value));
-    assert.deepEqual(opts, ['auto', 'song', 'review', 'member', 'album', 'doomcharts', 'live', 'custom']);
+    assert.deepEqual(opts, ['auto', 'song', 'review', 'member', 'band', 'album', 'doomcharts', 'live', 'custom']);
     assert.ok(await $(page, 'btnClaude').isVisible());
     assert.equal(await page.locator('nav button').count(), 3);
   }));
@@ -87,6 +87,8 @@ describe('e2e', () => {
     for (let i = 0; i < nRev; i++) { await page.selectOption('#focus', 'review'); await page.locator('#item').selectOption({ index: i }); await proposeClick(page, '#btnGen'); }
     await page.selectOption('#focus', 'member'); const members = await page.locator('#item option').evaluateAll(o => o.map(x => x.value)); assert.equal(members.length, 4);
     for (const m of members) await gen(page, { focus: 'member', item: m });
+    await gen(page, { focus: 'band' }); const bandTxt = await page.locator('#propList').innerText(); for (const n of ['Antonio', 'Aldo', 'Andrea', 'Giorgio']) assert.match(bandTxt, new RegExp(n)); await useProposal(page);
+    for (const n of ['Antonio', 'Aldo', 'Andrea', 'Giorgio']) assert.match(await $(page, 'caption').inputValue(), new RegExp(n));
     await gen(page, { focus: 'album' }); await useProposal(page);
     await gen(page, { focus: 'doomcharts' }); await useProposal(page); assert.match(await page.locator("#propList").innerText(), /Charting|Doom Charts|#14/);
     await gen(page, { focus: 'live' }); assert.match(await page.locator('#propList').innerText(), /Live/); await useProposal(page);
@@ -176,6 +178,29 @@ describe('e2e', () => {
     assert.ok(await $(page, 'btnAiCap').isVisible()); await page.click('#btnAiCap'); await page.waitForFunction(() => /AI-only caption/.test(document.getElementById('caption').value));
     assert.ok(ant.calls.some(c => /30 minuti fino a 1h30/.test(JSON.stringify(c.body.messages))));
     assert.equal(await page.locator('#btnSwap').isVisible(), false, 'lo scambio slide non si usa con l\'AI');
+  }));
+
+  test('Reel nativo 9:16: anteprima verticale, tutte le slide in 1080x1920, testo nell area sicura, il post resta 4:5', T, () => run(async page => {
+    await gen(page, { focus: 'live', slides: 9 }); await useProposal(page);
+    assert.deepEqual(await page.evaluate(() => [document.getElementById('big').width, document.getElementById('big').height]), [1080, 1350]);
+    await page.click('#fmtReel');
+    assert.deepEqual(await page.evaluate(() => [document.getElementById('big').width, document.getElementById('big').height]), [1080, 1920]);
+    assert.ok(await page.evaluate(() => document.getElementById('big').classList.contains('reel')));
+    const r = await page.evaluate(() => {
+      const out = [];
+      for (let i = 0; i < StudioCtx.st.slides.length; i++) {
+        const c = StudioCtx.renderOff(i, 'reel'); const x = c.getContext('2d');
+        // fascia bassa (coperta dall'interfaccia dei social): solo sfondo scuro, nessun testo chiaro e nitido
+        const d = x.getImageData(0, 1560, 1080, 300).data; let bright = 0;
+        for (let k = 0; k < d.length; k += 4) if (d[k] > 200 && d[k + 1] > 200 && d[k + 2] > 200) bright++;
+        out.push([c.width, c.height, bright]);
+      }
+      return out;
+    });
+    for (const [w, h, b] of r) { assert.equal(w, 1080); assert.equal(h, 1920); assert.ok(b < 400, 'testo nella fascia bassa: ' + b); }
+    await page.click('#fmtPost');
+    assert.deepEqual(await page.evaluate(() => [document.getElementById('big').width, document.getElementById('big').height]), [1080, 1350]);
+    assert.ok(await page.locator('#btnBoth').isVisible());
   }));
 
   test('Reel: brano, verso sincronizzato, ascolto, durata, video e invio a PostFast', T, () => run(async page => {

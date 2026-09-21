@@ -85,6 +85,10 @@
   };
 
   // ---------- Proposte ----------
+  // memoria degli ultimi caroselli usati (solo in questo browser): il server li evita, se ha alternative
+  const RK = 'petrosa.recent';
+  const recent = () => { try { return JSON.parse(localStorage.getItem(RK) || '[]'); } catch { return []; } };
+  const remember = p => { try { const ids = [...(p.slides || []).map(s => s._ref && s._ref.libId), p.captionId].filter(Boolean); localStorage.setItem(RK, JSON.stringify([...new Set([...ids, ...recent()])].slice(0, 90))); } catch { /* ok senza memoria */ } };
   async function propose(again) {
     const focus = focusObj();
     if (focus.type === 'custom' && !focus.text.trim()) return toast('Scrivi il testo da cui partire.', true);
@@ -92,7 +96,7 @@
     const btn = again ? $('btnVar') : $('btnGen');
     busy(btn, true, 'Assemblo...');
     try {
-      const out = await api('/api/propose', { mood: st.mood, focus, count: +$('slides').value, seed: again ? undefined : undefined });
+      const out = await api('/api/propose', { mood: st.mood, focus, count: +$('slides').value, avoid: recent() });
       st.proposals = out.proposals; st.seed = out.seed;
       $('empty').style.display = 'none'; $('proposals').style.display = 'block'; $('btnVar').disabled = false;
       if (window.matchMedia('(max-width:700px)').matches) setTimeout(() => $('proposals').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
@@ -107,7 +111,7 @@
     $('propList').querySelectorAll('button').forEach(b => b.onclick = () => useProposal(+b.dataset.i));
   }
   function useProposal(i) {
-    const p = JSON.parse(JSON.stringify(st.proposals[i]));
+    const p = JSON.parse(JSON.stringify(st.proposals[i])); remember(p);
     st.slides = p.slides; st.caption = p.caption; st.capId = p.captionId; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0; st.engine = 'library';
     showResult(); $('result').scrollIntoView({ behavior: 'smooth' });
   }
@@ -144,10 +148,11 @@
     try {
       const out = await api('/api/generate', params);
       st.slides = out.slides; st.caption = out.caption; st.hashtags = out.hashtags; st.argomento = out.argomento; st.sel = 0; st.engine = 'claude';
-      st.history.push(`${out.argomento}: ${out.slides.slice(0, 3).map(x => x.titolo).join(' / ')}${out.stile ? ` [stile: ${out.stile.sfondo || ''}/${out.stile.palette || ''}/${out.stile.font || ''}]` : ''}`); st.history = st.history.slice(-10);
+      st.history.push(`${out.piano && out.piano.angolo ? '[angolo: ' + String(out.piano.angolo).slice(0, 80) + '] ' : ''}${out.argomento}: ${out.slides.slice(0, 3).map(x => x.titolo).join(' / ')}${out.stile ? ` [stile: ${out.stile.sfondo || ''}/${out.stile.palette || ''}/${out.stile.font || ''}]` : ''}`); st.history = st.history.slice(-10);
       st.capHistory.push(String(out.caption).split('\n')[0]); st.capHistory = st.capHistory.slice(-6);
       $('proposals').style.display = 'none';
-      $('demoBanner').style.display = 'none';
+      const av = out.avvisi || [];
+      $('demoBanner').innerHTML = av.length ? '<b>Da rivedere prima di pubblicare:</b><br>' + av.map(x => '&bull; ' + x.replace(/</g, '&lt;')).join('<br>') : ''; $('demoBanner').style.display = av.length ? 'block' : 'none';
       showResult(false, out.stile); $('result').scrollIntoView({ behavior: 'smooth' });
     } catch (e) { toast(e.message, true); } finally { busy($('btnClaude'), false); }
   }
@@ -170,10 +175,11 @@
   }
   function syncStyleBar() { [['stBg', 'bg'], ['stPal', 'pal'], ['stFont', 'font'], ['stPhoto', 'photo'], ['stHook', 'hook']].forEach(([id, k]) => ($(id).value = st.theme[k])); }
   async function redrawAll() {
-    await Renderer.ensureFonts(st.theme);
+    await Promise.all([Renderer.ensureFonts(st.theme), Renderer.need(st.slides)]);
     syncStyleBar();
     thumbs.forEach((_, i) => drawThumb(i)); drawBig();
   }
+  Renderer.onImage = () => { if (st.slides && st.slides.length && thumbs.length) { thumbs.forEach((_, i) => drawThumb(i)); drawBig(); } };
   function setTheme(t) { st.theme = { ...Styles.DEFAULT, ...t }; return redrawAll(); }
 
   // ---------- Barra fissa (mobile) ----------
@@ -218,7 +224,10 @@
     thumbs[i].b.textContent = badge(st.slides[i]); thumbs[i].b.style.display = thumbs[i].b.textContent ? 'block' : 'none';
     thumbs[i].b.style.color = st.slides[i].verified === false ? 'var(--amber)' : 'var(--ok)';
   }
-  function drawBig() { Renderer.render($('big'), st.slides[st.sel], st.sel, st.slides.length, st.data.handle, st.theme); }
+  function drawBig() { Renderer.render($('big'), st.slides[st.sel], st.sel, st.slides.length, st.data.handle, st.theme, st.fmt); $('big').classList.toggle('reel', st.fmt === 'reel'); }
+  st.fmt = 'post';
+  const setFmt = f => { st.fmt = f; $('fmtPost').classList.toggle('on', f === 'post'); $('fmtReel').classList.toggle('on', f === 'reel'); if (st.slides.length) drawBig(); };
+  $('fmtPost').onclick = () => setFmt('post'); $('fmtReel').onclick = () => setFmt('reel');
 
   const FIELDS = ['layout', 'immagine', 'titolo', 'corpo', 'stat', 'citazione', 'fonte', 'visual'];
   function selectSlide(i) {
@@ -264,7 +273,7 @@
   $('btnSpec').onclick = async () => { await navigator.clipboard.writeText(specText() + '\n\nCAPTION:\n' + fullCaption()); toast('Scheda testuale copiata.'); };
 
   // ---------- Export ----------
-  function renderOff(i) { const c = document.createElement('canvas'); Renderer.render(c, st.slides[i], i, st.slides.length, st.data.handle, st.theme); return c; }
+  function renderOff(i, fmt) { const c = document.createElement('canvas'); Renderer.render(c, st.slides[i], i, st.slides.length, st.data.handle, st.theme, fmt || 'post'); return c; }
   const blobOf = c => new Promise(r => c.toBlob(r, 'image/png'));
   const dl = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   const slug = () => (st.argomento || 'carosello').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'carosello';
@@ -295,13 +304,19 @@
   };
 
   $('btnPng').onclick = async () => dl(await blobOf(renderOff(st.sel)), `petrosa-${slug()}-slide-${String(st.sel + 1).padStart(2, '0')}.png`);
-  $('btnZip').onclick = async () => {
+  const downloadZip = async () => {
     const files = [];
     for (let i = 0; i < st.slides.length; i++) files.push({ name: `petrosa-slide-${String(i + 1).padStart(2, '0')}.png`, data: new Uint8Array(await (await blobOf(renderOff(i))).arrayBuffer()) });
     const enc = new TextEncoder();
     files.push({ name: 'caption.txt', data: enc.encode(fullCaption()) });
     files.push({ name: 'scheda-slide.md', data: enc.encode(specText()) });
     dl(zip(files), `petrosa-${slug()}.zip`);
+  };
+  $('btnZip').onclick = downloadZip;
+  // un solo clic: carosello (ZIP 4:5) + Reel verticale 9:16 con musica, dallo stesso post
+  $('btnBoth').onclick = async () => {
+    if (!st.slides.length) return toast('Genera prima un carosello.', true);
+    try { await downloadZip(); toast('Carosello scaricato. Ora creo il Reel: tieni aperta questa scheda.'); await window.Reel.makeAndDownload(); } catch (e) { toast(e.message, true); }
   };
 
   // ZIP minimale (store, senza compressione)

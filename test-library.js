@@ -12,7 +12,7 @@ for (const q of lib.quotes) {
   for (const p of parts(q.cit)) if (!s.includes(p)) bad(`citazione non trovata ${q.id}: "${p}"`);
 }
 const ok = new Set(tags.similarBands.concat(tags.community).filter(b => b.handle && b.confirmed).map(b => b.handle.replace(/^@/, '').toLowerCase()));
-const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'live' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
+const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'band' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'live' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
 let n = 0;
 for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of focuses) for (let seed = 1; seed <= 6; seed++) {
   let r; try { r = L.propose({ mood: m.id, focus: f, count, seed }); } catch (e) { bad(`${m.id}/${count}/${f.type}: ${e.message}`); continue; }
@@ -26,7 +26,9 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
     if (new Set(titles).size !== titles.length) bad(id + ' duplicati');
     const cits = p.slides.filter(s => s.citazione);
     if (cits.some(s => s.verified !== true)) bad(id + ' citazione non verificata');
-    const pubs = cits.filter(s => s.tipo === 'Review').map(s => s.titolo); if (new Set(pubs).size !== pubs.length) bad(id + ' testata ripetuta');
+    const fpub = f.type === 'review' ? (band.reviews.find(r => r.id === f.item) || {}).publication : null;   // con una recensione scelta, la sua testata puo' comparire due volte
+    const pubs = cits.filter(s => s.tipo === 'Review' && s.titolo !== fpub).map(s => s.titolo); if (new Set(pubs).size !== pubs.length) bad(id + ' testata ripetuta');
+    if (fpub && cits.filter(s => s.titolo === fpub).length > 2) bad(id + ' testata scelta piu di 2 volte');
     for (const h of p.menzioni.concat(p.slides.flatMap(s => s.tag || []))) if (!ok.has(h.toLowerCase())) bad(id + ' menzione non confermata ' + h);
     for (const h of (p.caption.match(/@[\w.]*\w/g) || [])) if (!ok.has(h.slice(1).toLowerCase())) bad(id + ' @ non confermato in caption ' + h);
     if (!p.menzioni.length) bad(id + ' nessuna menzione');

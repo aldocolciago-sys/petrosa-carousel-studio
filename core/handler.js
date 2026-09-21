@@ -30,6 +30,9 @@ const POSTFAST_URL = () => (process.env.POSTFAST_API_URL || 'https://api.postfa.
 // ---------- Dati ----------
 const LIB = require('../library');
 const AUTH = require('./auth');
+function livePhotoList() {
+  return LIB.photos().filter(p => (p.q || 0) >= 2).map(p => `${p.id} (${p.members.join('+')}; ${(p.moods || []).join('/')}; ${p.vibe})`).join(', ');
+}
 function readJSON(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
 }
@@ -62,7 +65,7 @@ function knowledgeBase(d) {
   s += `# BAND\nNome: ${d.band.name} (${d.band.city}), fondata nel ${d.band.founded}. Genere: ${d.band.genre}. Motto: "${d.band.tagline}".\nFFO: ${d.band.ffo}.\n${d.band.bio}\nHandle Instagram: ${d.handle}\n\n`;
   s += `# ALBUM\n${a.title}, uscito il ${a.release} per ${a.label}. ${a.tracks} tracce, durata ${a.runtime}. Singoli: ${a.singles.join(', ')}.\nStudio: ${a.studio}. Registrazione: ${a.recording}.\nTemi: ${a.themes}.\nTracklist: ${a.tracklist.map((t, i) => `${i + 1}. ${t}`).join(' | ')}\n`;
   s += `Doom Charts: ${a.doomCharts.issue} - posizione #${a.doomCharts.position} con ${a.doomCharts.points} punti su ${a.doomCharts.pool} album nominati. ${a.doomCharts.note}\n\n`;
-  s += `# LIVE\nI Petrosa suonano dal vivo. Informazione fornita dalla band: il repertorio copre live da 30 minuti fino a 1h30, a seconda delle occasioni. Foto live disponibili: Aldo (voce), Andrea (basso), Antonio (chitarra), Andrea+Aldo, Antonio+Aldo; nessuna foto live di Giorgio (batteria). Non sono forniti date, locali o tour: non inventarli.\n\n`;
+  s += `# LIVE\nI Petrosa suonano dal vivo. Informazione fornita dalla band: il repertorio copre live da 30 minuti fino a 1h30, a seconda delle occasioni. Foto live disponibili di tutti e quattro i membri (Aldo voce, Andrea basso, Antonio chitarra, Giorgio batteria), in coppia e di gruppo. Non sono forniti date, locali o tour: non inventarli.\n\n`;
   s += `# LINK\nSpotify: ${d.links.spotify}\nVideo Revenant: ${d.links.youtubeRevenant}\nBandcamp: ${d.links.bandcamp}\nCD: ${d.links.cd}\n\n`;
   s += `# MEMBRI (id foto tra parentesi)\n` + d.members.map(m => `- ${m.name} - ${m.role} (foto: ${m.photo}). ${m.bio}`).join('\n') + '\n\n';
   s += `# RECENSIONI E ARTICOLI (citazioni originali, da riportare letteralmente)\n` + d.reviews.map(r => `- [${r.id}] ${r.publication} | autore: ${r.author} | esito: ${r.verdict}\n  "${r.quote}"\n  URL: ${r.url}`).join('\n') + '\n\n';
@@ -85,7 +88,17 @@ Agisci come un Content Creator esperto di Social Media Marketing e Copywriting. 
 - Ultima slide: invita ad ascoltare l'album su Spotify.
 
 # Creativita' (fondamentale)
-Ogni carosello deve sembrare scritto da zero da una persona con un'idea, non compilato da un modulo. Rielabora con fantasia: scegli un ANGOLO NARRATIVO diverso ogni volta (per esempio: storytelling della registrazione in otto giorni, provocazione ai fan del desert rock, "POV: sei su un furgone con questo disco in cassa", un verso letto come manifesto, un confronto tra due recensioni, un mini-racconto sulla nascita del riff, una domanda che divide i fan, un conto alla rovescia dei momenti piu' pesanti). Titoli con voce, ritmo, immagini forti; mai frasi da comunicato stampa, mai formule generiche ("Turn it up", "Check it out", "Out now" da soli). I FATTI (date, nomi, punteggi, citazioni) restano quelli della base di conoscenza; il modo di raccontarli e' libero. Non riusare le stesse frasi di un carosello precedente: se ti viene data una lista "DA NON RIPETERE", evita quei titoli e quegli angoli.
+Ogni carosello deve sembrare scritto da zero da una persona con un'idea, non compilato da un modulo. Prima di scrivere le slide, compila il campo "piano": scegli UN angolo narrativo, formula UNA tesi in una frase (cosa deve pensare o sentire chi arriva all'ultima slide) e assegna a ogni slide il suo ruolo nell'arco. Poi scrivi le slide di conseguenza.
+
+Angoli possibili (scegline uno e variali ogni volta): storytelling della registrazione in otto giorni; provocazione ai fan del desert rock; "POV: sei su un furgone con questo disco in cassa"; un verso letto come manifesto; un confronto tra due recensioni; mini-racconto sulla nascita di un riff; una domanda che divide i fan; conto alla rovescia dei momenti piu' pesanti; "se ti piace X, ascolta questo" (solo con band citate nella base di conoscenza); un dettaglio tecnico spiegato in modo umano (valvole, fuzz, accordature).
+
+Arco narrativo (una tensione che cresce, non un elenco di fatti): 1) Hook: una promessa, una domanda o un'immagine che crea curiosita' e non si spiega da sola. 2) Prova: il verso o il passaggio di recensione che rende vera la promessa. 3) Approfondimento: il contesto (album, registrazione, Doom Charts) che risponde a "perche' dovrebbe importarmi". 4) Volto: la band o il membro, la persona dietro il suono. 5) Chiusura: l'invito all'ascolto, legato all'angolo scelto (non generico). Ogni slide un solo concetto e deve far venire voglia di passare alla successiva.
+
+Pubblico: appassionati di stoner e doom negli USA e nel Nord Europa (Regno Unito, Paesi Bassi, Germania, paesi scandinavi). Inglese naturale, scritto da un madrelingua che vive in quella scena: frasi corte, verbi concreti, ironia asciutta, niente traduzioni letterali dall'italiano, niente enfasi da pubblicita'. Ortografia americana. Puoi usare il lessico della scena (riff, fuzz, heavy, low end, wall of sound, desert rock, doom, sludge, "for fans of") ma solo per descrivere il suono, mai per attribuire ai Petrosa fatti che non sono nella base di conoscenza.
+
+Formule VIETATE (troppo generiche, suonano da comunicato o da bot): "Check it out", "Turn it up", "Out now" da soli, "Don't miss", "Get ready", "Buckle up", "Dive into", "Delve", "Unleash", "Embark", "Journey" (come metafora vaga), "Sonic journey", "Epic", "Game-changer", "Next level", "Take your ears", "Music lovers", "Rock your world", "Whether you're a fan of", "In a world where", "Stay tuned", "You won't believe", "Prepare to be blown away". Vietati anche: doppi punti esclamativi, piu' di un punto esclamativo per carosello, titoli che iniziano con "Discover", "Introducing", "Experience". Preferisci un dettaglio concreto (un numero, un nome, un verso, un oggetto, un suono) a un aggettivo.
+
+I FATTI (date, nomi, punteggi, citazioni) restano quelli della base di conoscenza; il modo di raccontarli e' libero. Non riusare le stesse frasi di un carosello precedente: se ti viene data una lista "DA NON RIPETERE", evita quei titoli e quegli angoli.
 
 # Caption (deve avere contesto)
 La caption e' scritta apposta per QUESTO carosello e deve nominare cio' che si vede nelle slide (il brano o il verso scelto, la recensione e la testata, il membro, il dato delle Doom Charts) e spiegare in una o due frasi perche' vale la pena, con un dettaglio concreto (studio, strumenti, tema del brano, cosa dice il recensore). Struttura: prima riga forte che ferma lo scroll (senza ripetere il titolo della slide 1); 2-3 brevi paragrafi con contesto e racconto; una domanda vera che invita a commentare (legata al contenuto, non "what do you think?"); call to action all'ascolto su Spotify ("link in bio"); menzioni @ inserite in modo naturale dentro il testo. 500-1200 caratteri, righe vuote tra i paragrafi, niente hashtag nel testo (vanno nel campo hashtags), niente emoji a raffica (al massimo 1-2 se servono).
@@ -97,7 +110,7 @@ Diretto, autorevole, amichevole ma senza fronzoli. Frasi corte. Spazi bianchi me
 - Usa SOLO i fatti presenti nella base di conoscenza. Non inventare recensioni, punteggi, date, nomi o versi.
 - Ogni citazione (campo "citazione") deve essere copiata LETTERALMENTE dai testi o dalle recensioni forniti. Se accorci, usa "..." tra i frammenti, senza riscrivere nulla. Le citazioni devono stare in 260 caratteri al massimo.
 - Nel campo "fonte" indica titolo del brano oppure "Autore, Testata".
-- Le foto disponibili sono: cover (copertina album), logo, antonio, giorgio, aldo, andrea (ritratti); FOTO LIVE (concerto, luci blu): live_aldo1, live_aldo2, live_aldo3, live_andrea1, live_andrea2, live_andrea3, live_andrea_aldo, live_antonio1, live_antonio_aldo; sfondi artistici (deserto psichedelico, senza persone): desert1, desert2, desert3. Nella slide Band usa la foto di un membro o (per tutta la band) "logo". Le foto live vanno usate SOLO nelle slide che parlano di concerti/live (tipo "Live", layout photo o hook); non c'e' nessuna foto live di Giorgio (non abbinarne una a lui). Gli sfondi desert1-3 vanno bene per layout stat/hook in slide su live o atmosfera, mai come foto di un membro.
+- Le foto disponibili sono: cover (copertina album), logo, antonio, giorgio, aldo, andrea (ritratti); FOTO LIVE (concerti; elenco qui sotto, con chi c'e' e il mood): ${livePhotoList()}; sfondi artistici (deserto psichedelico, senza persone): desert1, desert2, desert3. Nella slide Band usa la foto di un membro o (per tutta la band) "logo". Le foto live vanno usate SOLO nelle slide che parlano di concerti/live (tipo "Live", layout photo o hook); Scegli la foto live in base a CHI cita la slide (il membro giusto) e al mood del carosello; le foto con qualita' 1 non usarle; non abbinare la foto di un membro a un testo su un altro. Gli sfondi desert1-3 vanno bene per layout stat/hook in slide su live o atmosfera, mai come foto di un membro.
 - Quando una slide parla di concerti/esibizioni usa tipo "Live". Fatto da dichiarare nelle slide live e nella caption: il repertorio dei Petrosa copre live da 30 minuti fino a 1h30, a seconda delle occasioni (informazione fornita dalla band). Non inventare date, locali, festival o tour: usa solo quelli presenti nella base di conoscenza, se ci sono.
 - Titoli brevi (massimo ~60 caratteri), corpo massimo ~200 caratteri: le slide sono immagini 1080x1350 con testo grande.
 - Layout ammessi: hook (copertina con immagine a tutto schermo), quote (citazione), stat (numero grande, es. "#14"), photo (foto membro), text (titolo + testo), cta (invito finale).
@@ -118,6 +131,16 @@ const CAROUSEL_TOOL = {
   input_schema: {
     type: 'object',
     properties: {
+      piano: {
+        type: 'object',
+        description: 'Piano editoriale da compilare PRIMA delle slide: un solo angolo, una tesi, il ruolo di ogni slide.',
+        properties: {
+          angolo: { type: 'string', description: "L'angolo narrativo scelto, in una frase" },
+          tesi: { type: 'string', description: 'Cosa deve pensare o sentire il lettore alla fine (una frase)' },
+          arco: { type: 'array', items: { type: 'string' }, description: 'Una riga per slide: il suo ruolo nell arco (hook, prova, approfondimento, volto, chiusura...)' }
+        },
+        required: ['angolo', 'tesi', 'arco']
+      },
       argomento: { type: 'string', description: 'Sintesi in 5-8 parole del filo conduttore del carosello' },
       slides: {
         type: 'array',
@@ -130,7 +153,7 @@ const CAROUSEL_TOOL = {
             titolo: { type: 'string' },
             corpo: { type: 'string' },
             servizio: { type: 'string' },
-            immagine: { type: 'string', enum: ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea', 'live_aldo1', 'live_aldo2', 'live_aldo3', 'live_andrea1', 'live_andrea2', 'live_andrea3', 'live_andrea_aldo', 'live_antonio1', 'live_antonio_aldo', 'desert1', 'desert2', 'desert3', 'none'] },
+            immagine: { type: 'string', enum: ['cover', 'logo', 'antonio', 'giorgio', 'aldo', 'andrea', ...LIB.photos().map(p => p.id), 'desert1', 'desert2', 'desert3', 'none'] },
             citazione: { type: 'string' },
             fonte: { type: 'string' },
             stat: { type: 'string' },
@@ -155,7 +178,7 @@ const CAROUSEL_TOOL = {
       menzioni: { type: 'array', items: { type: 'string' }, description: 'Handle (senza @) menzionati nella caption, solo tra quelli consentiti' },
       hashtags: { type: 'array', items: { type: 'string' } }
     },
-    required: ['argomento', 'slides', 'stile', 'caption', 'menzioni', 'hashtags']
+    required: ['piano', 'argomento', 'slides', 'stile', 'caption', 'menzioni', 'hashtags']
   }
 };
 
@@ -193,7 +216,8 @@ ${s.lyrics}
       const m = d.members.find(x => x.id === p.item);
       return m ? `Focus del carosello: ${m.name} (${m.role}). La slide 4 mostra la sua foto; la slide 1 fa riferimento a lui.` : '';
     }
-    case 'live': return 'Focus del carosello: i CONCERTI dei Petrosa (sezione live). Enfasi sulle performance dal vivo: potenza, volume, valvole e fuzz, sezione ritmica. Il carosello deve: aprire con una copertina (layout hook, tipo Cover) con una FOTO LIVE; includere una slide (tipo Live) che dichiara che il repertorio copre live da 30 minuti fino a 1h30, a seconda delle occasioni (layout stat con stat "30-90" oppure photo); usare 2-3 foto live diverse in slide di tipo Live (layout photo) con i membri che hanno foto live (Aldo, Andrea, Antonio; Giorgio no); inserire una slide di booking ("Book Petrosa": promoter, club e festival possono scriverci, senza inventare contatti); mantenere una slide con un verso o una recensione e la CTA finale su Spotify. La caption cita i set da 30 minuti a 1h30 e invita i promoter a contattare la band (link in bio). Hashtag live: livemusic, livedoom, stonerlive, gigs.';
+    case 'band': return 'Focus del carosello: L\'INTERA BAND. Regole obbligatorie: (1) ogni membro ha UNA sola slide dedicata (layout "photo", campo immagine = id della sua foto) con titolo "Nome Cognome. Strumento." e un testo breve basato solo sui dati: ' + d.members.map(m => `${m.name} (${m.role}, foto: ${m.photo})`).join('; ') + '. Nessun membro compare in piu\' di una slide, e tutti e quattro compaiono; (2) la copertina usa l\'album (immagine "cover") e presenta la band; (3) la caption nomina tutti e quattro i membri con il loro strumento; (4) non inventare fatti sui membri: usa solo le biografie fornite.';
+    case 'live': return 'Focus del carosello: i CONCERTI dei Petrosa (sezione live). Enfasi sulle performance dal vivo: potenza, volume, valvole e fuzz, sezione ritmica. Il carosello deve: aprire con una copertina (layout hook, tipo Cover) con una FOTO LIVE; includere una slide (tipo Live) che dichiara che il repertorio copre live da 30 minuti fino a 1h30, a seconda delle occasioni (layout stat con stat "30-90" oppure photo); usare 2-3 foto live diverse in slide di tipo Live (layout photo) scegliendo dall elenco foto live (tutti e quattro i membri, coppie, gruppo); inserire una slide di booking ("Book Petrosa": promoter, club e festival possono scriverci, senza inventare contatti); mantenere una slide con un verso o una recensione e la CTA finale su Spotify. La caption cita i set da 30 minuti a 1h30 e invita i promoter a contattare la band (link in bio). Hashtag live: livemusic, livedoom, stonerlive, gigs.';
     case 'album': return 'Focus del carosello: l\'album Roadburn Chronicles nel suo insieme (temi, registrazione, singoli).';
     case 'doomcharts': return 'Focus del carosello: l\'ingresso al #14 delle Doom Charts di agosto 2026.';
     case 'custom': return `Focus del carosello, testo fornito dall'utente (usalo come punto di partenza, verificando i fatti sulla base di conoscenza):\n"""${p.custom || ''}"""`;
@@ -240,6 +264,29 @@ const MOODS = {
   fans: 'Per i fan - punta ai follower di Dozer, Orange Goblin, Kyuss e band simili'
 };
 
+// Controlli automatici sul testo scritto dall'AI: formule generiche vietate e foto di un membro accanto al nome di un altro
+const BANNED = ['check it out', 'turn it up', "don't miss", 'get ready', 'buckle up', 'dive into', 'delve', 'unleash', 'embark', 'sonic journey', 'game-changer', 'game changer', 'next level', 'music lovers', 'rock your world', "whether you're a fan", 'in a world where', 'stay tuned', "you won't believe", 'prepare to be blown away'];
+function qualityWarnings(out, d) {
+  const w = [];
+  const txt = t => String(t || '').toLowerCase();
+  (out.slides || []).forEach((s, i) => {
+    const all = txt(s.titolo + ' ' + s.corpo);
+    BANNED.filter(b => all.includes(b)).forEach(b => w.push(`Slide ${i + 1}: formula generica "${b}"`));
+    if (/^(discover|introducing|experience)\b/i.test(String(s.titolo || ''))) w.push(`Slide ${i + 1}: il titolo inizia con una formula da comunicato`);
+    const ph = LIB.photos().find(x => x.id === s.immagine);
+    if (ph && ph.kind === 'solo') {
+      const other = d.members.find(m => m.id !== ph.members[0] && new RegExp('\\b' + m.name.split(' ')[0].toLowerCase() + '\\b').test(all));
+      const own = d.members.find(m => m.id === ph.members[0]);
+      if (other && !(own && new RegExp('\\b' + own.name.split(' ')[0].toLowerCase() + '\\b').test(all))) w.push(`Slide ${i + 1}: la foto e' di ${own ? own.name.split(' ')[0] : ph.members[0]} ma il testo parla di ${other.name.split(' ')[0]}`);
+    }
+  });
+  const cap = txt(out.caption);
+  BANNED.filter(b => cap.includes(b)).forEach(b => w.push(`Caption: formula generica "${b}"`));
+  if ((String(out.caption || '').match(/!/g) || []).length > 1) w.push('Caption: piu\' di un punto esclamativo');
+  const titles = (out.slides || []).map(s => txt(s.titolo)); if (new Set(titles).size !== titles.length) w.push('Ci sono due slide con lo stesso titolo');
+  return w;
+}
+
 async function generate(p) {
   const d = loadAll();
   const n = Math.min(10, Math.max(7, parseInt(p.slides, 10) || 8));
@@ -250,7 +297,7 @@ async function generate(p) {
   const userText = `${describeFocus(p, d)}\n${moodLine}${avoid ? 'DA NON RIPETERE (caroselli precedenti):\n' + avoid + '\n' : ''}Numero di slide: ${n} (esattamente).\n${p.notes ? `Indicazioni aggiuntive dell'utente: ${p.notes}\n` : ''}Seme creativo (usalo per variare l'angolo): ${Math.floor(Math.random() * 1e6)}.\nCrea il carosello.`;
   const j = await callAnthropic({
     model: MODEL(),
-    max_tokens: 4096,
+    max_tokens: 5000,
     temperature: 1,
     system: [
       { type: 'text', text: SYSTEM_PROMPT },
@@ -284,7 +331,21 @@ async function generate(p) {
       sl.immagine = 'none'; if (sl.layout === 'photo') sl.layout = 'text';
     });
   }
-  return { demo: false, model: MODEL(), ...sanitizeTags(out) };
+  if (p.focus === 'band') {
+    // ogni foto di un membro compare una sola volta (la copertina usa l'album); la caption nomina tutti e quattro
+    const photos = d.members.map(m => m.photo), seen = new Set();
+    out.slides.forEach((sl, i) => {
+      if (!photos.includes(sl.immagine)) return;
+      if (i === 0) { sl.immagine = 'cover'; sl.layout = 'hook'; return; }
+      if (seen.has(sl.immagine)) { sl.immagine = 'none'; if (sl.layout === 'photo') sl.layout = 'text'; return; }
+      seen.add(sl.immagine);
+    });
+    const cap = norm(out.caption || ''), missing = d.members.filter(m => !cap.includes(norm(m.name.split(' ')[0])));
+    if (missing.length) out.caption = `${out.caption || ''}\n\nPetrosa: ${d.members.map(m => `${m.name} (${m.role.replace(/\s*\(.*\)/, '').toLowerCase()})`).join(', ')}.`.trim();
+  }
+  const res = { demo: false, model: MODEL(), ...sanitizeTags(out) };
+  res.avvisi = qualityWarnings(res, d);
+  return res;
 }
 
 // Solo caption + hashtag nuove, scritte da Claude sul contenuto delle slide gia' composte

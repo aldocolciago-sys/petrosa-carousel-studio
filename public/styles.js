@@ -1,6 +1,6 @@
 // Petrosa Carousel Studio - stili visivi: sfondi generativi, palette, font, trattamento foto
 (function () {
-  const W = 1080, H = 1350;
+  const W = 1080; let H = 1350;
   function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
   const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
   const hexA = (hex, a) => { const [r, g, b] = rgb(hex); return `rgba(${r},${g},${b},${a})`; };
@@ -254,6 +254,6 @@
     PALETTES, FONTS, BG, FONT_CSS, DEFAULT, pick, valid, mix, hexA, rng,
     PHOTO: { natural: 'Foto naturale', duotone: 'Foto bicromia', mono: 'Foto bianco/nero' },
     HOOK: { photo: 'Copertina a tutto schermo', frame: 'Copertina incorniciata' },
-    draw(id, ctx, P, seed) { (BG[id] || BG.smoke).fn(ctx, P, rng(seed * 7919 + 13)); }
+    draw(id, ctx, P, seed) { H = ctx.canvas.height || 1350; (BG[id] || BG.smoke).fn(ctx, P, rng(seed * 7919 + 13)); }
   };
 })();

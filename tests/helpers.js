@@ -46,10 +46,10 @@ async function startMockAnthropic() {
           : i === 1 ? { tipo: 'Song', layout: 'quote', visual: 'v', titolo: 'S.U.R.E.', corpo: 'x', servizio: 's', immagine: 'none', citazione: 'Do you see light / with your closed eyes?', fonte: 'S.U.R.E.' }
           : i === 2 ? { tipo: 'Review', layout: 'quote', visual: 'v', titolo: 'Fake', corpo: 'x', servizio: 's', immagine: 'none', citazione: 'This sentence was never written by anyone at all', fonte: 'Nobody, Nowhere' }
           : last ? { tipo: 'CTA', layout: 'cta', visual: 'v', titolo: 'Listen', corpo: 'Spotify', servizio: 's', immagine: 'cover' }
-          : { tipo: 'Live', layout: 'photo', visual: 'v', titolo: 'Slide ' + (i + 1), corpo: 'Corpo', servizio: 's', immagine: 'live_aldo1', tag: ['not_a_confirmed_handle'] });
+          : { tipo: 'Live', layout: 'photo', visual: 'v', titolo: 'Slide ' + (i + 1), corpo: /QUALITY-TEST/.test(userText) ? 'Check it out! Giorgio on drums' : 'Corpo', servizio: 's', immagine: 'live_aldo1', tag: ['not_a_confirmed_handle'] });
       }
       return json(res, 200, { content: [{ type: 'tool_use', name: 'crea_carosello', input: {
-        argomento: 'Test AI', slides, stile: { sfondo: 'dunes', palette: 'ember', font: 'classic', foto: 'duotone', copertina: 'frame' },
+        piano: { angolo: 'Test angle', tesi: 'Test thesis', arco: slides.map((x, k) => 'ruolo ' + k) }, argomento: 'Test AI', slides, stile: { sfondo: 'dunes', palette: 'ember', font: 'classic', foto: 'duotone', copertina: 'frame' },
         caption: 'AI caption for fans of @totally_fake_account and @kyussworld. Stream it.', menzioni: ['totally_fake_account', 'kyussworld'], hashtags: ['#stonerrock', 'doommetal', 'nonsense tag']
       } }] });
     }

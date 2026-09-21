@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const H = require('./helpers');
 
-const FOCUS_TYPES = () => [{ type: 'auto' }, ...Array.from({ length: 10 }, (_, i) => ({ type: 'song', item: i + 1 })), { type: 'review', item: 'outlaws' }, { type: 'member', item: 'aldo' }, { type: 'album' }, { type: 'doomcharts' }, { type: 'live' }, { type: 'custom', text: 'Friday night\nVolume up.' }];
+const FOCUS_TYPES = () => [{ type: 'auto' }, ...Array.from({ length: 10 }, (_, i) => ({ type: 'song', item: i + 1 })), { type: 'review', item: 'outlaws' }, { type: 'member', item: 'aldo' }, { type: 'band' }, { type: 'album' }, { type: 'doomcharts' }, { type: 'live' }, { type: 'custom', text: 'Friday night\nVolume up.' }];
 
 describe('senza chiavi (solo libreria)', () => {
   let app;
@@ -124,20 +124,37 @@ describe('senza chiavi (solo libreria)', () => {
       assert.equal(r.status, 206); assert.equal(r.headers.get('content-type'), 'audio/mpeg'); assert.equal((await r.arrayBuffer()).byteLength, 100);
     }
   });
+  test('foto live: catalogo completo (file, menu editor, prompt AI, membri, mood, qualita)', async () => {
+    const photos = JSON.parse(fs.readFileSync(path.join(H.ROOT, 'data/photos.json'), 'utf8'));
+    const html = fs.readFileSync(path.join(H.ROOT, 'public/index.html'), 'utf8');
+    const band = JSON.parse(fs.readFileSync(path.join(H.ROOT, 'data/band.json'), 'utf8'));
+    const ids = band.members.map(m => m.id), MOODS = ['doom', 'riff', 'psych', 'intro', 'road', 'proof', 'fans'];
+    assert.ok(photos.length >= 50);
+    assert.equal(new Set(photos.map(p => p.id)).size, photos.length);
+    for (const p of photos) {
+      assert.ok(fs.existsSync(path.join(H.ROOT, 'public/assets', p.id + '.jpg')), 'file ' + p.id);
+      assert.ok(html.includes(`value="${p.id}"`), 'menu editor ' + p.id);
+      assert.ok(p.members.length && p.members.every(m => ids.includes(m)), 'membri ' + p.id);
+      assert.ok(p.moods.length && p.moods.every(m => MOODS.includes(m)), 'mood ' + p.id);
+      assert.ok([1, 2, 3].includes(p.q) && ['solo', 'duo', 'group', 'brand'].includes(p.kind), 'campi ' + p.id);
+    }
+    for (const id of ids) assert.ok(photos.filter(p => p.kind === 'solo' && p.members[0] === id && p.q >= 2).length >= 3, 'foto solo ' + id);
+    for (const m of MOODS) assert.ok(photos.filter(p => p.q >= 2 && p.moods.includes(m)).length >= 5, 'mood ' + m);
+  });
   test('immagini: ogni chiave di IMG_KEYS esiste come /assets/<chiave>.jpg', async () => {
     const src = fs.readFileSync(path.join(H.ROOT, 'public/render.js'), 'utf8');
     const keys = [...(/IMG_KEYS = \[([^\]]+)\]/.exec(src)[1]).matchAll(/'([^']+)'/g)].map(m => m[1]);
-    assert.ok(keys.length >= 18);
+    assert.ok(keys.length >= 9);
     for (const k of keys) { const r = await fetch(`${app.url}/assets/${k}.jpg`); assert.equal(r.status, 200, k); assert.equal(r.headers.get('content-type'), 'image/jpeg'); assert.ok((await r.arrayBuffer()).byteLength > 5000, k); }
   });
   test('immagini: tutte le opzioni dell\'editor e dell\'AI hanno un file', async () => {
     const html = fs.readFileSync(path.join(H.ROOT, 'public/index.html'), 'utf8');
     const sel = /id="e_immagine">(.*?)<\/select>/s.exec(html)[1];
     const vals = [...sel.matchAll(/value="([^"]+)"/g)].map(m => m[1]).filter(v => v !== 'none');
-    assert.ok(vals.length >= 18);
+    assert.ok(vals.length >= 60);
     for (const v of vals) assert.equal((await fetch(`${app.url}/assets/${v}.jpg`)).status, 200, v);
     const h = fs.readFileSync(path.join(H.ROOT, 'core/handler.js'), 'utf8');
-    const en = /immagine: \{ type: 'string', enum: \[([^\]]+)\]/.exec(h)[1].match(/'([^']+)'/g).map(x => x.slice(1, -1)).filter(v => v !== 'none');
+    const en = /immagine: \{ type: 'string', enum: \[([^\]]+)\]/.exec(h)[1].match(/'([^']+)'/g).map(x => x.slice(1, -1)).filter(v => v !== 'none').concat(JSON.parse(fs.readFileSync(path.join(H.ROOT, 'data/photos.json'), 'utf8')).map(p => p.id));
     assert.deepEqual([...en].sort(), [...vals].sort());
   });
   test('static: pagine e script principali, 404 e path traversal', async () => {
@@ -170,15 +187,40 @@ describe('con Anthropic e PostFast (mock)', () => {
     const c = ant.calls.at(-1).body;
     assert.deepEqual(c.tool_choice, { type: 'tool', name: 'crea_carosello' });
     assert.match(JSON.stringify(c.messages), /nota di prova/); assert.match(JSON.stringify(c.messages), /vecchio/);
-    assert.match(JSON.stringify(c.system), /live_aldo1/); assert.match(JSON.stringify(c.system), /LIVE/);
+    assert.match(JSON.stringify(c.system), /live_aldo6/); assert.match(JSON.stringify(c.system), /live_giorgio7/); assert.match(JSON.stringify(c.system), /LIVE/);
+  });
+  test('generate: prompt con angolo, arco, pubblico USA/Nord Europa e formule vietate; piano obbligatorio nello schema', async () => {
+    await H.post(app, '/api/generate', { focus: 'auto', slides: 8, mood: 'riff' });
+    const c = ant.calls.at(-1).body, sys = JSON.stringify(c.system);
+    assert.match(sys, /piano/); assert.match(sys, /ANGOLO|angolo narrativo/); assert.match(sys, /Arco narrativo/);
+    assert.match(sys, /USA e nel Nord Europa/); assert.match(sys, /Formule VIETATE/); assert.match(sys, /Check it out/); assert.match(sys, /Ortografia americana/);
+    const t = c.tools[0].input_schema;
+    assert.ok(t.required.includes('piano')); assert.deepEqual(t.properties.piano.required, ['angolo', 'tesi', 'arco']);
+    assert.equal(Object.keys(t.properties)[0], 'piano');
+  });
+  test('generate: avvisi automatici (formule generiche, foto di un altro membro) e nessun falso allarme sul testo pulito', async () => {
+    const ok = await H.post(app, '/api/generate', { focus: 'auto', slides: 8, mood: 'riff' });
+    assert.deepEqual(ok.body.avvisi, []);
+    const r = await H.post(app, '/api/generate', { focus: 'auto', slides: 8, mood: 'riff', notes: 'QUALITY-TEST' });
+    const av = r.body.avvisi.join(' | ');
+    assert.match(av, /formula generica "check it out"/); assert.match(av, /la foto e' di Aldo ma il testo parla di Giorgio/);
   });
   test('generate: ogni argomento arriva al prompt (brano con testo, live, recensione, membro, album, Doom Charts)', async () => {
-    const expect = { song: /Revenant[\s\S]*<<<[\s\S]*>>>/, review: /recensione\/articolo di/, member: /Focus del carosello: Aldo/, album: /Roadburn Chronicles nel suo insieme/, doomcharts: /Doom Charts/i, live: /30 minuti fino a 1h30/, auto: /scegli tu/i };
+    const expect = { song: /Revenant[\s\S]*<<<[\s\S]*>>>/, review: /recensione\/articolo di/, member: /Focus del carosello: Aldo/, band: /INTERA BAND/, album: /Roadburn Chronicles nel suo insieme/, doomcharts: /Doom Charts/i, live: /30 minuti fino a 1h30/, auto: /scegli tu/i };
     for (const [focus, re] of Object.entries(expect)) {
       const item = focus === 'song' ? 7 : focus === 'review' ? 'outlaws' : focus === 'member' ? 'aldo' : undefined;
       const r = await H.post(app, '/api/generate', { focus, item, slides: 7, mood: 'doom' });
       assert.equal(r.status, 200, focus + JSON.stringify(r.body)); assert.match(JSON.stringify(ant.calls.at(-1).body.messages), re, focus);
     }
+  });
+  test('generate: intera band, la caption nomina tutti e quattro e ogni foto compare una volta', async () => {
+    const r = await H.post(app, '/api/generate', { focus: 'band', slides: 8, mood: 'doom' });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const cap = r.body.caption.toLowerCase();
+    for (const n of ['antonio', 'aldo', 'andrea', 'giorgio']) assert.ok(cap.includes(n), 'caption senza ' + n);
+    const photos = r.body.slides.map(s => s.immagine).filter(i => ['antonio', 'aldo', 'andrea', 'giorgio'].includes(i));
+    assert.equal(new Set(photos).size, photos.length, 'foto ripetute');
+    assert.notEqual(['antonio', 'aldo', 'andrea', 'giorgio'].includes(r.body.slides[0].immagine), true, 'copertina = album');
   });
   test('generate: con un brano scelto, versi di altri brani vengono segnalati', async () => {
     const r = await H.post(app, '/api/generate', { focus: 'song', item: 7, slides: 7, mood: 'doom' });

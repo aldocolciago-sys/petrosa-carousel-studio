@@ -1,0 +1,696 @@
+[
+ {
+  "id": "live_aldo1",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, singing into the mic"
+ },
+ {
+  "id": "live_aldo2",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "intro"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, standing at the mic"
+ },
+ {
+  "id": "live_aldo3",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, head down"
+ },
+ {
+  "id": "live_andrea1",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, bass"
+ },
+ {
+  "id": "live_andrea2",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "doom"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, bass, eyes down"
+ },
+ {
+  "id": "live_andrea3",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, bass"
+ },
+ {
+  "id": "live_antonio1",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, guitar"
+ },
+ {
+  "id": "live_andrea_aldo",
+  "members": [
+   "andrea",
+   "aldo"
+  ],
+  "kind": "duo",
+  "moods": [
+   "fans",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "club, blue light, bass and vocals side by side"
+ },
+ {
+  "id": "live_antonio_aldo",
+  "members": [
+   "antonio",
+   "aldo"
+  ],
+  "kind": "duo",
+  "moods": [
+   "fans",
+   "riff"
+  ],
+  "q": 2,
+  "vibe": "club, smoke, guitar and vocals"
+ },
+ {
+  "id": "live_antonio2",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "intro"
+  ],
+  "q": 3,
+  "vibe": "close-up, guitar, intense"
+ },
+ {
+  "id": "live_antonio3",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "road",
+   "riff"
+  ],
+  "q": 2,
+  "vibe": "festival, daylight, guitar"
+ },
+ {
+  "id": "live_antonio4",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "road",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "festival, daylight, guitar"
+ },
+ {
+  "id": "live_antonio5",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "guitar, stage light"
+ },
+ {
+  "id": "live_antonio6",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff"
+  ],
+  "q": 2,
+  "vibe": "guitar, side view"
+ },
+ {
+  "id": "live_antonio7",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "guitar, full body"
+ },
+ {
+  "id": "live_antonio8",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "proof",
+   "road"
+  ],
+  "q": 3,
+  "vibe": "wide stage, banner, crowd blur"
+ },
+ {
+  "id": "live_antonio9",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "orange bandana, colourful blur foreground"
+ },
+ {
+  "id": "live_antonio10",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "road",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "yellow bandana, festival banner"
+ },
+ {
+  "id": "live_antonio11",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "fans",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "smiling, horns sign"
+ },
+ {
+  "id": "live_antonio12",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "intro",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "portrait, guitar, energy"
+ },
+ {
+  "id": "live_giorgio1",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych",
+   "doom"
+  ],
+  "q": 2,
+  "vibe": "smoke, drums, hazy"
+ },
+ {
+  "id": "live_giorgio2",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych"
+  ],
+  "q": 3,
+  "vibe": "drums, colourful light"
+ },
+ {
+  "id": "live_giorgio3",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych"
+  ],
+  "q": 3,
+  "vibe": "drums, colourful light"
+ },
+ {
+  "id": "live_giorgio4",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych"
+  ],
+  "q": 1,
+  "vibe": "drums, blown-out highlights"
+ },
+ {
+  "id": "live_giorgio5",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych"
+  ],
+  "q": 3,
+  "vibe": "drums, colourful light"
+ },
+ {
+  "id": "live_giorgio6",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "intro"
+  ],
+  "q": 3,
+  "vibe": "clean close-up, drums"
+ },
+ {
+  "id": "live_giorgio7",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "psych"
+  ],
+  "q": 3,
+  "vibe": "purple profile, cap, moody"
+ },
+ {
+  "id": "live_giorgio8",
+  "members": [
+   "giorgio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom"
+  ],
+  "q": 3,
+  "vibe": "dark profile, cap, moody"
+ },
+ {
+  "id": "live_andrea4",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "intro",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "close-up, bass"
+ },
+ {
+  "id": "live_andrea5",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "intro"
+  ],
+  "q": 3,
+  "vibe": "close-up, bass"
+ },
+ {
+  "id": "live_andrea6",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "doom"
+  ],
+  "q": 3,
+  "vibe": "close-up, bass, orange flare"
+ },
+ {
+  "id": "live_andrea7",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "intro",
+   "doom"
+  ],
+  "q": 3,
+  "vibe": "close-up, bass, eyes down"
+ },
+ {
+  "id": "live_andrea8",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "full stage, blue light, red bass"
+ },
+ {
+  "id": "live_andrea9",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "road",
+   "riff"
+  ],
+  "q": 3,
+  "vibe": "festival, daylight, bass"
+ },
+ {
+  "id": "live_andrea10",
+  "members": [
+   "andrea"
+  ],
+  "kind": "solo",
+  "moods": [
+   "riff",
+   "proof"
+  ],
+  "q": 3,
+  "vibe": "bass, smiling, crowd blur"
+ },
+ {
+  "id": "live_aldo4",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "road",
+   "intro"
+  ],
+  "q": 3,
+  "vibe": "profile, mic, green daylight"
+ },
+ {
+  "id": "live_aldo5",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "intro"
+  ],
+  "q": 3,
+  "vibe": "close-up, beard, mic stand"
+ },
+ {
+  "id": "live_aldo6",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "psych",
+   "fans",
+   "proof"
+  ],
+  "q": 3,
+  "vibe": "blue smoke, smiling, wide"
+ },
+ {
+  "id": "live_aldo7",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom"
+  ],
+  "q": 3,
+  "vibe": "head back, dramatic"
+ },
+ {
+  "id": "live_aldo8",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "fans",
+   "psych"
+  ],
+  "q": 3,
+  "vibe": "bowing, hands together"
+ },
+ {
+  "id": "live_aldo9",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "psych"
+  ],
+  "q": 3,
+  "vibe": "mic close, purple light"
+ },
+ {
+  "id": "live_aldo10",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "intro"
+  ],
+  "q": 3,
+  "vibe": "eyes down, mic, purple light"
+ },
+ {
+  "id": "live_aldo11",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "intro",
+   "doom"
+  ],
+  "q": 3,
+  "vibe": "low angle, portrait, mic stand"
+ },
+ {
+  "id": "live_aldo_giorgio1",
+  "members": [
+   "aldo",
+   "giorgio"
+  ],
+  "kind": "duo",
+  "moods": [
+   "doom",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "dark orange stage light, vocals and drums"
+ },
+ {
+  "id": "live_aldo_giorgio2",
+  "members": [
+   "aldo",
+   "giorgio"
+  ],
+  "kind": "duo",
+  "moods": [
+   "fans",
+   "proof"
+  ],
+  "q": 3,
+  "vibe": "vocals and drums, stage light"
+ },
+ {
+  "id": "live_aldo_giorgio3",
+  "members": [
+   "aldo",
+   "giorgio"
+  ],
+  "kind": "duo",
+  "moods": [
+   "road",
+   "psych"
+  ],
+  "q": 2,
+  "vibe": "warm flare, vocals and drums"
+ },
+ {
+  "id": "live_andrea_aldo2",
+  "members": [
+   "andrea",
+   "aldo"
+  ],
+  "kind": "duo",
+  "moods": [
+   "road",
+   "fans"
+  ],
+  "q": 3,
+  "vibe": "sunset, bass and vocals"
+ },
+ {
+  "id": "live_andrea_aldo3",
+  "members": [
+   "andrea",
+   "aldo"
+  ],
+  "kind": "duo",
+  "moods": [
+   "doom",
+   "proof"
+  ],
+  "q": 3,
+  "vibe": "dark stage, bass and vocals"
+ },
+ {
+  "id": "live_antonio_aldo2",
+  "members": [
+   "antonio",
+   "aldo"
+  ],
+  "kind": "duo",
+  "moods": [
+   "proof",
+   "fans"
+  ],
+  "q": 3,
+  "vibe": "under the eagle banner, guitar and vocals"
+ },
+ {
+  "id": "live_band1",
+  "members": [
+   "antonio",
+   "giorgio",
+   "aldo",
+   "andrea"
+  ],
+  "kind": "group",
+  "moods": [
+   "road",
+   "proof",
+   "fans"
+  ],
+  "q": 3,
+  "vibe": "all four members on stage, composite"
+ },
+ {
+  "id": "live_banner1",
+  "members": [
+   "aldo"
+  ],
+  "kind": "brand",
+  "moods": [
+   "proof",
+   "psych",
+   "road"
+  ],
+  "q": 3,
+  "vibe": "PETROSA banner, singer small in frame, composite"
+ },
+ {
+  "id": "live_aldo12",
+  "members": [
+   "aldo"
+  ],
+  "kind": "solo",
+  "moods": [
+   "doom",
+   "psych",
+   "fans"
+  ],
+  "q": 3,
+  "vibe": "gold light, singing, hand on the mic"
+ },
+ {
+  "id": "live_antonio13",
+  "members": [
+   "antonio"
+  ],
+  "kind": "solo",
+  "moods": [
+   "fans",
+   "riff",
+   "road"
+  ],
+  "q": 3,
+  "vibe": "gold light, smiling, guitar"
+ }
+]

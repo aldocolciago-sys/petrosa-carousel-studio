@@ -269,7 +269,7 @@
       ],
       "titolo": "Petrosa. Live.",
       "corpo": "Stoner/doom from Milan, on stage. Sets from 30 minutes to 1h30.",
-      "immagine": "live_aldo2"
+      "immagine": "live_aldo6"
     },
     {
       "id": "h-live-2",
@@ -279,7 +279,7 @@
       ],
       "titolo": "Turn it up. Live.",
       "corpo": "Tube amps, fuzz and a wall of sound. Petrosa on stage.",
-      "immagine": "live_antonio_aldo"
+      "immagine": "live_antonio_aldo2"
     },
     {
       "id": "h-live-3",
@@ -289,7 +289,7 @@
       ],
       "titolo": "Built for the stage.",
       "corpo": "Roadburn Chronicles, played loud. Petrosa live from Milan.",
-      "immagine": "live_andrea_aldo"
+      "immagine": "live_andrea_aldo3"
     },
     {
       "id": "h-live-4",
@@ -299,7 +299,210 @@
       ],
       "titolo": "Feel it in your chest.",
       "corpo": "Low end, fuzz and heavy riffs. This is Petrosa live.",
-      "immagine": "live_andrea1"
+      "immagine": "live_andrea8"
+    },
+    {
+      "id": "h-riff-3",
+      "moods": [
+        "riff",
+        "road"
+      ],
+      "titolo": "Recorded live in 8 days.",
+      "corpo": "Tubes, drum room, zero frills. Swipe to hear the riff."
+    },
+    {
+      "id": "h-riff-4",
+      "moods": [
+        "riff",
+        "doom"
+      ],
+      "titolo": "Stoner riffs. Doom weight.",
+      "corpo": "Petrosa, Roadburn Chronicles. Swipe for the line that opens the album."
+    },
+    {
+      "id": "h-doom-3",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Doom isn't slow. It's heavy.",
+      "corpo": "Down-tuned guitars, dense layers of fuzz. Swipe for the proof."
+    },
+    {
+      "id": "h-doom-4",
+      "moods": [
+        "doom",
+        "intro"
+      ],
+      "titolo": "Sin. Conflict. Redemption.",
+      "corpo": "Ten doom tracks from Milan. Swipe for the words."
+    },
+    {
+      "id": "h-psych-3",
+      "moods": [
+        "psych",
+        "fans"
+      ],
+      "titolo": "Desert rock, made in Milan.",
+      "corpo": "Fuzz, psych and a Nineties Alt-Metal attitude, says Outlaws Of The Sun. Swipe."
+    },
+    {
+      "id": "h-psych-4",
+      "moods": [
+        "psych"
+      ],
+      "titolo": "Mirages with a fuzz pedal.",
+      "corpo": "Petrosa, stoner/doom from Milan. Swipe."
+    },
+    {
+      "id": "h-intro-3",
+      "moods": [
+        "intro"
+      ],
+      "titolo": "Heavy music, human questions.",
+      "corpo": "Loss, doubt, a thread of light. Swipe for the lyrics."
+    },
+    {
+      "id": "h-intro-4",
+      "moods": [
+        "intro",
+        "doom"
+      ],
+      "titolo": "Who gives you your name?",
+      "corpo": "Ten songs about people, not just riffs. Swipe."
+    },
+    {
+      "id": "h-road-3",
+      "moods": [
+        "road",
+        "psych"
+      ],
+      "titolo": "A blue van. A psychedelic desert.",
+      "corpo": "The cover, and the road song that closes the record. Swipe."
+    },
+    {
+      "id": "h-road-4",
+      "moods": [
+        "road",
+        "riff"
+      ],
+      "titolo": "Put this on for the drive.",
+      "corpo": "Roadburn Chronicles: low riffs, huge sky. Swipe."
+    },
+    {
+      "id": "h-proof-3",
+      "moods": [
+        "proof",
+        "fans"
+      ],
+      "titolo": "Four languages. One debut.",
+      "corpo": "Reviewed in Italian, French, German and English. Swipe for what they wrote."
+    },
+    {
+      "id": "h-proof-4",
+      "moods": [
+        "proof"
+      ],
+      "titolo": "The press is talking.",
+      "corpo": "Roadburn Chronicles, #14 in the Doom Charts, August 2026. Swipe for the words."
+    },
+    {
+      "id": "h-fans-3",
+      "moods": [
+        "fans",
+        "psych"
+      ],
+      "titolo": "If Dozer is on your playlist, read this.",
+      "corpo": "Petrosa, stoner/doom from Milan. Swipe for the proof."
+    },
+    {
+      "id": "h-fans-4",
+      "moods": [
+        "fans",
+        "proof"
+      ],
+      "titolo": "Reviewers keep saying Kyuss.",
+      "corpo": "And Orange Goblin. And Dozer. Swipe for who said what."
+    },
+    {
+      "id": "h-song-a",
+      "kind": "song",
+      "moods": [
+        "all"
+      ],
+      "titolo": "{song}. Track {n}.",
+      "corpo": "Read the line. Then press play. Swipe."
+    },
+    {
+      "id": "h-song-b",
+      "kind": "song",
+      "moods": [
+        "all"
+      ],
+      "titolo": "The words behind «{song}».",
+      "corpo": "Roadburn Chronicles, track {n}. Swipe for the lyrics."
+    },
+    {
+      "id": "h-review-a",
+      "kind": "review",
+      "moods": [
+        "all"
+      ],
+      "titolo": "“{verdict}.”",
+      "corpo": "{pub} on Petrosa's debut. Swipe for the full words."
+    },
+    {
+      "id": "h-review-b",
+      "kind": "review",
+      "moods": [
+        "all"
+      ],
+      "titolo": "{pub} on Petrosa.",
+      "corpo": "Verdict: {verdict}. Swipe for what they wrote."
+    },
+    {
+      "id": "h-member-a",
+      "kind": "member",
+      "moods": [
+        "all"
+      ],
+      "titolo": "{member} on {rolel}.",
+      "corpo": "Petrosa, stoner/doom from Milan. Swipe to see the face behind the sound."
+    },
+    {
+      "id": "h-member-b",
+      "kind": "member",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Meet {member}.",
+      "corpo": "{role} of Petrosa. Swipe for the story."
+    },
+    {
+      "id": "h-band-a",
+      "kind": "band",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Four players. One wall of sound.",
+      "corpo": "Meet Petrosa: guitar, vocals, bass, drums. Swipe."
+    },
+    {
+      "id": "h-band-b",
+      "kind": "band",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Who is behind Petrosa?",
+      "corpo": "Four musicians from Milan. Swipe to meet them."
+    },
+    {
+      "id": "h-band-c",
+      "kind": "band",
+      "moods": [
+        "all"
+      ],
+      "titolo": "Since 2019. Now four strong.",
+      "corpo": "The band behind Roadburn Chronicles. Swipe to meet Antonio, Aldo, Andrea and Giorgio."
     }
   ],
   "quotes": [
@@ -1063,7 +1266,7 @@
       "tipo": "Live",
       "titolo": "From 30 minutes to 1h30.",
       "corpo": "Short slot or headline night: we build the set around your event.",
-      "immagine": "live_aldo1"
+      "immagine": "live_aldo8"
     },
     {
       "id": "i-live-power",
@@ -1077,7 +1280,7 @@
       "tipo": "Live",
       "titolo": "Loud. Heavy. Live.",
       "corpo": "Tube amps, fuzz and a rhythm section that moves the room.",
-      "immagine": "live_antonio1"
+      "immagine": "live_antonio12"
     },
     {
       "id": "i-live-stage",
@@ -1091,7 +1294,7 @@
       "tipo": "Live",
       "titolo": "On stage, it gets heavier.",
       "corpo": "Roadburn Chronicles played live: bigger riffs, more air moved.",
-      "immagine": "live_andrea3"
+      "immagine": "live_antonio8"
     },
     {
       "id": "i-live-book",
@@ -1118,114 +1321,6 @@
       "titolo": "Fuzz, light and volume.",
       "corpo": "A live show made to be felt: stoner and doom from Milan, Italy.",
       "immagine": "desert3"
-    },
-    {
-      "id": "lb-aldo1",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Aldo Colciago. Vocals.",
-      "corpo": "The voice of Petrosa, live.",
-      "immagine": "live_aldo1"
-    },
-    {
-      "id": "lb-aldo2",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Aldo. Front and centre.",
-      "corpo": "Vocals on top of the wall of sound.",
-      "immagine": "live_aldo2"
-    },
-    {
-      "id": "lb-aldo3",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Aldo on stage.",
-      "corpo": "Vocals, live in Milan, Italy.",
-      "immagine": "live_aldo3"
-    },
-    {
-      "id": "lb-andrea1",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Andrea Vignati. Bass.",
-      "corpo": "The low end that moves the room.",
-      "immagine": "live_andrea1"
-    },
-    {
-      "id": "lb-andrea2",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Andrea. Deep and loud.",
-      "corpo": "Bass, live.",
-      "immagine": "live_andrea2"
-    },
-    {
-      "id": "lb-andrea3",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Andrea on stage.",
-      "corpo": "Bass rumble, blue lights.",
-      "immagine": "live_andrea3"
-    },
-    {
-      "id": "lb-antonio1",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Antonio Buonocore. Guitar.",
-      "corpo": "Founder of Petrosa. Tube-driven riffs, live.",
-      "immagine": "live_antonio1"
-    },
-    {
-      "id": "lb-aa",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Andrea + Aldo.",
-      "corpo": "Bass and vocals, locked in.",
-      "immagine": "live_andrea_aldo"
-    },
-    {
-      "id": "lb-ta",
-      "topic": "live-band",
-      "moods": [
-        "all"
-      ],
-      "layout": "photo",
-      "tipo": "Live",
-      "titolo": "Antonio + Aldo.",
-      "corpo": "Guitar and vocals, front line.",
-      "immagine": "live_antonio_aldo"
     }
   ],
   "band": [
@@ -1432,6 +1527,78 @@
       ],
       "titolo": "Your next listen is here.",
       "corpo": "Italian stoner/doom on Spotify. Follow @petrosa_band for more."
+    },
+    {
+      "id": "c-riff-3",
+      "moods": [
+        "riff"
+      ],
+      "titolo": "Save it for the next drive.",
+      "corpo": "Roadburn Chronicles, full album on Spotify. Then tell us: which riff hit first?"
+    },
+    {
+      "id": "c-riff-4",
+      "moods": [
+        "riff"
+      ],
+      "titolo": "Loud. On purpose.",
+      "corpo": "Stream the full album on Spotify. Send this to the one who owns too many fuzz pedals."
+    },
+    {
+      "id": "c-doom-3",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Which track hits hardest?",
+      "corpo": "Stream Roadburn Chronicles on Spotify, then tell us in the comments."
+    },
+    {
+      "id": "c-doom-4",
+      "moods": [
+        "doom"
+      ],
+      "titolo": "Press play. Go under.",
+      "corpo": "Ten tracks, 51 minutes on Spotify. Save this for the dark hours."
+    },
+    {
+      "id": "c-psych-3",
+      "moods": [
+        "psych"
+      ],
+      "titolo": "Send this to your desert-rock friend.",
+      "corpo": "Roadburn Chronicles on Spotify. Follow @petrosa_band for more."
+    },
+    {
+      "id": "c-intro-3",
+      "moods": [
+        "intro"
+      ],
+      "titolo": "Which line stayed with you?",
+      "corpo": "Stream Roadburn Chronicles on Spotify and tell us in the comments."
+    },
+    {
+      "id": "c-road-3",
+      "moods": [
+        "road"
+      ],
+      "titolo": "Save it for the next drive.",
+      "corpo": "Roadburn Chronicles on Spotify. Tell us your road song."
+    },
+    {
+      "id": "c-proof-3",
+      "moods": [
+        "proof"
+      ],
+      "titolo": "Read it. Then hear it.",
+      "corpo": "Ten tracks, #14 in the Doom Charts. Stream on Spotify and follow @petrosa_band."
+    },
+    {
+      "id": "c-fans-3",
+      "moods": [
+        "fans"
+      ],
+      "titolo": "Tag the friend who needs this.",
+      "corpo": "Italian stoner/doom on Spotify. Follow @petrosa_band for more."
     }
   ],
   "captions": [
@@ -1560,6 +1727,34 @@
       ],
       "live": true,
       "text": "Tube amps. Fuzz. A rhythm section that moves the room.\n\nThat is Petrosa on stage. Our set can run from 30 minutes to 1h30, built around your event.\n\nBooking: message us, link in bio. And if you have not heard Roadburn Chronicles yet, stream it on Spotify (link in bio).\n\nFor fans of {fans}\n\nWhich band would you love to see us share a stage with?"
+    },
+    {
+      "id": "cap-band-1",
+      "band": true,
+      "moods": [
+        "riff",
+        "doom",
+        "psych",
+        "intro",
+        "road",
+        "proof",
+        "fans"
+      ],
+      "text": "Four musicians. One wall of sound.\n\nAntonio Buonocore on guitar, Aldo Colciago on vocals, Andrea Vignati on bass, Giorgio Monza on drums. Petrosa, stoner/doom from Milan, Italy.\n\nRoadburn Chronicles is out on Octopus Rising / Argonauta Records. Link in bio for the full album on Spotify.\n\nGuitar, vocals, bass or drums: who do you watch first at a doom show?\n\nFor fans of {fans}"
+    },
+    {
+      "id": "cap-band-2",
+      "band": true,
+      "moods": [
+        "riff",
+        "doom",
+        "psych",
+        "intro",
+        "road",
+        "proof",
+        "fans"
+      ],
+      "text": "Founded in Milan in 2019 by Antonio Buonocore. Now four strong.\n\nAntonio Buonocore (guitar), Aldo Colciago (vocals), Andrea Vignati (bass) and Giorgio Monza (drums) made Roadburn Chronicles: stoner/doom, recorded live in eight days.\n\nStream the album on Spotify (link in bio).\n\nTag the bassist, the drummer, the guitarist and the singer in your life.\n\nFor fans of {fans}"
     }
   ],
   "moodHashtags": {
@@ -2095,5 +2290,17 @@
       "corpo": "An Old Van and a Couple of Beers celebrates the open road, then admits \"Lonely nights\" and \"Echoes of my travels past\". A reading: freedom is better shared, \"Laughing through hundred miles\", and even the road becomes company: \"Side by side with the road\".",
       "caption": "Freedom is better with company.\n\nAn Old Van and a Couple of Beers sounds like pure road-trip joy: \"Open road\", \"Empty lanes\", \"no place I have to be\". Look closer and the song keeps circling company: \"Laughing through hundred miles with no fears\". And when night falls: \"Lonely nights\", \"Echoes of my travels past\".\n\nDeep sociality here is not an argument against solitude. The singer is \"feeling small but feeling free\" under a sky so vast, yet asking \"Hold my dreams as the night turns into day\". By the end the road itself is the companion: \"Side by side with the road, I'll find my way\".\n\nOur reading of the lyrics. Track 10 on Roadburn Chronicles. Stream it on Spotify (link in bio).\n\nWho is in your van?"
     }
-  ]
+  ],
+  "songNotes": {
+    "1": "Track 01. The opener. A question about a crowd that stops seeing.",
+    "2": "Track 02. On the names other people give you.",
+    "3": "Track 03. Change is a lonely path, but not an empty one.",
+    "4": "Track 04. Two voices, one conversation nobody wins.",
+    "5": "Track 05. A dirty, deep blues about grief.",
+    "6": "Track 06. The single. Temptation, and what it costs.",
+    "7": "Track 07. The single, with an official video. Defiance after the chains.",
+    "8": "Track 08. One line. The most intimate on the album.",
+    "9": "Track 09. A breakup told in silence.",
+    "10": "Track 10. The road song that closes the record."
+  }
 }

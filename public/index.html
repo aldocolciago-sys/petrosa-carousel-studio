@@ -56,6 +56,9 @@
   .editor { display:grid; grid-template-columns:minmax(0,380px) 1fr; gap:20px; }
   @media (max-width:820px){ .editor { grid-template-columns:1fr; } }
   #big { width:100%; border-radius:12px; border:1px solid var(--line); }
+  #big.reel { width:auto; max-width:100%; max-height:680px; display:block; margin:0 auto; }
+  .fmtbar { display:flex; gap:8px; align-items:center; margin:10px 0 4px; flex-wrap:wrap }
+  .fmtbar button.on { background:var(--amber); color:#000; border-color:var(--amber); }
   .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .chip { font-size:12px; padding:3px 9px; border-radius:99px; background:rgba(139,92,246,.2); border:1px solid rgba(139,92,246,.4); }
@@ -161,6 +164,7 @@
       <option value="song">Un brano dell'album</option>
       <option value="review">Una recensione / articolo</option>
       <option value="member">Un membro della band</option>
+      <option value="band">L'intera band (tutti e 4 i membri)</option>
       <option value="album">L'album Roadburn Chronicles</option>
       <option value="doomcharts">Doom Charts #14</option>
       <option value="live">Live / concerti (set 30 min - 1h30)</option>
@@ -191,6 +195,7 @@
       <h2 style="margin:0">4 &middot; Slide <span id="argom" style="color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500"></span></h2>
       <div class="row acts">
         <button class="ghost" id="btnSwap">Cambia questa slide</button>
+        <button class="btn" id="btnBoth" title="Scarica il carosello (ZIP) e crea il Reel verticale con la musica">Carosello + Reel</button>
         <button class="btn" id="btnPhone">Cartella per il telefono</button>
         <button class="ghost" id="btnZip">Scarica ZIP</button>
         <button class="ghost" id="btnPng">PNG slide corrente</button>
@@ -207,13 +212,14 @@
        <div><label>Copertina</label><select id="stHook"></select></div>
        <button class="btn" id="btnStyle">🎨 Nuovo stile</button>
      </div>
+     <div class="fmtbar"><span class="hint" style="margin:0">Anteprima:</span><button class="ghost on" id="fmtPost">Carosello 4:5</button><button class="ghost" id="fmtReel">Reel 9:16 (schermo intero)</button></div>
      <div id="strip"></div>
      <div class="editor">
       <canvas id="big"></canvas>
       <div>
        <div class="two">
         <div><label>Layout</label><select id="e_layout"><option value="hook">hook (copertina)</option><option value="quote">quote (citazione)</option><option value="stat">stat (numero)</option><option value="photo">photo (membro)</option><option value="text">text</option><option value="cta">cta (Spotify)</option></select></div>
-        <div><label>Immagine</label><select id="e_immagine"><option value="none">nessuna</option><option value="cover">copertina album</option><option value="logo">logo</option><option value="antonio">Antonio</option><option value="giorgio">Giorgio</option><option value="aldo">Aldo</option><option value="andrea">Andrea</option><option value="live_aldo1">Live: Aldo 1</option><option value="live_aldo2">Live: Aldo 2</option><option value="live_aldo3">Live: Aldo 3</option><option value="live_andrea1">Live: Andrea 1</option><option value="live_andrea2">Live: Andrea 2</option><option value="live_andrea3">Live: Andrea 3</option><option value="live_andrea_aldo">Live: Andrea + Aldo</option><option value="live_antonio1">Live: Antonio</option><option value="live_antonio_aldo">Live: Antonio + Aldo</option><option value="desert1">sfondo deserto 1</option><option value="desert2">sfondo deserto 2</option><option value="desert3">sfondo deserto 3</option></select></div>
+        <div><label>Immagine</label><select id="e_immagine"><option value="none">nessuna</option><option value="cover">copertina album</option><option value="logo">logo</option><option value="antonio">Antonio</option><option value="giorgio">Giorgio</option><option value="aldo">Aldo</option><option value="andrea">Andrea</option><option value="live_antonio1">Live: Antonio (antonio1)</option><option value="live_antonio10">Live: Antonio (antonio10)</option><option value="live_antonio11">Live: Antonio (antonio11)</option><option value="live_antonio13">Live: Antonio (antonio13)</option><option value="live_antonio12">Live: Antonio (antonio12)</option><option value="live_antonio2">Live: Antonio (antonio2)</option><option value="live_antonio3">Live: Antonio (antonio3)</option><option value="live_antonio4">Live: Antonio (antonio4)</option><option value="live_antonio5">Live: Antonio (antonio5)</option><option value="live_antonio6">Live: Antonio (antonio6)</option><option value="live_antonio7">Live: Antonio (antonio7)</option><option value="live_antonio8">Live: Antonio (antonio8)</option><option value="live_antonio9">Live: Antonio (antonio9)</option><option value="live_antonio_aldo">Live: Antonio + Aldo (antonio_aldo)</option><option value="live_antonio_aldo2">Live: Antonio + Aldo (antonio_aldo2)</option><option value="live_giorgio1">Live: Giorgio (giorgio1)</option><option value="live_giorgio2">Live: Giorgio (giorgio2)</option><option value="live_giorgio3">Live: Giorgio (giorgio3)</option><option value="live_giorgio4">Live: Giorgio (giorgio4) - bassa qualita</option><option value="live_giorgio5">Live: Giorgio (giorgio5)</option><option value="live_giorgio6">Live: Giorgio (giorgio6)</option><option value="live_giorgio7">Live: Giorgio (giorgio7)</option><option value="live_giorgio8">Live: Giorgio (giorgio8)</option><option value="live_aldo1">Live: Aldo (aldo1)</option><option value="live_aldo10">Live: Aldo (aldo10)</option><option value="live_aldo12">Live: Aldo (aldo12)</option><option value="live_aldo11">Live: Aldo (aldo11)</option><option value="live_aldo2">Live: Aldo (aldo2)</option><option value="live_aldo3">Live: Aldo (aldo3)</option><option value="live_aldo4">Live: Aldo (aldo4)</option><option value="live_aldo5">Live: Aldo (aldo5)</option><option value="live_aldo6">Live: Aldo (aldo6)</option><option value="live_aldo7">Live: Aldo (aldo7)</option><option value="live_aldo8">Live: Aldo (aldo8)</option><option value="live_aldo9">Live: Aldo (aldo9)</option><option value="live_aldo_giorgio1">Live: Aldo + Giorgio (aldo_giorgio1)</option><option value="live_aldo_giorgio2">Live: Aldo + Giorgio (aldo_giorgio2)</option><option value="live_aldo_giorgio3">Live: Aldo + Giorgio (aldo_giorgio3)</option><option value="live_andrea1">Live: Andrea (andrea1)</option><option value="live_andrea10">Live: Andrea (andrea10)</option><option value="live_andrea2">Live: Andrea (andrea2)</option><option value="live_andrea3">Live: Andrea (andrea3)</option><option value="live_andrea4">Live: Andrea (andrea4)</option><option value="live_andrea5">Live: Andrea (andrea5)</option><option value="live_andrea6">Live: Andrea (andrea6)</option><option value="live_andrea7">Live: Andrea (andrea7)</option><option value="live_andrea8">Live: Andrea (andrea8)</option><option value="live_andrea9">Live: Andrea (andrea9)</option><option value="live_andrea_aldo">Live: Andrea + Aldo (andrea_aldo)</option><option value="live_andrea_aldo2">Live: Andrea + Aldo (andrea_aldo2)</option><option value="live_andrea_aldo3">Live: Andrea + Aldo (andrea_aldo3)</option><option value="live_band1">Live: tutta la band (band1)</option><option value="live_banner1">Live: Banner PETROSA (banner1)</option><option value="desert1">sfondo deserto 1</option><option value="desert2">sfondo deserto 2</option><option value="desert3">sfondo deserto 3</option></select></div>
        </div>
        <label>Titolo / testo principale</label><textarea id="e_titolo" rows="2"></textarea>
        <label>Corpo</label><textarea id="e_corpo" rows="3"></textarea>

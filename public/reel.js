@@ -160,37 +160,24 @@
     const s = byN[$('rlSong').value]; if (!s) throw new Error('Scegli una canzone.');
     if (!window.MediaRecorder) throw new Error('Questo browser non sa registrare video: usa Chrome.');
     const mime = pickMime(); if (!mime) throw new Error('Nessun formato video supportato dal browser.');
-    const W = $('rlRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9), k = W / 1080;
+    const W = $('rlRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9), k = W / 1080;   // k: scala del 720p
     const D = durs(), S = starts(), T = total(), n = st.slides.length;
     const offset = Math.max(0, Math.min(parseFloat($('rlStart').value) || 0, s.dur - T - 0.2));
-    // slide + sfondo sfocato per ciascuna
-    const sl = [], bg = [];
-    for (let i = 0; i < n; i++) {
-      const c = C.renderOff(i); sl.push(c);
-      const b = document.createElement('canvas'); b.width = W; b.height = H; const x = b.getContext('2d');
-      const sm = document.createElement('canvas'); sm.width = 54; sm.height = 96; const sx = sm.getContext('2d');
-      const sc = Math.max(54 / c.width, 96 / c.height); sx.drawImage(c, (54 - c.width * sc) / 2, (96 - c.height * sc) / 2, c.width * sc, c.height * sc);
-      x.imageSmoothingQuality = 'high'; x.drawImage(sm, 0, 0, W, H); x.fillStyle = 'rgba(0,0,0,.5)'; x.fillRect(0, 0, W, H); bg.push(b);
-    }
+    // slide native 9:16 (1080x1920): stesso post, impaginato per lo schermo intero del telefono
+    const sl = [];
+    for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel'));
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
-    // ---- effetti "rock" (stoner/doom): vibrazione e zoom sui colpi, flash caldo, eco, taglio glitch, grana e vignetta ----
+    // ---- effetti "rock" (stoner/doom): vibrazione e zoom sui colpi, flash caldo e vignetta (niente grana, eco o glitch: peggiorano la qualita') ----
     const LV = { off: 0, mid: 1, hard: 1.6 }[$('rlFx').value]; const fxOn = LV > 0;
     const rnd = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
     let pulse = () => 0, lite = 0, gapEma = 33, since = 0;  // lite: 0 pieno, 1 senza eco e grana, 2 anche senza vignetta e flash                                      // sostituita dopo l'analisi dell'audio
-    const grain = [];
-    if (fxOn) for (let g = 0; g < 4; g++) {
-      const gc = document.createElement('canvas'); gc.width = Math.round(W / 4); gc.height = Math.round(H / 4); const gx = gc.getContext('2d'), id = gx.createImageData(gc.width, gc.height);
-      for (let q = 0; q < id.data.length; q += 4) { const r = rnd(q + g * 977), v = r > 0.5 ? 255 : 0; id.data[q] = id.data[q + 1] = id.data[q + 2] = v; id.data[q + 3] = Math.floor(Math.abs(r - 0.5) * 2 * 120); }
-      gx.putImageData(id, 0, 0); grain.push(gc);
-    }
     const vig = document.createElement('canvas'); vig.width = W; vig.height = H;
-    { const vx = vig.getContext('2d'), g = vx.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.72); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.7)'); vx.fillStyle = g; vx.fillRect(0, 0, W, H); }
+    { const vx = vig.getContext('2d'), g = vx.createRadialGradient(W / 2, H / 2, H * 0.28, W / 2, H / 2, H * 0.72); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.5)'); vx.fillStyle = g; vx.fillRect(0, 0, W, H); }
     const TR = 0.3;
-    const geo = (i, lt) => { const z = 1 + (fxOn ? 0.07 : 0.05) * Math.min(1, lt / D[i]), w = 1080 * k * z, h = 1350 * k * z; return { w, h, x: (W - w) / 2, y: (H - h) / 2 }; };
+    const geo = (i, lt) => { const z = 1 + (fxOn ? 0.05 : 0.035) * Math.min(1, lt / D[i]), w = W * z, h = H * z; return { w, h, x: (W - w) / 2, y: (H - h) / 2 }; };
     const drawSlide = (i, lt, alpha) => {
       const g = geo(i, lt);
-      fx.globalAlpha = alpha; fx.drawImage(bg[i], -W * 0.04, -H * 0.04, W * 1.08, H * 1.08);
-      fx.drawImage(sl[i], g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
+      fx.globalAlpha = alpha; fx.drawImage(sl[i], g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
     };
     const frame = t => {
       let i = S.length - 1; while (i > 0 && t < S[i]) i--;
@@ -199,30 +186,16 @@
       const P = fxOn ? pulse(t) : 0;
       fx.save();
       if (fxOn) {
-        const sh = P * 5.5 * k * LV, punch = 1 + P * 0.024 * LV;
-        fx.translate(W / 2 + (rnd(fr * 2 + 1) - 0.5) * 2 * sh, H / 2 + (rnd(fr * 2 + 2) - 0.5) * 2 * sh);
-        fx.rotate((rnd(fr * 3 + 7) - 0.5) * 2 * P * 0.005 * LV); fx.scale(punch, punch); fx.translate(-W / 2, -H / 2);
+        const sh = P * 3.5 * k * LV, punch = 1 + P * 0.022 * LV;
+        fx.translate(W / 2 + Math.round((rnd(fr * 2 + 1) - 0.5) * 2 * sh), H / 2 + Math.round((rnd(fr * 2 + 2) - 0.5) * 2 * sh));
+        fx.scale(punch, punch); fx.translate(-W / 2, -H / 2);
       }
       if (i > 0 && lt < TR) { drawSlide(i - 1, D[i - 1], 1); drawSlide(i, lt, lt / TR); } else drawSlide(i, lt, 1);
-      if (fxOn && i > 0 && lt < TR * 0.8) {                    // taglio glitch: strisce orizzontali che scivolano al cambio slide
-        const g = geo(i, lt), q = 1 - lt / (TR * 0.8), bands = 8;
-        fx.globalAlpha = Math.min(1, q + 0.15);
-        for (let j = 0; j < bands; j++) {
-          const dx = (rnd(fr * 11 + j) - 0.5) * 110 * k * q * LV;
-          fx.drawImage(sl[i], 0, j * sl[i].height / bands, sl[i].width, sl[i].height / bands, g.x + dx, g.y + j * g.h / bands, g.w, g.h / bands + 1);
-        }
-        fx.globalAlpha = 1;
-      }
-      if (fxOn && lite < 1 && P > 0.05) {                         // eco caldo sui colpi
-        const g = geo(i, lt); fx.globalCompositeOperation = 'lighter'; fx.globalAlpha = Math.min(0.4, P * 0.26 * LV);
-        fx.drawImage(sl[i], g.x + 9 * k * P * LV, g.y, g.w, g.h); fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1;
-      }
       fx.restore();
       if (fxOn) {
-        if (lite < 2 && P > 0.02) { fx.globalCompositeOperation = 'lighter'; fx.fillStyle = `rgba(255,110,20,${(P * 0.13 * LV).toFixed(3)})`; fx.fillRect(0, 0, W, H); }   // flash da palco
+        if (lite < 2 && P > 0.02) { fx.globalCompositeOperation = 'lighter'; fx.fillStyle = `rgba(255,110,20,${(P * 0.09 * LV).toFixed(3)})`; fx.fillRect(0, 0, W, H); }   // flash da palco
         fx.globalCompositeOperation = 'source-over';
-        if (lite < 2) { fx.globalAlpha = 0.72 + 0.2 * P; fx.drawImage(vig, 0, 0); }
-        if (lite < 1) { fx.globalAlpha = 0.16 * LV; fx.drawImage(grain[Math.floor(t * 14) % grain.length], 0, 0, W, H); }
+        if (lite < 2) { fx.globalAlpha = 0.6 + 0.2 * P; fx.drawImage(vig, 0, 0); }
         fx.globalAlpha = 1;
       }
     };
@@ -238,7 +211,7 @@
     const stream = fc.captureStream(0); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
     const vtrack = stream.getVideoTracks()[0];
     const push = () => { if (vtrack && typeof vtrack.requestFrame === 'function') vtrack.requestFrame(); };
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: W === 1080 ? 4.5e6 : 2.8e6, audioBitsPerSecond: 160000 });
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: W === 1080 ? 9e6 : 5e6, audioBitsPerSecond: 160000 });
     const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const done = new Promise(res => (rec.onstop = res));
     rec.start(1000); push();
@@ -283,6 +256,7 @@
       $('rlOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) { toast(e.message, true); } finally { busy($('rlMake'), false); }
   };
+  async function makeAndDownload() { $('rlMake').click(); await new Promise(r => setTimeout(r, 300)); while ($('rlMake').disabled) await new Promise(r => setTimeout(r, 500)); if (rl.blob) $('rlDl').click(); }
   $('rlDl').onclick = () => {
     if (!rl.blob) return;
     const a = document.createElement('a'); a.href = rl.url; a.download = `petrosa-reel-${(byN[$('rlSong').value] || {}).file || 'audio'}-${Date.now()}.${rl.ext}`.replace('.mp3', ''); a.click();
@@ -345,5 +319,5 @@
   };
   document.querySelector('nav button[data-tab="audio"]').addEventListener('click', () => { loadSongs().then(renderSync).catch(e => toast(e.message, true)); });
 
-  window.Reel = { refresh, stats: () => rl.stats };
+  window.Reel = { refresh, makeAndDownload, stats: () => rl.stats };
 })();
