@@ -55,6 +55,11 @@
       r.titolo = clean(s.titolo);
       return r;
     }
+    if (s.layout === 'lyric') {
+      // riga di un testo, gia' del brano vero: mai tagliata o accorciata (e' la parola cantata, non un riassunto)
+      r.titolo = clean(s.titolo); r.corpo = '';
+      return r;
+    }
     r.titolo = s.layout === 'stat' ? clean(s.titolo) : oneLine(s.titolo, L.t);
     if (s.layout === 'hook') r.titolo = capWords(r.titolo, 8);
     r.corpo = s.corpo ? oneLine(s.corpo, L.b, 52) : '';

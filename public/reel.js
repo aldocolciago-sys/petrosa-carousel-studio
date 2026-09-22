@@ -20,16 +20,15 @@
     });
   }
   const anchorsOf = s => (local[s.n] !== undefined ? local[s.n] : s.anchors) || [];
-  const isSynced = s => anchorsOf(s).length >= 2;
+  const isSynced = s => anchorsOf(s).length >= 2;   // soglia "leggera": basta per il Reel del post (i tempi in mezzo si stimano)
+  const LSY = window.LyricSync;   // motore puro tempo<->testo, condiviso con il Video testi (vedi lyricsync.js)
+  const songOf = s => ({ N: s.N, vStart: s.vStart, vEnd: s.vEnd, dur: s.dur });
   // tempo (s) in cui, nel brano, e' cantata la posizione `pos` del testo normalizzato
-  function tOf(s, pos) {
-    const L = Math.max(1, s.N.length), rate = (s.vEnd - s.vStart) / L;
-    const A = anchorsOf(s).slice().sort((a, b) => a.pos - b.pos);
-    if (!A.length) return s.vStart + pos * rate;
-    if (pos <= A[0].pos) return Math.max(0, A[0].t - (A[0].pos - pos) * rate);
-    for (let i = 1; i < A.length; i++) if (pos <= A[i].pos) { const a = A[i - 1], b = A[i]; return a.t + (b.t - a.t) * (pos - a.pos) / Math.max(1, b.pos - a.pos); }
-    const l = A[A.length - 1]; return Math.min(s.dur, l.t + (pos - l.pos) * rate);
-  }
+  const tOf = (s, pos) => LSY.timeOfPos(songOf(s), anchorsOf(s), pos);
+  // soglia "piena": OGNI riga ha un punto impostato esattamente su di se' - serve per il Video testi, dove qualsiasi
+  // tratto del brano puo' diventare il video (non solo l'intorno del verso citato, come nel Reel del post)
+  const fullySynced = s => LSY.fullySynced(s.lines, anchorsOf(s));
+  const syncCount = s => LSY.syncCount(s.lines, anchorsOf(s));
   function posOfCit(s, cit) {
     const frags = String(cit || '').split(/\s*(?:\.{3}|…)\s*|\s\/\s/).map(norm).filter(f => f.length > 3);
     for (const f of frags.length ? [frags[0], frags[0].slice(0, 30)] : []) { const p = s.N.indexOf(f); if (p >= 0) return p; }
@@ -326,18 +325,27 @@
   };
 
   // ---------- Scheda Audio & sync ----------
-  function renderSync() {
+  // ricostruisce le opzioni del selettore brano di QUESTA scheda (✔ = ogni riga ha un punto suo, ● = sincronizzazione leggera).
+  // Attenzione: e' un select diverso da #rlSong (quello della scheda Reel, aggiornato da fillSongs()) - non vanno confusi.
+  function fillSyncSongs() {
     if (!songs.length) return;
     const cur = $('syncSong').value;
-    $('syncSong').innerHTML = songs.map(s => `<option value="${s.n}">${String(s.n).padStart(2, '0')} - ${esc(s.title)} ${isSynced(s) ? '✔' : ''}</option>`).join('');
+    $('syncSong').innerHTML = songs.map(s => `<option value="${s.n}">${String(s.n).padStart(2, '0')} - ${esc(s.title)} ${fullySynced(s) ? '✔' : (isSynced(s) ? '●' : '')}</option>`).join('');
     $('syncSong').value = cur && byN[cur] ? cur : songs[0].n;
+  }
+  function renderSync() {
+    if (!songs.length) return;
+    fillSyncSongs();
     drawLines();
   }
   function drawLines() {
     const s = byN[$('syncSong').value]; if (!s) return;
-    const A = anchorsOf(s);
+    const A = anchorsOf(s), sc = syncCount(s);
     if ($('syncAudio').dataset.n !== String(s.n)) { $('syncAudio').src = clipUrl(s); $('syncAudio').dataset.n = s.n; }
-    $('syncStatus').innerHTML = isSynced(s) ? `<b style="color:var(--green,#34d399)">${A.length} punti impostati.</b> Tempi in mezzo interpolati.` : `Tempi <b style="color:var(--amber)">stimati</b> (${A.length} punti). Imposta almeno il primo verso e l'ultimo; meglio un punto per ogni strofa/ritornello.`;
+    $('syncStatus').innerHTML = fullySynced(s)
+      ? `<b style="color:var(--green,#34d399)">Brano completamente sincronizzato</b> (${sc.done}/${sc.total} righe). Pronto per il <a href="#" id="syncGoLyric">Video testi</a>.`
+      : (isSynced(s) ? `<b style="color:var(--amber)">${sc.done}/${sc.total} righe sincronizzate.</b> Tempi in mezzo interpolati: bastano per il Reel del post. Per il <b>Video testi</b> serve un punto su OGNI riga.` : `Tempi <b style="color:var(--amber)">stimati</b> (${sc.done}/${sc.total} righe). Imposta almeno il primo verso e l'ultimo; meglio un punto per ogni strofa/ritornello.`);
+    const g = $('syncGoLyric'); if (g) g.onclick = e => { e.preventDefault(); openLyric(s.n); };
     $('syncLines').innerHTML = s.lines.map((l, i) => {
       const a = A.find(x => x.pos === l.pos);
       return `<div class="ln${a ? ' set' : ''}" data-i="${i}"><span class="tm">${a ? '● ' : ''}${mmss(a ? a.t : tOf(s, l.pos))}</span><button class="ghost" data-a="play" title="Ascolta da qui">&#9654;</button><button class="ghost" data-a="set" title="Imposta: questa riga inizia nel punto in cui e' ora il player">&#9201; Qui</button>${a ? '<button class="ghost" data-a="del" title="Togli">&times;</button>' : ''}<span class="tx">${esc(l.text)}</span></div>`;
@@ -346,8 +354,8 @@
       const b = e.target.closest('button'); if (!b) return;
       const l = s.lines[+row.dataset.i], au = $('syncAudio');
       if (b.dataset.a === 'play') { au.currentTime = Math.max(0, tOf(s, l.pos) - 1.5); au.play(); }
-      if (b.dataset.a === 'set') { const arr = anchorsOf(s).filter(x => x.pos !== l.pos).concat({ pos: l.pos, t: Math.round(au.currentTime * 10) / 10 }).sort((x, y) => x.pos - y.pos); local[s.n] = arr; saveLocal(); drawLines(); fillSongs(); }
-      if (b.dataset.a === 'del') { local[s.n] = anchorsOf(s).filter(x => x.pos !== l.pos); saveLocal(); drawLines(); fillSongs(); }
+      if (b.dataset.a === 'set') { const arr = anchorsOf(s).filter(x => x.pos !== l.pos).concat({ pos: l.pos, t: Math.round(au.currentTime * 10) / 10 }).sort((x, y) => x.pos - y.pos); local[s.n] = arr; saveLocal(); drawLines(); fillSyncSongs(); renderLyric(); }
+      if (b.dataset.a === 'del') { local[s.n] = anchorsOf(s).filter(x => x.pos !== l.pos); saveLocal(); drawLines(); fillSyncSongs(); renderLyric(); }
     });
   }
   function openSync(n) {
@@ -355,7 +363,7 @@
     if (n) { $('syncSong').value = n; drawLines(); }
   }
   $('syncSong').onchange = drawLines;
-  $('syncReset').onclick = () => { const s = byN[$('syncSong').value]; if (!s || !confirm('Azzerare i punti di questo brano?')) return; local[s.n] = []; saveLocal(); drawLines(); fillSongs(); };
+  $('syncReset').onclick = () => { const s = byN[$('syncSong').value]; if (!s || !confirm('Azzerare i punti di questo brano?')) return; local[s.n] = []; saveLocal(); drawLines(); fillSyncSongs(); renderLyric(); };
   $('syncDl').onclick = () => {
     const out = { _note: 'Punti di sincronizzazione testo/audio: {"<n brano>":[{"pos":<offset nel testo normalizzato>,"t":<secondi>}]}. Generato dalla scheda Audio & sync.' };
     songs.forEach(s => { const a = anchorsOf(s); if (a.length) out[s.n] = a; });
@@ -363,11 +371,174 @@
   };
   document.querySelector('nav button[data-tab="audio"]').addEventListener('click', () => { loadSongs().then(renderSync).catch(e => toast(e.message, true)); });
 
+  // ---------- Video testi: Reel dedicato a UN brano, testo a schermo intero sincronizzato riga per riga ----------
+  // Diverso dal Reel del post: la' basta stimare i tempi intorno al verso citato, qui serve il brano sincronizzato
+  // per intero (ogni riga con la sua ancora) perche' l'utente possa scegliere QUALSIASI tratto del testo con fiducia
+  // nei tempi (il brano intero, in un formato Reel, e' quasi sempre troppo lungo: si sceglie un tratto).
+  const lv = { blob: null, url: null, ext: 'mp4', key: null };
+  const LV_TARGET = 45, LV_MAX = 90;   // secondi: lunghezza del tratto proposto di default / oltre cui si avvisa
+
+  const lvFullySyncedSongs = () => songs.filter(fullySynced);
+  const lvLineDurs = s => LSY.lineDurs(LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), s.dur);
+  function lvRange() {
+    const s = byN[$('lvSong').value]; if (!s) return null;
+    const n = s.lines.length;
+    if ($('lvFull') && $('lvFull').checked) return { from: 0, to: n };
+    const from = +$('lvFrom').value, to = +$('lvTo').value;
+    if (!(from >= 0) || !(to > from)) return LSY.suggestRange(lvLineDurs(s), LV_TARGET, LV_MAX, 0);
+    return { from: Math.max(0, Math.min(n - 1, from)), to: Math.max(from + 1, Math.min(n, to)) };
+  }
+  function lvFillLineSelects(s) {
+    const opt = i => `<option value="${i}">${String(i + 1).padStart(2, '0')} - ${esc(s.lines[i].text.slice(0, 40))}</option>`;
+    $('lvFrom').innerHTML = s.lines.map((l, i) => opt(i)).join('');
+    $('lvTo').innerHTML = s.lines.map((l, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')} - ${esc(l.text.slice(0, 40))}</option>`).join('');
+  }
+  function lvUpdateInfo() {
+    const s = byN[$('lvSong').value]; if (!s) return;
+    const full = !!($('lvFull') && $('lvFull').checked);
+    $('lvFrom').disabled = full; $('lvTo').disabled = full;
+    const r = lvRange(); if (!r) return;
+    if (!full) { $('lvFrom').value = r.from; $('lvTo').value = r.to; }
+    const D = lvLineDurs(s), len = D.slice(r.from, r.to).reduce((a, b) => a + b, 0);
+    const preview = s.lines.slice(r.from, r.to).map(l => l.text).join(' / ');
+    let h = `<b>${r.to - r.from} righe</b>, circa <b>${len.toFixed(0)} s</b> di video: &laquo;${esc(preview.slice(0, 90))}${preview.length > 90 ? '…' : ''}&raquo;`;
+    if (len > LV_MAX) h += ' <b style="color:var(--amber)">Piuttosto lungo per un Reel</b>: valuta di accorciare il tratto.';
+    $('lvInfo').innerHTML = h;
+  }
+  function lvFillSongs() {
+    const synced = lvFullySyncedSongs();
+    $('lvSong').innerHTML = synced.map(s => `<option value="${s.n}">${String(s.n).padStart(2, '0')} - ${esc(s.title)}</option>`).join('');
+    return synced;
+  }
+  function renderLyric() {
+    if (!songs.length) return;
+    const synced = lvFillSongs();
+    if (!synced.length) { $('lvBox').style.display = 'none'; $('lvNone').style.display = 'block'; return; }
+    $('lvBox').style.display = 'block'; $('lvNone').style.display = 'none';
+    const cur = $('lvSong').value;
+    if (!cur || !synced.find(s => String(s.n) === cur)) $('lvSong').value = synced[0].n;
+    const s = byN[$('lvSong').value];
+    lvFillLineSelects(s); lvUpdateInfo();
+  }
+  function openLyric(n) {
+    document.querySelector('nav button[data-tab="lyrics"]').click();
+    loadSongs().then(() => { renderLyric(); if (n && byN[n] && fullySynced(byN[n])) { $('lvSong').value = n; lvFillLineSelects(byN[n]); lvUpdateInfo(); } }).catch(e => toast(e.message, true));
+  }
+  $('lvSong').onchange = () => { const s = byN[$('lvSong').value]; if (s) { lvFillLineSelects(s); lvUpdateInfo(); } };
+  $('lvFrom').onchange = lvUpdateInfo; $('lvTo').onchange = lvUpdateInfo;
+  if ($('lvFull')) $('lvFull').onchange = lvUpdateInfo;
+  document.querySelector('nav button[data-tab="lyrics"]').addEventListener('click', () => { loadSongs().then(renderLyric).catch(e => toast(e.message, true)); });
+  ['lvGoSync', 'lvGoSync2'].forEach(id => { const g = $(id); if (g) g.onclick = e => { e.preventDefault(); openSync(); }; });
+
+  async function makeLyricVideo(onProgress) {
+    const s = byN[$('lvSong').value]; if (!s) throw new Error('Scegli una canzone.');
+    if (!fullySynced(s)) throw new Error('Sincronizza prima ogni riga del testo nella scheda Audio & sync.');
+    if (!window.MediaRecorder) throw new Error('Questo browser non sa registrare video: usa Chrome.');
+    const mime = pickMime(); if (!mime) throw new Error('Nessun formato video supportato dal browser.');
+    const r = lvRange(); if (!r || r.to <= r.from) throw new Error('Scegli almeno una riga di testo.');
+    const times = LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), allDurs = LSY.lineDurs(times, s.dur);
+    const lines = s.lines.slice(r.from, r.to), durs = allDurs.slice(r.from, r.to), nTot = s.lines.length;
+    const W = $('lvRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9);
+    // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema, marchio) gia' pronto per il Reel
+    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: 'none', _prog: (r.from + idx + 1) / nTot }));
+    const n = AS.length;
+    const S = []; let acc = 0; durs.forEach(d => { S.push(acc); acc += d; }); const contentT = acc;
+    const offset = Math.max(0, Math.min(times[r.from], Math.max(0, s.dur - contentT - 0.2)));
+    const sl = [];
+    for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS));
+    const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
+    const TR = 0.25;   // dissolvenza (s) tra una riga e la successiva
+    const frame = t => {
+      fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1; fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
+      let i = S.length - 1; while (i > 0 && t < S[i]) i--;
+      const lt = t - S[i];
+      if (i > 0 && lt < TR) { fx.globalAlpha = 1; fx.drawImage(sl[i - 1], 0, 0, W, H); fx.globalAlpha = lt / TR; fx.drawImage(sl[i], 0, 0, W, H); fx.globalAlpha = 1; }
+      else fx.drawImage(sl[i], 0, 0, W, H);
+    };
+    const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); if (ac.state === 'suspended') await ac.resume();
+    const buf = await ac.decodeAudioData(await (await fetch(clipUrl(s))).arrayBuffer());
+    const dest = ac.createMediaStreamDestination(), src = ac.createBufferSource(), gain = ac.createGain();
+    src.buffer = buf; src.connect(gain); gain.connect(dest);
+    frame(0);
+    const stream = fc.captureStream(0); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    const vtrack = stream.getVideoTracks()[0];
+    const push = () => { if (vtrack && typeof vtrack.requestFrame === 'function') vtrack.requestFrame(); };
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: W === 1080 ? 9e6 : 5e6, audioBitsPerSecond: 160000 });
+    const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const done = new Promise(res => (rec.onstop = res));
+    rec.start(1000); push();
+    const t0 = ac.currentTime + 0.1;
+    gain.gain.setValueAtTime(0, t0); gain.gain.linearRampToValueAtTime(1, t0 + 0.35); gain.gain.setValueAtTime(1, t0 + contentT - 1.1); gain.gain.linearRampToValueAtTime(0, t0 + contentT - 0.05);
+    src.start(t0, offset, contentT + 0.2);
+    const stats = { maxGap: 0, ticks: 0, slides: new Set() }; let lastTick = performance.now();
+    await new Promise(res => {
+      let stop = null, over = false;
+      const tick = () => {
+        if (over) return;
+        const now = performance.now(); stats.maxGap = Math.max(stats.maxGap, (now - lastTick) / 1000); lastTick = now;
+        const t = ac.currentTime - t0;
+        if (t >= contentT) { over = true; stop && stop(); return res(); }
+        const tt = Math.max(0, t);
+        frame(tt); push(); stats.ticks++;
+        let i = S.length - 1; while (i > 0 && tt < S[i]) i--; stats.slides.add(i);
+        onProgress(tt, contentT);
+      };
+      stop = startTimer(tick, 1000 / 30);
+    });
+    lv.stats = { maxGap: stats.maxGap, ticks: stats.ticks, slides: stats.slides.size, of: n };
+    frame(contentT - 0.01); push();
+    await new Promise(r2 => setTimeout(r2, 250));
+    rec.stop(); await done; src.stop(); ac.close().catch(() => {});
+    const type = mime.split(';')[0];
+    return { blob: new Blob(chunks, { type }), ext: type.includes('mp4') ? 'mp4' : 'webm', mime };
+  }
+  // caption di default per il Video testi: il primo verso del tratto scelto come hook, poi brano/album e invito
+  function lyricCaption(s, from, to) {
+    const first = (s.lines[from] || {}).text || s.title;
+    return `"${first}"\n\n${s.title} - from Roadburn Chronicles.\nFull song and lyrics: link in bio.\n\n#stonerrock #doommetal #stonerdoom #lyricvideo #petrosa`;
+  }
+  const lvKeyOf = () => JSON.stringify([$('lvSong').value, lvRange(), $('lvRes').value, st.theme]);
+  function lvShowVideo(out, s, r) {
+    if (lv.url) URL.revokeObjectURL(lv.url);
+    lv.blob = out.blob; lv.ext = out.ext; lv.url = URL.createObjectURL(out.blob); lv.key = lvKeyOf();
+    $('lvVideo').src = lv.url; $('lvOut').style.display = 'block';
+    $('lvFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
+    $('lvCap').value = lyricCaption(s, r.from, r.to);
+  }
+  $('lvMake').onclick = async () => {
+    busy($('lvMake'), true, 'Preparo...');
+    try {
+      const s = byN[$('lvSong').value], r = lvRange();
+      const out = await makeLyricVideo((tt, T) => busy($('lvMake'), true, `Registro ${tt.toFixed(0)}/${T.toFixed(0)} s (non cambiare scheda)...`));
+      lvShowVideo(out, s, r);
+      $('lvOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) { toast(e.message, true); } finally { busy($('lvMake'), false); }
+  };
+  $('lvDl').onclick = () => {
+    if (!lv.blob) return;
+    const s = byN[$('lvSong').value];
+    const a = document.createElement('a'); a.href = lv.url; a.download = `petrosa-video-testi-${(s || {}).file || 'audio'}-${Date.now()}.${lv.ext}`.replace('.mp3', ''); a.click();
+  };
+  $('lvPub').onclick = async () => {
+    if (!lv.blob) return toast('Crea prima il video.', true);
+    const chosen = [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]);
+    if (!chosen.length) return toast('Nella sezione 6 carica gli account collegati e selezionane almeno uno.', true);
+    const mode = $('pzMode').value;
+    const dateIso = $('pzDate').value ? new Date($('pzDate').value).toISOString() : null;
+    if (mode === 'schedule' && !dateIso) return toast('Scegli data e ora nella sezione 6.', true);
+    if (lv.ext !== 'mp4' && !confirm('Il video e\' WebM: Instagram potrebbe rifiutarlo. Continuare?')) return;
+    if (mode === 'now' && !confirm('Pubblicare il Video testi tra pochi minuti su ' + chosen.map(c => c.name).join(', ') + '?')) return;
+    try {
+      await sendReel(lv.blob, chosen, mode, dateIso, m => busy($('lvPub'), true, m), $('lvCap').value);
+      toast(`PostFast: Video testi su ${chosen.length} account (${mode === 'draft' ? 'bozza' : mode === 'now' ? 'pubblicazione tra pochi minuti' : 'programmato'}).`);
+    } catch (e) { toast(e.message, true); } finally { busy($('lvPub'), false); }
+  };
+
   // sceglie la canzone del Reel (usato dal piano settimanale): punto di partenza ricalcolato sul verso citato
   async function setSong(n) {
     await refresh();
     if (!byN[n]) return false;
     $('rlSong').value = n; rl.auto = true; $('rlStart').value = suggestStart().toFixed(1); updateInfo(); return true;
   }
-  window.Reel = { refresh, setSong, ensure, sendReel, makeAndDownload, stats: () => rl.stats };
+  window.Reel = { refresh, setSong, ensure, sendReel, makeAndDownload, stats: () => rl.stats, lyricStats: () => lv.stats };
 })();

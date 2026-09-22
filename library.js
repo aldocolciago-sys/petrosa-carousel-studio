@@ -136,6 +136,54 @@ function forcePhotoHook(slide, mood, rng, D, avoidImgs, onlyMember) {
   return true;
 }
 
+// Nessuna immagine (tranne "none"/"logo") deve comparire piu' di una volta nello stesso carosello/Reel: ne' due volte
+// la copertina dell'album, ne' due volte la stessa foto. Puo' succedere perche' alcune schede della libreria sono
+// esplicitamente sulla copertina (es. le Doom Charts o "il furgone sulla copertina": immagine "cover" nei dati), e
+// la CTA finale la mostra sempre (e' il suo scopo, vedi buildCta) - quindi due schede diverse possono benissimo
+// scegliere entrambe "cover" senza che nessun altro controllo se ne accorga. La CTA ha sempre la priorita' a
+// tenerla; ogni altra slide che la ripete (o ripete la foto di un'altra slide) la perde: l'apertura (layout "hook")
+// prova prima una foto live al suo posto - anche per i caroselli "band", dove la regola normale la lascia apposta
+// sull'album, e anche a costo di riusare una foto gia' vista in un altro giorno della settimana (un doppione nello
+// STESSO post e' peggio) - le altre slide restano semplicemente senza immagine (il testo/numero resta, cambia solo
+// lo sfondo).
+// canSwapHook: falso per i carosell "band" o "live", dove la copertina generica (o l'assenza di immagine) e' l'unica
+// scelta sicura - una foto DI UN MEMBRO scelta a caso qui finirebbe scollegata dal testo dell'apertura, che in quei
+// casi parla della band intera o del live, non di un singolo membro (vedi canSwapCover in buildHook).
+function dedupeImages(slides, mood, rng, D, onlyMember, canSwapHook) {
+  const claimed = new Set();
+  const cta = slides.find(sl => sl.tipo === 'CTA');
+  if (cta && cta.immagine && !['none', 'logo'].includes(cta.immagine)) claimed.add(cta.immagine);
+  for (const sl of slides) {
+    if (sl === cta || !sl.immagine || ['none', 'logo'].includes(sl.immagine)) continue;
+    if (!claimed.has(sl.immagine)) { claimed.add(sl.immagine); continue; }
+    const before = sl.immagine;
+    if (sl.layout === 'hook' && sl.immagine === 'cover' && canSwapHook !== false && forcePhotoHook(sl, mood, rng, D, claimed, onlyMember) && sl.immagine !== before) {
+      claimed.add(sl.immagine);
+    } else if (sl.layout === 'hook' && sl.immagine === 'cover' && canSwapHook === false) {
+      // apertura "band"/"live": niente foto di un singolo membro (il testo parla di tutta la band o del live, non
+      // di una persona), ma una foto DI GRUPPO va benissimo e risolve comunque il doppione con la copertina della CTA
+      const groups = (D.photos || []).filter(p => p.kind === 'group' && (p.q || 0) >= 2 && !claimed.has(p.id));
+      const g = groups.length ? groups[Math.floor(rng() * groups.length)] : null;
+      if (g) { sl.immagine = g.id; sl.visual = 'Full-bleed live photo of the whole band with a dark gradient at the bottom, big amber title.'; claimed.add(g.id); }
+      else sl.immagine = 'none';
+    } else if (sl.tipo === 'Live' && sl.layout === 'photo') {
+      // una slide Live deve SEMPRE avere una foto (mai "nessuna immagine"): si cerca un'altra foto live libera
+      // (stesso mood se possibile), portando con se' anche il suo titolo/corpo - dipendono da chi si vede nella
+      // foto ("Aldo, live.", "Antonio + Giorgio."), quindi non si puo' cambiare la sola immagine
+      const usedTitles = new Set(slides.filter(s => s !== sl).map(s => s.titolo));
+      const pool = (D.lib.info || []).filter(i => i.topic === 'live-band' && i.immagine && !claimed.has(i.immagine) && !usedTitles.has(i.titolo));
+      const moodPool = pool.filter(i => (i.moods || []).includes(mood) || (i.moods || []).includes('all'));
+      const cand = moodPool.length ? moodPool : pool;
+      const alt = cand.length ? cand[Math.floor(rng() * cand.length)] : null;
+      if (alt) { sl.immagine = alt.immagine; sl.titolo = alt.titolo; sl.corpo = alt.corpo; claimed.add(alt.immagine); }
+      else sl.immagine = 'none';   // nessun'altra foto live libera (rarissimo): meglio senza immagine che ripetuta
+    } else {
+      sl.immagine = 'none';
+      sl.visual = sl.layout === 'stat' ? 'Giant amber number over a dark generative background, supporting text below.' : 'Dark background with purple/orange glow, title and text.';
+    }
+  }
+}
+
 function buildHook(ctx, isFirstPick = true) {
   const { lib, band } = ctx.D;
   const f = ctx.focus.type;
@@ -232,7 +280,7 @@ function buildAnalysis(ctx) {
   const a = (lib.analyses || []).find(x => x.song === n);
   if (!a) throw new Error('Nessuna analisi disponibile per questo brano.');
   const s = band.songs.find(x => x.n === n);
-  return { tipo: 'Analysis', layout: 'text', immagine: 'none', titolo: a.titolo, corpo: a.corpo, fonte: s.title, visual: 'Dark generative background, big headline, short reading of the lyrics on deep sociality.', _libId: a.id, _analysis: a.id };
+  return { tipo: 'Analysis', layout: 'text', immagine: 'none', titolo: a.titolo, corpo: a.corpo, fonte: s.title, visual: 'Dark generative background, big headline, short reading of the lyrics (from the official Roadburn Chronicles deep lyrical analysis: shadow, inner conflict, transformation, loss).', _libId: a.id, _analysis: a.id };
 }
 
 function resolveTags(item, tags) {
@@ -478,11 +526,15 @@ function applyFocusToSteps(steps, focus, ctx) {
   }
   const infos = steps.map((s, i) => s.slot === 'info' ? i : -1).filter(i => i >= 0);
   if (focus.type === 'song' && (ctx.D.lib.analyses || []).some(a => a.song === parseInt(focus.item, 10)) && infos.length) {
-    // una slide e' dedicata all'analisi del testo (socialita' profonda); si sacrifica la seconda slide informativa
+    // una slide e' dedicata all'analisi ufficiale del testo (Roadburn Chronicles Deep Lyrical Analysis: shadow, inner conflict, transformation, loss); si sacrifica la seconda slide informativa
     steps[infos.length > 1 ? infos[1] : infos[0]] = { slot: 'analysis' };
   }
   if (focus.type === 'doomcharts' && infos.length) steps[infos[0]]._force = 'charts';
-  else if (focus.type === 'album' && infos.length) steps[infos[0]]._force = 'basics';
+  else if (focus.type === 'album' && infos.length) {
+    // carosello dedicato all'intero album: prima slide fattuale (uscita/etichetta), seconda (se c'e') presa dall'analisi ufficiale del disco invece di un argomento a caso
+    steps[infos[0]]._force = 'basics';
+    if (infos.length > 1) steps[infos[1]]._force = 'themes';
+  }
   else if (focus.type === 'custom' && infos.length && focus.text) {
     const i = infos[infos.length - 1];
     const parts = String(focus.text).trim().split(/\n+/);
@@ -504,6 +556,9 @@ function assemble(recipe, mood, focus, seed, D) {
     const dupe = slides.slice(1).some(sl => sl.immagine === slides[0].immagine);
     if (dupe) { slides[0].immagine = 'cover'; slides[0].visual = 'Album cover over a blurred purple/black background, big amber title.'; }
   }
+  // passata finale: nessuna immagine (copertina inclusa) compare due volte nello stesso carosello (vedi dedupeImages)
+  const ftype = ctx.focus && ctx.focus.type;
+  dedupeImages(slides, mood, rng, D, ftype === 'member' ? ctx.focus.item : null, !['band', 'live'].includes(ftype));
   const cap = buildCaption(slides, mood, seed, D, undefined, ctx.focus && ctx.focus.type);
   return { recipeId: recipe.id, label: recipe.label, desc: recipe.desc, slides, ...cap };
 }
@@ -543,6 +598,9 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
     if (q && i !== index) { if (q.kind === 'song') ctx.songs.add(q.song); else { ctx.reviews.add(q.review); const r = D.band.reviews.find(x => x.id === q.review); if (r) ctx.pubs.add(r.publication); } }
     if (s._ref.member && i !== index) ctx.members.add(s._ref.member);
     if (s._ref.slot === 'info' && i !== index) { const it = D.lib.info.find(x => x.id === s._ref.libId); if (it) ctx.topics.add(it.topic); }
+    // la slide sostitutiva non deve ripetere la foto (ne' il titolo) di un'altra slide gia' presente nel carosello
+    if (i !== index && s.immagine && !['none', 'cover', 'logo'].includes(s.immagine)) ctx.imgs.add(s.immagine);
+    if (i !== index && s.titolo) ctx.titles.add(s.titolo);
   });
   ctx.firstQuote = false;
   const step = { ...cur._ref };
@@ -554,6 +612,9 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   if (step.slot === 'custom') throw new Error('La slide personalizzata non ha alternative.');
   const ns = buildSlide(ctx, step);
   const out = slides.map((s, i) => i === index ? ns : s);
+  // la slide appena cambiata non deve ripetere l'immagine di un'altra gia' presente nel carosello (vedi dedupeImages)
+  const sftype = (focus && focus.type) || (ctx.focus && ctx.focus.type);
+  dedupeImages(out, mood, rng, D, ctx.focus && ctx.focus.type === 'member' ? ctx.focus.item : null, !['band', 'live'].includes(sftype));
   finalize(out, D);
   const cap = buildCaption(out, mood, seed, D, undefined, focus && focus.type);
   return { slides: out, ...cap };
@@ -606,6 +667,12 @@ function weekPlan({ days = 7, seed, avoid = [] } = {}) {
       forcePhotoHook(p.slides[0], slot.m, rng, D, usedImgs, slot.t === 'member' ? focus.item : null);
       if (p.slides[0].immagine !== 'cover') weekPhotos.add(p.slides[0].immagine);
     }
+    // passata finale anti-doppioni (vedi dedupeImages): copre anche i casi che la riga sopra non guarda (es. una
+    // scheda "Doom Charts"/"il furgone sulla copertina" che usa la copertina proprio come la CTA finale) e i post
+    // "band", dove la regola sopra lascia apposta la copertina di apertura sull'album.
+    const hookBefore = p.slides[0].immagine;
+    dedupeImages(p.slides, slot.m, rng, D, slot.t === 'member' ? focus.item : null, !['band', 'live'].includes(slot.t));
+    if (p.slides[0].immagine !== hookBefore && p.slides[0].immagine !== 'cover' && p.slides[0].immagine !== 'none') weekPhotos.add(p.slides[0].immagine);
     p.slides.forEach(sl => {
       if (!sl._ref || !sl._ref.libId) return;
       taken.add(sl._ref.libId);

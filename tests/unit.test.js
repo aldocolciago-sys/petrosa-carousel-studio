@@ -131,7 +131,12 @@ describe('intera band e singoli membri', () => {
           assert.ok(own[0].titolo.includes(m.name) && own[0].titolo.toLowerCase().includes(m.role.replace(/\s*\(.*\)/, '').toLowerCase()), 'titolo con nome e strumento');
           assert.ok(p.caption.includes(m.name), `caption senza ${m.name}`);
         }
-        assert.equal(p.slides[0].immagine, 'cover'); assert.equal(p.slides.at(-1).layout, 'cta');
+        // la CTA finale mostra sempre l'album (vedi buildCta): l'apertura non deve piu' ripeterlo (dedupeImages in
+        // library.js), ne' mostrare la foto di un solo membro (qui si parla di tutta la band, non di una persona) -
+        // resta "nessuna immagine" o la foto di gruppo, se libera.
+        assert.notEqual(p.slides[0].immagine, 'cover', `copertina "band" ancora sull'album (${mood}/${count}/${seed}): duplicato con la CTA finale`);
+        assert.ok(!band.members.some(m => m.photo === p.slides[0].immagine), 'copertina "band" con la foto di un solo membro');
+        assert.equal(p.slides.at(-1).layout, 'cta');
         assert.ok(p.slides.every(s => s.verified !== false));
       }
   });

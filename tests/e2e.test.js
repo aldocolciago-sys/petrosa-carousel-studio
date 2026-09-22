@@ -68,7 +68,7 @@ describe('e2e', () => {
     const opts = await page.locator('#focus option').evaluateAll(o => o.map(x => x.value));
     assert.deepEqual(opts, ['auto', 'song', 'review', 'member', 'band', 'album', 'doomcharts', 'live', 'custom']);
     assert.ok(await $(page, 'btnClaude').isVisible());
-    assert.equal(await page.locator('nav button').count(), 3);
+    assert.equal(await page.locator('nav button').count(), 4);   // Studio, Tag & band simili, Audio & sync, Video testi
   }));
 
   test('ogni mood produce 3 proposte da 8 slide', T, () => run(async page => {
@@ -434,21 +434,67 @@ describe('e2e', () => {
 
   test('Audio & sync: 10 brani, punti di sincronizzazione, salvataggio, file JSON, effetto sul Reel', T, () => run(async page => {
     await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10);
-    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati|interpolati/); }
+    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati/); }
     await page.selectOption('#syncSong', '4'); const n = await page.locator('#syncLines .ln').count();
     await page.evaluate(() => (document.getElementById('syncAudio').currentTime = 25)); await page.locator('#syncLines .ln').nth(0).locator('[data-a=set]').click();
     await page.evaluate(() => (document.getElementById('syncAudio').currentTime = 320)); await page.locator('#syncLines .ln').nth(n - 1).locator('[data-a=set]').click();
-    assert.match(await $(page, 'syncStatus').innerText(), /2 punti/); assert.match(await page.locator('#syncLines .ln.set').first().innerText(), /0:25/);
+    assert.match(await $(page, 'syncStatus').innerText(), /2\/\d+ righe sincronizzate/); assert.match(await page.locator('#syncLines .ln.set').first().innerText(), /0:25/);
+    assert.doesNotMatch(await page.locator('#syncSong').locator('option:checked').innerText(), /✔/, 'solo 2 righe su ' + n + ': non ancora "completo"');
     await page.locator('#syncLines .ln').nth(5).locator('[data-a=play]').click(); await page.locator('#syncLines .ln').nth(5).locator('[data-a=set]').click(); await page.locator('#syncLines .ln.set').nth(1).locator('[data-a=del]').click();
-    assert.match(await $(page, 'syncStatus').innerText(), /2 punti/);
+    assert.match(await $(page, 'syncStatus').innerText(), /2\/\d+ righe sincronizzate/);
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#syncDl')]); const j = JSON.parse(fs.readFileSync(await saveDownload(dl), 'utf8'));
     assert.equal(j['4'].length, 2); assert.equal(j['4'][0].t, 25);
     await page.reload(); await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10); await page.selectOption('#syncSong', '4');
-    assert.match(await $(page, 'syncStatus').innerText(), /2 punti/, 'i punti restano dopo il ricaricamento');
+    assert.match(await $(page, 'syncStatus').innerText(), /2\/\d+ righe sincronizzate/, 'i punti restano dopo il ricaricamento');
     await page.click('nav button[data-tab=studio]'); await gen(page, { focus: 'song', item: 4, slides: 7 }); await useProposal(page);
     await page.waitForFunction(() => document.querySelectorAll('#rlSong option').length === 10);
     assert.doesNotMatch(await $(page, 'rlQuote').innerText(), /non ancora sincronizzati/); assert.match(await $(page, 'rlSong').locator('option:checked').innerText(), /sincronizzato/);
-    await page.click('nav button[data-tab=audio]'); await page.click('#syncReset'); assert.match(await $(page, 'syncStatus').innerText(), /0 punti/);
+    await page.click('nav button[data-tab=audio]'); await page.click('#syncReset'); assert.match(await $(page, 'syncStatus').innerText(), /0\/\d+ righe/);
+  }));
+
+  test('Video testi: brano sincronizzato per intero, tratto scelto, video karaoke e pubblicazione come Reel', T, () => run(async page => {
+    // un post scelto serve solo per rendere visibile la card 6 "Pubblica con PostFast" (dentro #result, nascosta finche' non si sceglie una proposta)
+    await gen(page, { mood: 0 }); await useProposal(page);
+    // scheda "Video testi": non basta come per il Reel del post (2 punti stimano il resto); qui serve un'ancora su OGNI riga
+    await page.click('nav button[data-tab=lyrics]');
+    // il contenuto della scheda arriva da una chiamata async (loadSongs -> renderLyric): va aspettata prima di leggere lvNone/lvBox
+    await page.waitForFunction(() => document.getElementById('lvNone').style.display === 'block' || document.getElementById('lvBox').style.display === 'block');
+    assert.ok(await $(page, 'lvNone').isVisible(), 'nessun brano ancora sincronizzato per intero: il tab e\' vuoto');
+    assert.ok(await $(page, 'lvBox').isHidden());
+    await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10);
+    await page.selectOption('#syncSong', '5'); // "Rusty Blues", un brano piu' corto: comodo per sincronizzarlo per intero nel test
+    const n = await page.locator('#syncLines .ln').count();
+    for (let i = 0; i < n; i++) {
+      await page.evaluate(t => (document.getElementById('syncAudio').currentTime = t), 10 + i * 3);
+      await page.locator('#syncLines .ln').nth(i).locator('[data-a=set]').click();
+    }
+    assert.match(await $(page, 'syncStatus').innerText(), new RegExp(`completamente sincronizzato.*${n}/${n} righe`));
+    assert.match(await page.locator('#syncSong').locator('option:checked').innerText(), /✔/);
+    await page.click('#syncGoLyric'); // link dallo stato "completo" alla scheda Video testi
+    await page.waitForFunction(() => document.querySelector('nav button[data-tab="lyrics"]').classList.contains('active'));
+    await page.waitForFunction(() => document.querySelectorAll('#lvSong option').length === 1);
+    assert.ok(await $(page, 'lvBox').isVisible()); assert.ok(await $(page, 'lvNone').isHidden());
+    assert.match(await page.locator('#lvSong').locator('option:checked').innerText(), /Rusty Blues/);
+    assert.match(await $(page, 'lvInfo').innerText(), /righe.*s di video/);
+    // "Brano intero": copre tutte le n righe e disabilita la scelta manuale del tratto
+    await page.check('#lvFull');
+    assert.equal(await $(page, 'lvFrom').isDisabled(), true);
+    assert.match(await $(page, 'lvInfo').innerText(), new RegExp(`${n} righe`));
+    await page.uncheck('#lvFull');
+    await page.selectOption('#lvRes', '720'); await page.click('#lvMake');
+    await page.waitForSelector('#lvOut', { state: 'visible', timeout: 120000 });
+    const info = await page.evaluate(async () => { const b = await (await fetch(document.getElementById('lvVideo').src)).blob(); return { size: b.size, type: b.type }; });
+    assert.ok(info.size > 15000, 'video troppo piccolo: ' + info.size); assert.match(info.type, /^video\//);
+    const cap = await $(page, 'lvCap').inputValue();
+    assert.match(cap, /#lyricvideo/); assert.match(cap, /Rusty Blues/);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#lvDl')]); assert.match(dl.suggestedFilename(), /^petrosa-video-testi-.*\.(mp4|webm)$/);
+    // #btnCh, #chList e #pzMode vivono nella scheda "Studio" (card 6, Pubblica con PostFast): vanno usati li',
+    // poi si torna sulla scheda "Video testi" per pubblicare - #chList resta popolato cambiando scheda.
+    await page.click('nav button[data-tab=studio]'); await page.click('#btnCh'); await page.waitForFunction(() => document.querySelectorAll('#chList input').length === 2); await page.selectOption('#pzMode', 'draft');
+    await page.click('nav button[data-tab=lyrics]'); await page.waitForFunction(() => document.querySelector('nav button[data-tab="lyrics"]').classList.contains('active'));
+    const putsBefore = pf.state.puts.length; await page.click('#lvPub'); await page.waitForFunction(() => /Video testi su/.test(document.getElementById('toast').textContent), null, { timeout: 60000 });
+    assert.ok(pf.state.puts.length > putsBefore && pf.state.puts.at(-1).size > 15000);
+    const b = pf.state.posts.at(-1); assert.equal(b.posts[0].mediaItems[0].type, 'VIDEO'); assert.equal(b.controls.instagramPublishType, 'REEL'); assert.equal(b.posts[0].content, cap);
   }));
 
   test('Tag & band simili: tabella, modifica, salvataggio, nuova band, scansione web, ricerca handle', T, () => run(async page => {

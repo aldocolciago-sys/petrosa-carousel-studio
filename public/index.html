@@ -89,7 +89,13 @@
   .pday .pd-h { font-size:13px; color:var(--amber); font-weight:700; } .pday .pd-t { font-size:13px; } .pday .pd-c { font-size:12.5px; color:var(--mut); }
   .pday .pd-when { color:var(--mut); font-weight:500; margin-left:6px; }
   .pday button.on { background:var(--amber); color:#000; border-color:var(--amber); }
-  @media (max-width:700px) { .pday { grid-template-columns:56px 1fr; } .pday .row { grid-column:1/-1; } }
+  .reel-flag { display:inline-block; margin-left:6px; font-size:11.5px; color:var(--mut); cursor:default; }
+  .reel-flag.ready { color:#3ecf6e; font-weight:600; cursor:pointer; text-decoration:underline dotted; }
+  .pday .reelprev { grid-column:1/-1; display:none; align-items:flex-start; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:2px; }
+  .pday .reelprev.open { display:flex; }
+  .pday .reelprev video { width:120px; border-radius:6px; background:#000; flex:none; }
+  .pday .reelprev .hint { margin:0 }
+  @media (max-width:700px) { .pday { grid-template-columns:56px 1fr; } .pday .row { grid-column:1/-1; } .pday .reelprev video { width:96px; } }
   .props { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
   .prop { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
   .prop h3 { margin:0; font-size:14px; color:var(--amber); } .prop small { color:var(--mut); }
@@ -153,6 +159,7 @@
   <button class="active" data-tab="studio">Studio</button>
   <button data-tab="tags">Tag &amp; band simili</button>
   <button data-tab="audio">Audio &amp; sync</button>
+  <button data-tab="lyrics">Video testi</button>
 </nav>
 
 <main>
@@ -211,6 +218,7 @@
      <select id="planMode" style="width:auto" title="Programma agli orari consigliati oppure salva come bozze in PostFast"><option value="schedule">Programma</option><option value="draft">Bozze</option></select>
      <button class="btn" id="planSend" title="Invia caroselli e Reel a PostFast, programmati agli orari consigliati">Programma tutto su PostFast</button>
      <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--text)"><input type="checkbox" id="planReel" checked style="width:auto"> con Reel (circa 1 minuto a giorno)</label>
+     <button class="ghost" id="planMkAllReels" title="Genera in coda, uno alla volta, il video di ogni Reel del piano che non e' ancora pronto (tieni la scheda aperta e in primo piano). Ogni Reel resta salvato per il suo giorno: puoi poi programmarli su PostFast anche in un secondo momento, uno per uno o tutti insieme con «Programma tutto su PostFast» qui sopra.">&#127916; Genera tutti i Reel</button>
     </div>
     <div class="hint" id="planProg"></div>
     <div id="planList"></div>
@@ -376,11 +384,43 @@
  </div>
 </section>
 
+<!-- ===================== VIDEO TESTI ===================== -->
+<section id="tab-lyrics" class="tab">
+ <div class="card">
+  <h2>Video testi</h2>
+  <div class="hint" style="margin-top:0">Un Reel dedicato a un solo brano: il testo scorre a schermo intero, sincronizzato con l'audio riga per riga. Serve un brano <b>completamente sincronizzato</b> (un punto su ogni riga, nella scheda <a href="#" id="lvGoSync">Audio &amp; sync</a>) perche' qualsiasi tratto del testo possa diventare il video: il brano intero e' quasi sempre troppo lungo per un Reel, quindi si sceglie un tratto (di default le prime righe, circa 45 s).</div>
+  <div id="lvNone" class="hint warn" style="display:none">Nessun brano ancora completamente sincronizzato. Vai su <a href="#" id="lvGoSync2">Audio &amp; sync</a> e imposta il punto di ogni riga (bottone &#9201; Qui) per almeno un brano.</div>
+  <div id="lvBox" style="display:none">
+   <div class="row" style="margin-top:10px">
+    <div><label>Canzone</label><select id="lvSong" style="width:auto"></select></div>
+   </div>
+   <div class="row" style="margin-top:10px">
+    <div><label>Da riga</label><select id="lvFrom" style="width:auto"></select></div>
+    <div><label>A riga</label><select id="lvTo" style="width:auto"></select></div>
+    <label style="margin:0"><input type="checkbox" id="lvFull"> Brano intero</label>
+   </div>
+   <div class="hint" id="lvInfo" style="margin-top:8px"></div>
+   <div class="row" style="margin-top:10px">
+    <label style="margin:0">Qualita'</label><select id="lvRes" style="width:auto"><option value="1080">1080x1920</option><option value="720">720x1280 (piu' leggero)</option></select>
+    <button class="btn" id="lvMake">&#127916; Crea video testi</button>
+   </div>
+   <div id="lvOut" style="display:none;margin-top:12px">
+    <video id="lvVideo" controls playsinline style="max-width:270px;width:100%;border-radius:10px;background:#000"></video>
+    <div class="hint" id="lvFmt"></div>
+    <label>Caption</label>
+    <textarea id="lvCap" rows="4" style="width:100%"></textarea>
+    <div class="row"><button class="ghost" id="lvDl">Scarica video</button><button class="btn" id="lvPub">Invia Reel a PostFast</button></div>
+   </div>
+  </div>
+ </div>
+</section>
+
 <script src="/styles.js"></script>
 <script src="/schedule.js"></script>
 <script src="/pack.js"></script>
 <script src="/reelcut.js"></script>
 <script src="/teaser.js"></script>
+<script src="/lyricsync.js"></script>
 <script src="/feedback.js"></script>
 <script src="/render.js"></script>
 <script src="/studio.js"></script>

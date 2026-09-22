@@ -110,9 +110,13 @@ describe('3. copertine forti', () => {
     for (const p of photos) assert.ok(Number.isInteger(p.impact) && p.impact >= 0 && p.impact <= 100, p.id);
     assert.ok(Math.max(...photos.map(p => p.impact)) === 100);
   });
-  test('circa meta delle copertine generiche usa una foto live (non piu sempre l album)', () => {
+  test('la copertina generica ormai usa quasi sempre una foto live: la CTA finale mostra gia\' l\'album, quindi l\'apertura non lo ripete piu\'', () => {
+    // Prima capitava che l'apertura restasse la stessa copertina generica della CTA finale (stesso identico
+    // disco due volte nello stesso carosello): ora la CTA ha sempre la priorita' sulla copertina (vedi
+    // dedupeImages in library.js) e l'apertura, quando ci arriva anche lei, cede il posto a una foto live.
     const live = covers.filter(c => PH[c.s.immagine]).length, rate = live / covers.length;
-    assert.ok(rate > 0.25 && rate < 0.75, 'quota copertine con foto: ' + rate.toFixed(2));
+    assert.ok(rate > 0.9, 'quota copertine con foto: ' + rate.toFixed(2));
+    for (const c of covers) assert.notEqual(c.s.immagine, 'cover', `copertina ancora sull'album (mood ${c.mood}): duplicato con la CTA finale`);
   });
   test('la foto di copertina ha qualita 2+, impatto alto, non e un composito e non e riusata nel resto del carosello', () => {
     for (const c of covers.filter(c => PH[c.s.immagine])) {
@@ -209,7 +213,18 @@ describe('4. piano settimanale (3 post al giorno: mezzogiorno, sera, mezzanotte)
       const caps = p.plan.map(d => d.captionId); assert.equal(new Set(caps).size, caps.length, 'caption ripetute');
       const cta = p.plan.map(d => d.slides[d.slides.length - 1].titolo); assert.equal(new Set(cta).size, cta.length, 'CTA ripetute: ' + cta);
       const hooks = p.plan.map(d => d.slides[0].titolo); assert.equal(new Set(hooks).size, hooks.length, 'hook ripetuti: ' + hooks);
-      const covers = p.plan.map(d => d.slides[0].immagine).filter(i => i !== 'cover'); assert.equal(new Set(covers).size, covers.length, 'copertine ripetute');
+      // la stessa foto di copertina puo', raramente, ricomparire in un altro giorno della settimana - si accetta pur
+      // di non ripeterla nello STESSO post (dove sarebbe un doppione con la CTA finale, vedi dedupeImages in
+      // library.js): resta pero' l'eccezione, non la norma.
+      const covers = p.plan.map(d => d.slides[0].immagine).filter(i => i !== 'cover' && i !== 'none');
+      const repeats = covers.length - new Set(covers).size;
+      assert.ok(repeats <= Math.ceil(covers.length * 0.2), `troppe copertine ripetute nella settimana: ${repeats}/${covers.length}`);
+      // quello che conta davvero: nessun post ripete la STESSA immagine su due sue slide (mai due volte nello stesso post/Reel)
+      for (const d of p.plan) {
+        const imgs = d.slides.map(s => s.immagine).filter(i => i && i !== 'none');
+        const dup = imgs.filter((im, idx) => imgs.indexOf(im) !== idx);
+        assert.equal(dup.length, 0, `giorno ${d.day} (${d.slotLabel}): immagine ripetuta nello stesso post: ${dup}`);
+      }
       assert.ok(new Set(p.plan.map(d => d.n)).size >= 3, 'lunghezze tutte uguali');
     }
   });
@@ -362,5 +377,100 @@ describe('8. Reel breve "solo hook" (teaser): caption propria, invito al profilo
   });
   test('lo stesso seed produce sempre la stessa caption (utile per confrontare in test)', () => {
     assert.equal(Teaser.caption('X', 5), Teaser.caption('X', 5));
+  });
+});
+
+describe('9b. Nessuna immagine ripetuta due volte nello stesso post/Reel', () => {
+  // La CTA finale mostra sempre la copertina dell'album (vedi buildCta): prima capitava spesso (4 volte su 10) che
+  // anche l'apertura restasse la stessa copertina generica, ripetendo il disco due volte nello stesso carosello.
+  // dedupeImages (library.js) lo impedisce ora in ogni punto che tocca le immagini: propose(), il piano settimanale
+  // e lo swap di una singola slide.
+  const dupImgs = slides => { const imgs = slides.map(s => s.immagine).filter(i => i && i !== 'none'); return imgs.filter((im, i) => imgs.indexOf(im) !== i); };
+  const moods = ['riff', 'doom', 'psych', 'road'];
+  const focuses = [{ type: 'auto' }, { type: 'song', item: 4 }, { type: 'member', item: 'giorgio' }, { type: 'review', item: 'outlaws' }, { type: 'band' }, { type: 'live' }, { type: 'album' }, { type: 'doomcharts' }];
+  test('propose(): nessun doppione, con ogni combinazione di mood, argomento e lunghezza', () => {
+    for (const mood of moods) for (const focus of focuses) for (const count of [7, 8, 9, 10]) for (let seed = 1; seed <= 8; seed++) {
+      let r; try { r = L.propose({ mood, focus, count, seed }); } catch (e) { continue; }
+      for (const p of r.proposals) assert.deepEqual(dupImgs(p.slides), [], `${mood}/${focus.type}/${count}/${seed}`);
+    }
+  });
+  test('piano settimanale: nessun doppione in nessuno dei post generati', () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const p = L.weekPlan({ days: seed % 2 ? 7 : 5, seed });
+      for (const d of p.plan) assert.deepEqual(dupImgs(d.slides), [], `giorno ${d.day} (${d.slotLabel}), seed ${seed}`);
+    }
+  });
+  test('swap: la slide sostituita non introduce un doppione con il resto del carosello', () => {
+    for (const focus of [{ type: 'auto' }, { type: 'band' }, { type: 'member', item: 'aldo' }]) {
+      let slides = L.propose({ mood: 'riff', focus, count: 8, seed: 11 }).proposals[0].slides;
+      for (let idx = 0; idx < slides.length; idx++) {
+        if (!slides[idx]._ref) continue;
+        let out; try { out = L.swap({ mood: 'riff', focus, slides, index: idx, seed: 100 + idx }); } catch (e) { continue; }
+        slides = out.slides;
+        assert.deepEqual(dupImgs(slides), [], `focus ${focus.type}, slide ${idx}`);
+      }
+    }
+  });
+});
+
+describe('9. Video testi (motore puro tempo<->testo, per il Reel dedicato a un brano)', () => {
+  const LS = require(path.join(ROOT, 'public', 'lyricsync.js'));
+  // brano finto: 300 s, la voce entra al secondo 30 e finisce al 270; testo normalizzato lungo 100 caratteri
+  const song = () => ({ N: 'x'.repeat(100), vStart: 30, vEnd: 270, dur: 300 });
+  const lines = n => Array.from({ length: n }, (_, i) => ({ text: `Riga ${i + 1}`, pos: Math.round(i * 100 / n) }));
+
+  test('senza ancore, il tempo di ogni riga e\' stimato a velocita\' costante tra vStart e vEnd', () => {
+    const s = song();
+    assert.equal(LS.timeOfPos(s, [], 0), 30);
+    assert.ok(Math.abs(LS.timeOfPos(s, [], 100) - 270) < 0.01);
+    assert.ok(Math.abs(LS.timeOfPos(s, [], 50) - 150) < 0.01);
+  });
+  test('con le ancore, il tempo interpola tra i punti impostati ed estrapola prima/dopo', () => {
+    const s = song(), A = [{ pos: 20, t: 60 }, { pos: 80, t: 240 }];
+    assert.equal(LS.timeOfPos(s, A, 20), 60); assert.equal(LS.timeOfPos(s, A, 80), 240);
+    assert.equal(LS.timeOfPos(s, A, 50), 150, 'a meta\' tra le due ancore, a meta\' tempo');
+    assert.ok(LS.timeOfPos(s, A, 0) < 60, 'prima della prima ancora: estrapolato indietro');
+    assert.ok(LS.timeOfPos(s, A, 100) > 240, 'dopo l\'ultima ancora: estrapolato in avanti');
+  });
+  test('fullySynced: vero solo se OGNI riga ha un\'ancora esattamente sulla sua posizione', () => {
+    const L4 = lines(4);
+    assert.equal(LS.fullySynced(L4, []), false);
+    assert.equal(LS.fullySynced(L4, L4.slice(0, 3).map(l => ({ pos: l.pos, t: 1 }))), false, '3 righe su 4 non bastano');
+    assert.equal(LS.fullySynced(L4, L4.map(l => ({ pos: l.pos, t: 1 }))), true, 'tutte le righe sincronizzate');
+    assert.equal(LS.fullySynced([], []), false, 'nessuna riga: mai "sincronizzato"');
+  });
+  test('syncCount: conta le righe con un\'ancora esatta, indipendentemente dall\'ordine delle ancore', () => {
+    const L5 = lines(5), A = [L5[4], L5[1]].map(l => ({ pos: l.pos, t: 9 }));
+    assert.deepEqual(LS.syncCount(L5, A), { done: 2, total: 5 });
+  });
+  test('lineTimes: un tempo per ogni riga, nello stesso ordine delle righe', () => {
+    const s = song(), L4 = lines(4);
+    const t = LS.lineTimes(s, [], L4);
+    assert.equal(t.length, 4);
+    for (let i = 1; i < t.length; i++) assert.ok(t[i] >= t[i - 1], 'i tempi non devono tornare indietro');
+  });
+  test('lineDurs: durata di ogni riga fino alla successiva (l\'ultima fino alla fine del brano), con limiti min/max', () => {
+    const times = [10, 12, 30], durs = LS.lineDurs(times, 40, 1, 6);
+    assert.deepEqual(durs, [2, 6, 6], 'la seconda riga (18 s) e l\'ultima (10 s) restano tagliate al massimo di 6 s');
+    const durs2 = LS.lineDurs([10, 10.2], 20, 1.1, 6);
+    assert.equal(durs2[0], 1.1, 'una riga troppo corta non scende sotto il minimo');
+  });
+  test('lineAt: trova la riga in corso al tempo t (-1 se prima della prima riga)', () => {
+    const times = [5, 10, 20];
+    assert.equal(LS.lineAt(times, 0), -1); assert.equal(LS.lineAt(times, 5), 0);
+    assert.equal(LS.lineAt(times, 9.9), 0); assert.equal(LS.lineAt(times, 10), 1); assert.equal(LS.lineAt(times, 25), 2);
+  });
+  test('suggestRange: propone un tratto che copre circa il tempo richiesto, mai oltre il massimo', () => {
+    const durs = Array(20).fill(4); // 20 righe da 4 s: 80 s totali
+    const r = LS.suggestRange(durs, 45, 90, 0);
+    const len = durs.slice(r.from, r.to).reduce((a, b) => a + b, 0);
+    assert.equal(r.from, 0); assert.ok(len >= 45 && len <= 90, 'lunghezza proposta: ' + len);
+  });
+  test('suggestRange: se anche una sola riga supera il massimo, propone comunque quella riga sola (mai un tratto vuoto)', () => {
+    const r = LS.suggestRange([120, 4, 4], 45, 90, 0);
+    assert.deepEqual(r, { from: 0, to: 1 });
+  });
+  test('suggestRange: con un brano senza righe, propone un tratto vuoto', () => {
+    assert.deepEqual(LS.suggestRange([], 45, 90, 0), { from: 0, to: 0 });
   });
 });

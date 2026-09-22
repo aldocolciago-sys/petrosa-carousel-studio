@@ -212,13 +212,16 @@
     const img = images[s.immagine] || images.cover;
     ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
     const f = FOCUS[s.immagine] || [0.5, 0.35];
-    if (img === images.cover && T.hook === 'frame') {
-      // copertina incorniciata e leggermente ruotata sopra uno sfondo generativo
+    if (T.hook === 'frame') {
+      // foto (copertina o scatto live) incorniciata e leggermente ruotata sopra uno sfondo generativo.
+      // Da quando la copertina delle hook e' quasi sempre una foto live (niente piu' immagini doppie
+      // nello stesso post), lo stile "incorniciata" deve valere per qualunque immagine, non solo per
+      // l'artwork dell'album, altrimenti sarebbe visibile solo nei rari casi con la copertina letterale.
       background(ctx, i + 1);
       const sz = 580, cx = W / 2, cy = 430 + TP;
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(((T.seed % 7) - 3) * 0.014);
       glow(ctx, hexA(C.amber, 0.55), 60); rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.fillStyle = '#000'; ctx.fill(); noGlow(ctx);
-      ctx.save(); rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.clip(); ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+      ctx.save(); rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.clip(); coverImg(ctx, img, -sz / 2, -sz / 2, sz, sz, f[0], f[1]); ctx.restore();
       rr(ctx, -sz / 2, -sz / 2, sz, sz, 14); ctx.strokeStyle = hexA(C.amber, 0.9); ctx.lineWidth = 4; ctx.stroke();
       ctx.restore();
       shade(ctx, 0, 220, 0.6, 0); shade(ctx, 700 + TP * 2, H, 0, 0.97);
@@ -368,11 +371,31 @@
     tagChips(ctx, s.tag, H - BM + 10 - tagH + 10);
   };
 
+  // Video testi: una riga di testo a tutto schermo (karaoke), con una barra di avanzamento nel brano
+  L.lyric = (ctx, s, i) => {
+    background(ctx, i + 23);
+    if (images[s.immagine] && s.immagine !== 'none') { ctx.globalAlpha = 0.16; coverImg(ctx, images[s.immagine], 0, 0, W, H, 0.5, 0.3); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.6, 0.88); }
+    if (s.fonte) kicker(ctx, s.fonte, 72, 210 + TP);
+    const q = String(s.titolo || '').trim();
+    const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, H - BM - 360 - TP, 108, 44, 1.18);
+    const top = TP + (H - TP - BM - f.h) / 2;
+    ctx.font = `${DW} ${f.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.55), 40);
+    ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
+    drawLines(ctx, f, W / 2, top, 1.18, 'center'); noGlow(ctx);
+    if (s._prog != null) {
+      const by = H - BM - 30, bw = W - 144, bx = 72, p = Math.max(0, Math.min(1, s._prog));
+      ctx.strokeStyle = hexA(C.soft, 0.28); ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw, by); ctx.stroke();
+      if (p > 0) { ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw * p, by); ctx.stroke(); }
+      ctx.lineCap = 'butt';
+    }
+  };
+
   function render(canvas, s, i, n, handle, theme, fmt) {
     REEL = fmt === 'reel'; H = REEL ? 1920 : 1350; BM = REEL ? 470 : 130; TP = REEL ? 190 : 0; XR = REEL ? 60 : 0; FS = REEL ? 1.28 : 1;
     applyTheme(theme);
     ensure(s.immagine);
-    const layout = ['hook', 'quote', 'stat', 'photo', 'text', 'cta'].includes(s.layout) ? s.layout : 'text';
+    const layout = ['hook', 'quote', 'stat', 'photo', 'text', 'cta', 'lyric'].includes(s.layout) ? s.layout : 'text';
     if (CAPS && s.titolo) s = Object.assign({}, s, { titolo: String(s.titolo).toUpperCase() });
     // Reel: i layout di solo testo si centrano nell'area sicura (prova su tela di servizio per misurare l'altezza, poi disegno vero)
     if (REEL && ['quote', 'stat', 'text'].includes(layout)) {
