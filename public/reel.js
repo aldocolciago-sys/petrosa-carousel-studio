@@ -49,8 +49,10 @@
   const LOOP_TAIL = 0.45; // durata (s) del richiamo finale che chiude il video sulla prima slide, per un replay senza stacco
   const loopOn = () => !!($('rlLoop') && $('rlLoop').checked);
   const teaserOn = () => !!($('rlTeaser') && $('rlTeaser').checked);
-  // Reel normale: tutte le slide del post. Reel breve "solo hook": solo la prima slide, per farsi scoprire.
-  const activeSlides = () => teaserOn() ? st.slides.slice(0, 1) : st.slides;
+  // Reel normale: tutte le slide del post (o, per un post dedicato a un brano, il trailer: copertina, verso citato,
+  // 1-2 spunti dell'analisi, CTA - l'analisi completa resta nel carosello e nella didascalia, vedi ReelCut.songTeaser).
+  // Reel breve "solo hook": solo la prima slide, per farsi scoprire.
+  const activeSlides = () => teaserOn() ? st.slides.slice(0, 1) : (window.ReelCut ? window.ReelCut.songTeaser(st.slides) : st.slides);
   const durs = () => activeSlides().map(s => slideDur() + (s.citazione ? 1.5 : 0));
   const starts = () => { let a = 0; return durs().map(d => { const x = a; a += d; return x; }); };
   const total = () => durs().reduce((a, b) => a + b, 0); // durata del solo contenuto (senza l'eventuale richiamo finale a loop)
@@ -86,6 +88,7 @@
     const vidLen = total() + (loopOn() ? LOOP_TAIL : 0);
     h += ` Video di ${vidLen.toFixed(1)} s.` + (loopOn() ? ' Finisce richiudendosi sulla prima slide: su Instagram/TikTok riparte senza stacco.' : '');
     if (teaserOn()) h += ' <b>Reel breve indipendente</b>: solo la prima slide (l\'hook), con una caption propria.';
+    else if (!teaserOn() && st.slides.some(sl => sl.tipo === 'Analysis')) h += ` <b>Reel-trailer</b>: ${activeSlides().length} tappe scelte dalle ${st.slides.length} del carosello (copertina, verso citato, un paio di spunti dell'analisi, invito finale). L'analisi completa resta nel carosello e nella didascalia del post.`;
     h += synced ? '' : ' <b style="color:var(--amber)">Tempi del brano stimati, non ancora sincronizzati</b>: ascolta e correggi nella scheda <a href="#" id="rlGoSync">Audio &amp; sync</a> (una volta sola per brano).';
     $('rlQuote').innerHTML = h;
     const g = $('rlGoSync'); if (g) g.onclick = e => { e.preventDefault(); openSync(s.n); };
@@ -379,7 +382,10 @@
   const LV_TARGET = 45, LV_MAX = 90;   // secondi: lunghezza del tratto proposto di default / oltre cui si avvisa
 
   const lvFullySyncedSongs = () => songs.filter(fullySynced);
-  const lvLineDurs = s => LSY.lineDurs(LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), s.dur);
+  // "Video testi" lavora solo su brani completamente sincronizzati (ogni riga ha il suo punto esatto): la durata di
+  // ogni riga e' quella VERA (lineDursExact), mai accorciata da una pausa lunga - altrimenti il video, e la stima
+  // qui sotto, non corrisponderebbero a quanto viene davvero cantato.
+  const lvLineDurs = s => LSY.lineDursExact(LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), s.dur);
   function lvRange() {
     const s = byN[$('lvSong').value]; if (!s) return null;
     const n = s.lines.length;
@@ -436,7 +442,8 @@
     if (!window.MediaRecorder) throw new Error('Questo browser non sa registrare video: usa Chrome.');
     const mime = pickMime(); if (!mime) throw new Error('Nessun formato video supportato dal browser.');
     const r = lvRange(); if (!r || r.to <= r.from) throw new Error('Scegli almeno una riga di testo.');
-    const times = LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), allDurs = LSY.lineDurs(times, s.dur);
+    // cambio riga programmato sui tempi VERI (mai accorciati da una pausa lunga): vedi lineDursExact
+    const times = LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), allDurs = LSY.lineDursExact(times, s.dur);
     const lines = s.lines.slice(r.from, r.to), durs = allDurs.slice(r.from, r.to), nTot = s.lines.length;
     const W = $('lvRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9);
     // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema, marchio) gia' pronto per il Reel

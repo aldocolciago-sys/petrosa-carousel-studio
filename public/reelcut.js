@@ -68,6 +68,21 @@
     return r;
   }
   const cutAll = slides => (slides || []).map(cut);
+  // Reel per un post dedicato a un brano: il carosello e' quasi tutto lettura del testo (piu' slide di analisi che
+  // altro), troppo per un video che scorre da solo senza che nessuno possa fermarsi a rileggere. Il Reel diventa un
+  // trailer: copertina, il verso citato per intero, 1-2 spunti dell'analisi (accorciati da cut/cutAll) e la CTA
+  // finale - il resto dell'analisi resta scritto per intero nel carosello e nella didascalia del post.
+  // Non e' un post dedicato a un brano (nessuna slide di tipo Analysis): le slide tornano tutte, invariate.
+  function songTeaser(slides) {
+    const arr = slides || [];
+    if (!arr.some(s => s.tipo === 'Analysis')) return arr;
+    const hook = arr[0];
+    const quote = arr.find(s => s.tipo === 'Song');
+    const picks = arr.filter(s => s.tipo === 'Analysis').slice(0, 2);
+    const cta = arr[arr.length - 1];
+    const out = [hook, quote, ...picks, cta].filter(Boolean);
+    return out.filter((s, i) => out.indexOf(s) === i);   // niente doppioni (es. carosello cortissimo dove cta e hook coincidessero)
+  }
   // statistiche per i test e per il messaggio all'utente
   function stats(slides) {
     const a = cutAll(slides);
@@ -75,6 +90,6 @@
     return { before: chars(slides || []), after: chars(a) };
   }
 
-  const api = { cut, cutAll, firstSentence, clip, stats, LIM };
+  const api = { cut, cutAll, songTeaser, firstSentence, clip, stats, LIM };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ReelCut = api;
 })(typeof window !== 'undefined' ? window : globalThis);

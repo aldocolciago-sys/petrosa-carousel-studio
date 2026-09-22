@@ -50,6 +50,21 @@ describe('1. testi su misura per il Reel', () => {
     assert.deepEqual(RC.cutAll(null), []); assert.equal(RC.cut(null), null);
     assert.equal(RC.cut({ layout: 'cta' }).corpo, '');
   });
+  test('songTeaser: un post dedicato a un brano diventa un trailer (copertina, verso, 1-2 spunti di analisi, CTA), gli altri post restano invariati', () => {
+    for (const seed of [1, 2, 3]) for (const item of [1, 7]) {
+      const p = L.propose({ mood: 'doom', focus: { type: 'song', item }, count: 10, seed }).proposals[0];
+      const t = RC.songTeaser(p.slides);
+      assert.ok(t.length < p.slides.length, 'il trailer deve avere meno slide del carosello');
+      assert.equal(t[0], p.slides[0]);   // stessa copertina
+      assert.equal(t.filter(s => s.tipo === 'Song').length, 1);
+      assert.ok(t.filter(s => s.tipo === 'Analysis').length <= 2);
+      assert.equal(t[t.length - 1], p.slides[p.slides.length - 1]);   // stessa CTA
+    }
+    // nessuna slide di analisi (altri argomenti): songTeaser non cambia nulla
+    const p2 = L.propose({ mood: 'doom', focus: { type: 'member', item: 'aldo' }, count: 8, seed: 1 }).proposals[0];
+    assert.deepEqual(RC.songTeaser(p2.slides), p2.slides);
+    assert.deepEqual(RC.songTeaser(null), []); assert.deepEqual(RC.songTeaser(undefined), []);
+  });
 });
 
 describe('1b. frasi complete e elenchi', () => {
@@ -176,7 +191,11 @@ describe('4. piano settimanale (3 post al giorno: mezzogiorno, sera, mezzanotte)
         assert.ok(d.slides.length >= 7 && d.slides.length <= 10); assert.equal(d.slides.length, d.n);
         assert.equal(d.slides[0].tipo, 'Cover'); assert.equal(d.slides[d.slides.length - 1].layout, 'cta');
         assert.ok(d.caption.length > 60 && d.hashtags.length >= 8);
-        assert.equal(d.reel.slides.length, d.slides.length); assert.ok(Number.isInteger(d.reel.song) && d.reel.song >= 1 && d.reel.song <= 10);
+        // post dedicato a un brano: il Reel e' un trailer piu' corto del carosello (copertina, verso citato, 1-2 spunti di analisi, CTA);
+        // per gli altri argomenti il Reel usa tutte le slide del post
+        if (d.slides.some(s => s.tipo === 'Analysis')) assert.ok(d.reel.slides.length < d.slides.length && d.reel.slides.length >= 4, 'reel-trailer: ' + d.reel.slides.length);
+        else assert.equal(d.reel.slides.length, d.slides.length);
+        assert.ok(Number.isInteger(d.reel.song) && d.reel.song >= 1 && d.reel.song <= 10);
         d.slides.filter(s => s.citazione).forEach(s => assert.equal(s.verified, true));
       });
     }
@@ -454,6 +473,19 @@ describe('9. Video testi (motore puro tempo<->testo, per il Reel dedicato a un b
     assert.deepEqual(durs, [2, 6, 6], 'la seconda riga (18 s) e l\'ultima (10 s) restano tagliate al massimo di 6 s');
     const durs2 = LS.lineDurs([10, 10.2], 20, 1.1, 6);
     assert.equal(durs2[0], 1.1, 'una riga troppo corta non scende sotto il minimo');
+  });
+  test('lineDursExact: una pausa lunga fra due righe NON viene accorciata (il Video testi deve restare sincronizzato con l\'audio)', () => {
+    // stessa pausa di 18 s del test sopra: lineDurs la taglia a 6 s, lineDursExact la tiene intera
+    const times = [10, 12, 30], durs = LS.lineDursExact(times, 40, 1, 6);
+    assert.deepEqual(durs, [2, 18, 6], 'solo l\'ultima riga (senza una riga dopo) resta stimata/limitata');
+    // se il video usasse lineDurs qui, alla riga 2 (a video-tempo 2+6=8s) l'audio sarebbe ancora fermo alla pausa
+    // (voce reale della riga 3 al secondo 30, cioe' 20s dopo l'inizio della riga 1): con lineDursExact il video
+    // arriva alla riga 3 esattamente quando l'audio ci arriva davvero (2+18=20s)
+    const acc = durs.slice(0, 2).reduce((a, b) => a + b, 0);
+    assert.equal(acc, times[2] - times[0], 'il tempo a video per arrivare alla riga 3 deve combaciare con l\'audio reale');
+    // una riga cantata quasi subito dopo la precedente: nessun limite minimo, l'intervallo resta quello vero
+    const durs2 = LS.lineDursExact([10, 10.2], 20, 1.1, 6);
+    assert.ok(Math.abs(durs2[0] - 0.2) < 1e-9, 'lineDursExact non alza un intervallo reale sotto il minimo (solo l\'ultima riga lo fa)');
   });
   test('lineAt: trova la riga in corso al tempo t (-1 se prima della prima riga)', () => {
     const times = [5, 10, 20];

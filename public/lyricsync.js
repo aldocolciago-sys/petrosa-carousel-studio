@@ -28,11 +28,29 @@
   // tempo di inizio di ogni riga del testo
   function lineTimes(song, anchors, lines) { return (lines || []).map(l => timeOfPos(song, anchors, l.pos)); }
   // durata a schermo di ogni riga (fino all'inizio della successiva, o alla fine del brano per l'ultima), con limiti min/max
-  // cosi' una riga cantata in fretta resta leggibile e una tenuta a lungo non blocca il video troppo tempo su una frase sola
+  // cosi' una riga cantata in fretta resta leggibile e una tenuta a lungo non blocca il video troppo tempo su una frase sola.
+  // E' una STIMA (usata per suggerire quante righe entrano in circa 45-90 s): non va usata per programmare davvero il
+  // cambio riga di un Video testi gia' sincronizzato, altrimenti una pausa piu' lunga del massimo viene accorciata e il
+  // video passa alla riga dopo prima che sia davvero cantata - da quel punto in poi resta permanentemente sfasato
+  // rispetto all'audio (per quello si usa lineDursExact).
   function lineDurs(times, dur, minLine, maxLine) {
     minLine = minLine == null ? 1.1 : minLine; maxLine = maxLine == null ? 6.5 : maxLine;
     const n = times.length, d = [];
     for (let i = 0; i < n; i++) { const raw = i < n - 1 ? times[i + 1] - times[i] : Math.max(0, dur - times[i]); d.push(Math.max(minLine, Math.min(maxLine, raw))); }
+    return d;
+  }
+  // come lineDurs, ma per programmare la riproduzione VERA di un brano completamente sincronizzato (ogni riga ha il
+  // suo punto esatto): l'intervallo fra una riga e la successiva e' quello reale, mai accorciato ne' allungato - anche
+  // quando c'e' una pausa lunga nel mezzo, il video aspetta e cambia riga esattamente quando viene davvero cantata,
+  // cosi' tutto cio' che segue resta sincronizzato con l'audio. Solo l'ultima riga (che non ha una riga dopo a cui
+  // agganciarsi) usa una durata di lettura stimata, con gli stessi limiti min/max di lineDurs.
+  function lineDursExact(times, dur, minLine, maxLine) {
+    minLine = minLine == null ? 1.1 : minLine; maxLine = maxLine == null ? 6.5 : maxLine;
+    const n = times.length, d = [];
+    for (let i = 0; i < n; i++) {
+      if (i < n - 1) d.push(Math.max(0, times[i + 1] - times[i]));
+      else d.push(Math.max(minLine, Math.min(maxLine, Math.max(0, dur - times[i]))));
+    }
     return d;
   }
   // indice della riga in corso al tempo t (-1 se prima della prima riga); times deve essere non-decrescente
@@ -50,6 +68,6 @@
     return { from, to };
   }
 
-  const api = { timeOfPos, fullySynced, syncCount, lineTimes, lineDurs, lineAt, suggestRange };
+  const api = { timeOfPos, fullySynced, syncCount, lineTimes, lineDurs, lineDursExact, lineAt, suggestRange };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.LyricSync = api;
 })(typeof window !== 'undefined' ? window : globalThis);

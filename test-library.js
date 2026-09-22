@@ -81,15 +81,26 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
       const title = band.songs.find(x => x.n === f.item).title;
       if (!p.slides.some(s => s.citazione && s.fonte === title)) bad(id + ' nessun verso del brano scelto');
       for (const s of p.slides) if (s.tipo === 'Song' && s.fonte !== title) bad(id + ' verso di un altro brano: ' + s.fonte);
-      // 80% delle slide dedicate al testo: un solo verso citato letteralmente ('Song') + una slide di analisi per
-      // ogni altro slot non-hook/non-cta (il totale atteso e' count - hook - cta - il verso citato = count - 3)
+      // Il carosello resta dedicato al brano ma non e' un muro di solo testo: un verso citato letteralmente,
+      // un paio (2, o 3 sulle ricette da 9-10) di pause fotografiche, il resto e' analisi in sequenza.
       const an = p.slides.filter(s => s.tipo === 'Analysis');
       const songQuotes = p.slides.filter(s => s.tipo === 'Song');
+      const photoBreaks = p.slides.filter(s => s._ref && s._ref.slot === 'band');
+      const photoTarget = count >= 9 ? 3 : 2;
       if (songQuotes.length !== 1) bad(id + ' versi letterali attesi 1, trovati ' + songQuotes.length);
-      if (an.length !== count - 3) bad(id + ' analisi: ' + an.length + ' attese ' + (count - 3));
-      const dedicated = (an.length + songQuotes.length) / count;
-      if (dedicated < 0.7) bad(id + ' quota di slide dedicate al testo troppo bassa: ' + Math.round(dedicated * 100) + '%');
+      if (photoBreaks.length !== photoTarget) bad(id + ' pause fotografiche: ' + photoBreaks.length + ' attese ' + photoTarget);
+      if (an.length !== count - 3 - photoTarget) bad(id + ' analisi: ' + an.length + ' attese ' + (count - 3 - photoTarget));
       const anTitles = an.map(s => s.titolo); if (new Set(anTitles).size !== anTitles.length) bad(id + ' parti di analisi ripetute');
+      // niente ripetizioni: la stessa riga del testo non deve comparire sia nel verso citato sia in una slide di analisi (o in due
+      // slide di analisi diverse) - le due meta' della STESSA citazione possono ovviamente condividere parole, non si confrontano fra loro
+      const bySlide = [];
+      p.slides.forEach((sl, i) => {
+        const f = [];
+        if (sl.tipo === 'Song' && sl.citazione) f.push(...sl.citazione.split(/\s*\/\s*/).map(norm).filter(x => x.length >= 6));
+        if (sl.tipo === 'Analysis') for (const m of (sl.titolo + ' ' + sl.corpo).matchAll(/"([^"]+)"/g)) { const q = norm(m[1]); if (q.length >= 6) f.push(q); }
+        if (f.length) bySlide.push({ i, f });
+      });
+      for (let x = 0; x < bySlide.length; x++) for (let y = x + 1; y < bySlide.length; y++) for (const a of bySlide[x].f) for (const b of bySlide[y].f) if (a.includes(b) || b.includes(a)) bad(id + ` stessa riga citata in slide ${bySlide[x].i + 1} e ${bySlide[y].i + 1}`);
       if (!p.caption.startsWith(lib.analyses.find(a => a.song === f.item).caption.split('\n')[0])) bad(id + ' caption senza analisi');
     } else if (p.slides.some(s => s.tipo === 'Analysis')) bad(id + ' analisi fuori focus');
     if (f.type === 'live') {

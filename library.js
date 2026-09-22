@@ -9,6 +9,14 @@ const RC = require('./public/reelcut.js');   // testi accorciati per il Reel
 const readJSON = (f, fb) => { try { return JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8')); } catch { return fb; } };
 const norm = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
+// ---------- Righe di testo "gia' citate" in un carosello dedicato a un brano ----------
+// Il verso citato letteralmente e le frasi tra virgolette dentro l'analisi attingono spesso alla stessa riga
+// piu' forte del brano: questi helper servono a non farla comparire due volte nello stesso carosello (ne' fra
+// verso e analisi, ne' fra due parti di analisi).
+const quotedFragments = text => [...String(text || '').matchAll(/"([^"]+)"/g)].map(m => norm(m[1])).filter(f => f.length >= 6);
+const citLines = cit => String(cit || '').split(/\s*\/\s*/).map(norm).filter(f => f.length >= 6);
+const overlapsUsed = (frags, used) => frags.some(f => used.some(g => f.includes(g) || g.includes(f)));
+
 function mulberry(seed) {
   let a = (seed >>> 0) || 1;
   return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -260,11 +268,17 @@ function buildQuote(ctx, step) {
   if (!pool.length) pool = lib.quotes.filter(q => only(q) && !ctx.used.has(q.id) && (!kind || q.kind === kind));
   if (!pool.length && sf && kind === 'song') pool = lib.quotes.filter(q => q.kind === 'review' && !ctx.used.has(q.id) && !ctx.reviews.has(q.review) && !ctx.pubs.has((band.reviews.find(r => r.id === q.review) || {}).publication));
   if (!pool.length) pool = lib.quotes.filter(q => only(q) && (!kind || q.kind === kind));
+  // mai un verso gia' citato altrove nel carosello (dentro un'altra slide di analisi, o - nello swap - dalla slide che si sta sostituendo)
+  if ((ctx.usedLyricFrags || []).length) {
+    const clean = pool.filter(q => q.kind !== 'song' || !overlapsUsed(citLines(q.cit), ctx.usedLyricFrags));
+    if (clean.length) pool = clean;
+  }
   const q = (step._pub && focusPubQuote(ctx)) || pick(pool, ctx.mood, ctx.rng, ctx.used);
   ctx.used.add(q.id); ctx.firstQuote = false;
   if (q.kind === 'song') {
     const s = band.songs.find(x => x.n === q.song);
     ctx.songs.add(s.n);
+    (ctx.usedLyricFrags = ctx.usedLyricFrags || []).push(...citLines(q.cit));
     return { tipo: 'Song', layout: 'quote', immagine: 'none', titolo: s.title, corpo: (lib.songNotes || {})[s.n] || `From the album Roadburn Chronicles - track ${String(s.n).padStart(2, '0')}.`, citazione: q.cit, fonte: s.title, visual: 'Black background with orange and purple glow. Lyric in large type, song title highlighted.', _libId: q.id };
   }
   const r = band.reviews.find(x => x.id === q.review);
@@ -282,15 +296,21 @@ function buildAnalysis(ctx, step) {
   const s = band.songs.find(x => x.n === n);
   const parts = a.parts || [];
   // ogni slide di analisi mostra una parte diversa della lettura ufficiale del testo: si segue l'ordine indicato
-  // dalla ricetta (step._part) e, in ogni caso, non si ripete mai una parte gia' usata in questo stesso carosello
+  // dalla ricetta (step._part), non si ripete mai una parte gia' usata in questo carosello, e non si cita mai una
+  // riga gia' comparsa altrove (il verso citato letteralmente, o un'altra parte di analisi)
   ctx.usedParts = ctx.usedParts || new Set();
+  ctx.usedLyricFrags = ctx.usedLyricFrags || [];
+  const fragsOf = p => quotedFragments(p.titolo).concat(quotedFragments(p.corpo));
+  const free = i => !ctx.usedParts.has(i) && !overlapsUsed(fragsOf(parts[i]), ctx.usedLyricFrags);
   let idx = (step && Number.isInteger(step._part)) ? step._part : -1;
-  if (idx < 0 || idx >= parts.length || ctx.usedParts.has(idx)) {
-    const free = parts.map((_, i) => i).filter(i => !ctx.usedParts.has(i));
-    idx = free.length ? free[0] : 0;
+  if (idx < 0 || idx >= parts.length || !free(idx)) {
+    const notUsed = parts.map((_, i) => i).filter(i => !ctx.usedParts.has(i));
+    const clean = notUsed.filter(free);
+    idx = clean.length ? clean[0] : (notUsed.length ? notUsed[0] : 0);
   }
   ctx.usedParts.add(idx);
   const p = parts[idx] || parts[0];
+  ctx.usedLyricFrags.push(...fragsOf(p));
   return { tipo: 'Analysis', layout: 'text', immagine: 'none', titolo: p.titolo, corpo: p.corpo, fonte: s.title, visual: 'Dark generative background, big headline, short reading of the lyrics (from the official Roadburn Chronicles deep lyrical analysis: shadow, inner conflict, transformation, loss).', _libId: a.id, _analysis: a.id, _part: idx };
 }
 
@@ -535,11 +555,20 @@ function applyFocusToSteps(steps, focus, ctx) {
     const qi = steps.findIndex(s => s.slot === 'quote');
     if (qi >= 0) steps[qi] = { slot: 'quote', kind: 'song' };
     if ((ctx.D.lib.analyses || []).some(a => a.song === parseInt(focus.item, 10))) {
-      // Deep Lyrical Analysis: ogni altra slide (tranne copertina, CTA e il verso citato) diventa una lettura in sequenza
-      // del testo, cosi' l'80% circa del carosello (fino a 8 slide su 10) e' dedicato all'analisi del brano
+      // Deep Lyrical Analysis: il carosello resta fortemente dedicato al brano, ma non e' un muro di solo testo.
+      // Un paio (o tre, sulle ricette piu' lunghe) di slide fotografiche spezzano il ritmo; tutto il resto (tranne
+      // copertina, CTA e il verso citato) diventa una lettura in sequenza del testo.
+      const photoTarget = steps.length >= 9 ? 3 : 2;
+      const rest = steps.map((s, i) => i).filter(i => i !== qi && steps[i].slot !== 'hook' && steps[i].slot !== 'cta');
+      // le slide "band" gia' previste dalla ricetta diventano le pause fotografiche in via prioritaria
+      const bandIdx = rest.filter(i => steps[i].slot === 'band');
+      const photos = bandIdx.slice(0, photoTarget);
+      for (const i of rest) { if (photos.length >= photoTarget) break; if (!photos.includes(i)) photos.push(i); }
+      const photoSet = new Set(photos);
       let part = 0;
       steps = steps.map((s, i) => {
         if (i === qi || s.slot === 'hook' || s.slot === 'cta') return s;
+        if (photoSet.has(i)) return s.slot === 'band' ? s : { slot: 'band', who: 'member' };
         return { slot: 'analysis', _part: part++ };
       });
     }
@@ -615,6 +644,12 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
     if (s._ref.slot === 'info' && i !== index) { const it = D.lib.info.find(x => x.id === s._ref.libId); if (it) ctx.topics.add(it.topic); }
     // le altre slide di analisi gia' presenti non devono ripetere la stessa parte del testo
     if (s._ref.slot === 'analysis' && i !== index && Number.isInteger(s._ref.part)) { ctx.usedParts = ctx.usedParts || new Set(); ctx.usedParts.add(s._ref.part); }
+    // ne' il verso citato letteralmente ne' un'altra parte di analisi devono ripetere una riga gia' comparsa altrove
+    if (i !== index) {
+      ctx.usedLyricFrags = ctx.usedLyricFrags || [];
+      if (s.tipo === 'Song' && s.citazione) ctx.usedLyricFrags.push(...citLines(s.citazione));
+      if (s._ref.slot === 'analysis') ctx.usedLyricFrags.push(...quotedFragments(s.titolo), ...quotedFragments(s.corpo));
+    }
     // la slide sostitutiva non deve ripetere la foto (ne' il titolo) di un'altra slide gia' presente nel carosello
     if (i !== index && s.immagine && !['none', 'cover', 'logo'].includes(s.immagine)) ctx.imgs.add(s.immagine);
     if (i !== index && s.titolo) ctx.titles.add(s.titolo);
@@ -703,7 +738,7 @@ function weekPlan({ days = 7, seed, avoid = [] } = {}) {
     const qn = qs ? (D.lib.quotes.find(q => q.id === qs._ref.libId) || {}).song : null;
     const reelSong = qn;   // se null, viene assegnata dopo (una canzone diversa per ogni post)
     const label = { song: () => 'Brano: ' + (D.band.songs.find(x => x.n === focus.item) || {}).title, review: () => 'Recensione: ' + ((D.band.reviews.find(r => r.id === focus.item) || {}).publication), member: () => 'Membro: ' + ((D.band.members.find(m => m.id === focus.item) || {}).name), live: () => 'Live', band: () => 'Tutta la band', album: () => 'Album' }[slot.t]();
-    out.push({ day: dayNum, slot: daySlot.id, slotLabel: daySlot.label, slotTime: daySlot.time, topic: slot.t, label, mood: slot.m, focus, n, recipeId: recipe.id, slides: p.slides, caption: p.caption, hashtags: p.hashtags, menzioni: p.menzioni, captionId: p.captionId, reel: { song: reelSong, slides: RC.cutAll(p.slides) } });
+    out.push({ day: dayNum, slot: daySlot.id, slotLabel: daySlot.label, slotTime: daySlot.time, topic: slot.t, label, mood: slot.m, focus, n, recipeId: recipe.id, slides: p.slides, caption: p.caption, hashtags: p.hashtags, menzioni: p.menzioni, captionId: p.captionId, reel: { song: reelSong, slides: RC.cutAll(RC.songTeaser(p.slides)) } });
   }
   // canzone del Reel per i post senza un verso citato: gira su tutte le canzoni (non sempre la stessa) prima e poi, se
   // i post sono piu' dei brani, ricomincia dall'inizio della rotazione invece di incollarsi sempre sulla prima
