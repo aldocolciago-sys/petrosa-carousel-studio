@@ -52,7 +52,7 @@
       <div class="hint" data-status="${i}" style="grid-column:1/-1"></div></div>`; }).join('');
     P.plan.forEach((d, i) => {
       const c = $('planList').querySelector(`.pday[data-i="${i}"] canvas`);
-      window.Renderer.render(c, d.slides[0], 0, d.slides.length, st.data.handle, st.theme || undefined);
+      window.Renderer.render(c, d.slides[0], 0, d.slides.length, st.data.handle, d.theme || st.theme || undefined);
     });
     $('planList').querySelectorAll('[data-open]').forEach(b => b.onclick = () => openDay(+b.dataset.open));
     $('planList').querySelectorAll('[data-mkreel]').forEach(b => b.onclick = () => dayCreateReel(+b.dataset.mkreel, !!plan.reels[+b.dataset.mkreel]));
@@ -183,6 +183,18 @@
     const R = window.Reel; if (R && R.setSong) await R.setSong(d.reel.song, { keepQuote: !!d.slides.find(s => s.citazione) });
   }
 
+  // assegna a ogni carosello/Reel del piano un proprio stile grafico (sfondo/palette/font), scelto in base al mood e
+  // al contenuto del giorno, incatenando ogni scelta a quella del giorno precedente cosi' NESSUNA delle tre dimensioni
+  // si ripete mai fra due caroselli consecutivi (Styles.pick esclude per ciascuna il valore di "prev"): il piano non
+  // sembra piu' tutto uguale, e Reel di un giorno riusa lo stesso stile del suo carosello (sono la stessa "coppia").
+  function assignPlanThemes(list) {
+    let prev = null;
+    list.forEach(d => {
+      const theme = { ...window.Styles.DEFAULT, ...window.Styles.pick({ slides: d.slides, mood: d.mood, argomento: d.label, prev }) };
+      d.theme = theme; prev = theme;
+    });
+  }
+
   async function generate() {
     busy(true);
     try {
@@ -190,6 +202,7 @@
       Object.values(plan.reelUrls).forEach(u => URL.revokeObjectURL(u));   // nuovo piano: i Reel del piano precedente non servono piu'
       plan.data = out; plan.seed = out.seed; plan.reels = {}; plan.reelUrls = {}; st.plan = out;
       out.plan.forEach(d => C.remember(d));
+      assignPlanThemes(out.plan);
       if (window.Schedule) window.Schedule.annotate(out.plan);
       await draw();
       $('planCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
