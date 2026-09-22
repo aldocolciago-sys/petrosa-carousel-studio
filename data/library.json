@@ -878,6 +878,47 @@
    "titolo": "Doom Carved in Stone(r).",
    "corpo": "Roadburn Chronicles, the debut from Petrosa. Swipe.",
    "immagine": "cover"
+  },
+  {
+   "id": "h-debate-1",
+   "moods": [
+    "riff",
+    "doom",
+    "fans"
+   ],
+   "titolo": "Stoner or doom? Pick one.",
+   "corpo": "Petrosa plays both in the same song. Tell us which side wins for you.",
+   "immagine": "cover"
+  },
+  {
+   "id": "h-debate-2",
+   "moods": [
+    "psych",
+    "fans"
+   ],
+   "titolo": "Riff first, or lyrics first?",
+   "corpo": "Roadburn Chronicles has both. Swipe, then tell us what hooked you.",
+   "immagine": "cover"
+  },
+  {
+   "id": "h-debate-3",
+   "moods": [
+    "proof",
+    "fans"
+   ],
+   "titolo": "Kyuss or Orange Goblin?",
+   "corpo": "Reviewers name both for Petrosa. Vote in the comments.",
+   "immagine": "cover"
+  },
+  {
+   "id": "h-debate-4",
+   "moods": [
+    "road",
+    "intro"
+   ],
+   "titolo": "Headphones or full volume?",
+   "corpo": "Roadburn Chronicles works both ways. Tell us how you play it.",
+   "immagine": "cover"
   }
  ],
  "quotes": [
@@ -2309,6 +2350,62 @@
    ],
    "titolo": "Show this to your riff-hungry friends.",
    "corpo": "Roadburn Chronicles on Spotify. Ten tracks of stoner/doom."
+  },
+  {
+   "id": "c-share-riff",
+   "moods": [
+    "riff"
+   ],
+   "titolo": "Send this to your loudest friend.",
+   "corpo": "Roadburn Chronicles on Spotify. Tag them below."
+  },
+  {
+   "id": "c-share-doom",
+   "moods": [
+    "doom"
+   ],
+   "titolo": "Tag whoever needs the weight today.",
+   "corpo": "Stream Roadburn Chronicles on Spotify."
+  },
+  {
+   "id": "c-share-psych",
+   "moods": [
+    "psych"
+   ],
+   "titolo": "Share this with your desert-rock crew.",
+   "corpo": "Roadburn Chronicles on Spotify. Headphones on."
+  },
+  {
+   "id": "c-share-intro",
+   "moods": [
+    "intro"
+   ],
+   "titolo": "Send this to someone who needs it.",
+   "corpo": "Roadburn Chronicles on Spotify."
+  },
+  {
+   "id": "c-share-road",
+   "moods": [
+    "road"
+   ],
+   "titolo": "Tag your next road-trip passenger.",
+   "corpo": "Roadburn Chronicles on Spotify. Windows down."
+  },
+  {
+   "id": "c-share-proof",
+   "moods": [
+    "proof"
+   ],
+   "titolo": "Send the receipts to a skeptic.",
+   "corpo": "Roadburn Chronicles on Spotify. #14 in the Doom Charts."
+  },
+  {
+   "id": "c-share-fans",
+   "moods": [
+    "fans"
+   ],
+   "titolo": "Tag the friend who's been sleeping on this.",
+   "corpo": "Roadburn Chronicles on Spotify."
   }
  ],
  "captions": [
@@ -2619,6 +2716,58 @@
    ],
    "text": "Since 2019, now four strong.\n\nAntonio Buonocore, Giorgio Monza, Aldo Colciago and Andrea Vignati: Petrosa, stoner/doom from Milan. Roadburn Chronicles is out now on Octopus Rising / Argonauta Records. Stream it on Spotify (link in bio).\n\nWhich one of them do you want to hear from next?",
    "band": true
+  },
+  {
+   "id": "cap-share-riff",
+   "moods": [
+    "riff"
+   ],
+   "text": "Tag the friend who owns too many fuzz pedals.\n\nPetrosa, Roadburn Chronicles: ten tracks of stoner/doom from Milan. Full album on Spotify (link in bio).\n\nSend this to them right now."
+  },
+  {
+   "id": "cap-share-doom",
+   "moods": [
+    "doom"
+   ],
+   "text": "Someone in your group chat needs this weight today.\n\nRoadburn Chronicles, the debut from Petrosa: down-tuned guitars, dense fuzz, darkness. Stream it on Spotify (link in bio).\n\nTag them below."
+  },
+  {
+   "id": "cap-share-psych",
+   "moods": [
+    "psych"
+   ],
+   "text": "This one's for your desert-rock friend.\n\nPetrosa's Roadburn Chronicles: fuzz, hypnotic rhythms, a psychedelic pulse. Full album on Spotify (link in bio).\n\nSend it their way."
+  },
+  {
+   "id": "cap-share-fans",
+   "moods": [
+    "riff",
+    "doom",
+    "psych",
+    "intro",
+    "road",
+    "proof",
+    "fans"
+   ],
+   "text": "Which of your friends is still sleeping on this?\n\nPetrosa, stoner/doom from Milan: Roadburn Chronicles is out now on Octopus Rising / Argonauta Records. Stream it on Spotify (link in bio).\n\nTag them, then send us their reaction."
+  },
+  {
+   "id": "cap-debate-1",
+   "moods": [
+    "riff",
+    "doom",
+    "fans"
+   ],
+   "text": "Stoner or doom: which side of Petrosa wins for you?\n\nRoadburn Chronicles carries both in the same ten tracks. Stream it on Spotify (link in bio).\n\nVote in the comments, then send this to whoever disagrees."
+  },
+  {
+   "id": "cap-debate-2",
+   "moods": [
+    "psych",
+    "fans",
+    "proof"
+   ],
+   "text": "Kyuss or Orange Goblin: who do you hear more in Petrosa?\n\nBoth are cited by the press on Roadburn Chronicles. Stream the album on Spotify (link in bio).\n\nSettle it in the comments."
   }
  ],
  "moodHashtags": {
@@ -3374,5 +3523,53 @@
   "8": "Track 08. One line. The most intimate on the album.",
   "9": "Track 09. A breakup told in silence.",
   "10": "Track 10. The road song that closes the record."
- }
+ },
+ "seoLines": [
+  {
+   "id": "seo-1",
+   "moods": [
+    "all"
+   ],
+   "text": "New stoner/doom album, 2026: Petrosa, Roadburn Chronicles."
+  },
+  {
+   "id": "seo-2",
+   "moods": [
+    "all"
+   ],
+   "text": "Italian stoner rock and doom metal band, from Milan."
+  },
+  {
+   "id": "seo-3",
+   "moods": [
+    "proof",
+    "fans"
+   ],
+   "text": "New doom metal release, out now on Octopus Rising / Argonauta Records."
+  },
+  {
+   "id": "seo-4",
+   "moods": [
+    "riff",
+    "doom"
+   ],
+   "text": "Stoner doom 2026: ten new tracks to discover."
+  },
+  {
+   "id": "seo-5",
+   "moods": [
+    "psych",
+    "fans"
+   ],
+   "text": "Desert rock and stoner metal from Italy."
+  },
+  {
+   "id": "seo-6",
+   "moods": [
+    "road",
+    "intro"
+   ],
+   "text": "New heavy rock album 2026, stoner and doom from Milan, Italy."
+  }
+ ]
 }

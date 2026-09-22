@@ -47,14 +47,20 @@
   const rl = { auto: true, blob: null, url: null, ext: 'mp4', playing: null };
   const clipUrl = s => '/assets/clips/' + s.file;
   const slideDur = () => parseFloat($('rlDur').value) || 3.5;
-  const durs = () => st.slides.map(s => slideDur() + (s.citazione ? 1.5 : 0));
+  const LOOP_TAIL = 0.45; // durata (s) del richiamo finale che chiude il video sulla prima slide, per un replay senza stacco
+  const loopOn = () => !!($('rlLoop') && $('rlLoop').checked);
+  const teaserOn = () => !!($('rlTeaser') && $('rlTeaser').checked);
+  // Reel normale: tutte le slide del post. Reel breve "solo hook": solo la prima slide, per farsi scoprire.
+  const activeSlides = () => teaserOn() ? st.slides.slice(0, 1) : st.slides;
+  const durs = () => activeSlides().map(s => slideDur() + (s.citazione ? 1.5 : 0));
   const starts = () => { let a = 0; return durs().map(d => { const x = a; a += d; return x; }); };
-  const total = () => durs().reduce((a, b) => a + b, 0);
+  const total = () => durs().reduce((a, b) => a + b, 0); // durata del solo contenuto (senza l'eventuale richiamo finale a loop)
 
   // quale slide cita un brano e dove
   function quoteInfo() {
-    for (let i = 0; i < st.slides.length; i++) {
-      const sl = st.slides[i]; if (!sl.citazione) continue;
+    const AS = activeSlides();
+    for (let i = 0; i < AS.length; i++) {
+      const sl = AS[i]; if (!sl.citazione) continue;
       const s = songs.find(x => x.title === sl.fonte); if (!s) continue;
       const pos = posOfCit(s, sl.citazione);
       return { qi: i, song: s, pos, cit: sl.citazione };
@@ -78,7 +84,9 @@
     let h = q && q.song.n === s.n
       ? `Il verso citato in slide ${q.qi + 1} &laquo;${esc(q.cit.split(/\s\/\s/)[0].slice(0, 70))}&raquo; e' cantato al ${mmss(tOf(s, q.pos))}: l'audio parte dal ${mmss(start)} cosi' il verso arriva quando compare la slide.`
       : (q ? `La slide ${q.qi + 1} cita &laquo;${esc(q.song.title)}&raquo;: hai scelto un altro brano, quindi l'audio parte dal punto scelto.` : 'Nessuna slide con un verso: l\'audio parte dal punto scelto.');
-    h += ` Video di ${total().toFixed(1)} s.`;
+    const vidLen = total() + (loopOn() ? LOOP_TAIL : 0);
+    h += ` Video di ${vidLen.toFixed(1)} s.` + (loopOn() ? ' Finisce richiudendosi sulla prima slide: su Instagram/TikTok riparte senza stacco.' : '');
+    if (teaserOn()) h += ' <b>Reel breve indipendente</b>: solo la prima slide (l\'hook), con una caption propria.';
     h += synced ? '' : ' <b style="color:var(--amber)">Tempi del brano stimati, non ancora sincronizzati</b>: ascolta e correggi nella scheda <a href="#" id="rlGoSync">Audio &amp; sync</a> (una volta sola per brano).';
     $('rlQuote').innerHTML = h;
     const g = $('rlGoSync'); if (g) g.onclick = e => { e.preventDefault(); openSync(s.n); };
@@ -116,6 +124,11 @@
   $('rlStart').oninput = () => { rl.auto = false; updateInfo(); };
   $('rlSong').onchange = () => { stopListen(); rl.auto = true; $('rlStart').value = suggestStart().toFixed(1); updateInfo(); };
   $('rlDur').onchange = () => { $('rlStart').value = suggestStart().toFixed(1); updateInfo(); };
+  if ($('rlLoop')) $('rlLoop').onchange = updateInfo;
+  if ($('rlTeaser')) $('rlTeaser').onchange = () => {
+    const hint = $('rlTeaserHint'); if (hint) hint.style.display = teaserOn() ? 'block' : 'none';
+    rl.auto = true; $('rlStart').value = suggestStart().toFixed(1); updateInfo();
+  };
 
   function pickMime() {
     const list = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1.4D401F,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=h264,aac', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -161,11 +174,12 @@
     if (!window.MediaRecorder) throw new Error('Questo browser non sa registrare video: usa Chrome.');
     const mime = pickMime(); if (!mime) throw new Error('Nessun formato video supportato dal browser.');
     const W = $('rlRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9), k = W / 1080;   // k: scala del 720p
-    const D = durs(), S = starts(), T = total(), n = st.slides.length;
-    const offset = Math.max(0, Math.min(parseFloat($('rlStart').value) || 0, s.dur - T - 0.2));
+    const AS = activeSlides(), D = durs(), S = starts(), n = AS.length;
+    const loop = loopOn(), contentT = total(), T = contentT + (loop ? LOOP_TAIL : 0); // T: durata totale registrata (con l'eventuale richiamo a loop)
+    const offset = Math.max(0, Math.min(parseFloat($('rlStart').value) || 0, s.dur - contentT - 0.2));
     // slide native 9:16 (1080x1920): stesso post, impaginato per lo schermo intero del telefono
     const sl = [];
-    for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel'));
+    for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS));
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
     // ---- effetti "rock" (stoner/doom): vibrazione e zoom sui colpi, flash caldo e vignetta (niente grana, eco o glitch: peggiorano la qualita') ----
     const LV = { off: 0, mid: 1, hard: 1.6 }[$('rlFx').value]; const fxOn = LV > 0;
@@ -180,8 +194,7 @@
       fx.globalAlpha = alpha; fx.drawImage(sl[i], g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
     };
     const frame = t => {
-      let i = S.length - 1; while (i > 0 && t < S[i]) i--;
-      const lt = t - S[i], fr = Math.floor(t * 30);
+      const fr = Math.floor(t * 30);
       fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1; fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
       const P = fxOn ? pulse(t) : 0;
       fx.save();
@@ -190,7 +203,15 @@
         fx.translate(W / 2 + Math.round((rnd(fr * 2 + 1) - 0.5) * 2 * sh), H / 2 + Math.round((rnd(fr * 2 + 2) - 0.5) * 2 * sh));
         fx.scale(punch, punch); fx.translate(-W / 2, -H / 2);
       }
-      if (i > 0 && lt < TR) { drawSlide(i - 1, D[i - 1], 1); drawSlide(i, lt, lt / TR); } else drawSlide(i, lt, 1);
+      if (loop && t >= contentT) {
+        // richiamo finale: sfuma dall'ultima slide (ferma al suo stato finale) alla prima (al suo stato iniziale), cosi' il video riparte senza stacco
+        const a2 = Math.min(1, (t - contentT) / LOOP_TAIL);
+        drawSlide(n - 1, D[n - 1], 1 - a2); drawSlide(0, 0, a2);
+      } else {
+        let i = S.length - 1; while (i > 0 && t < S[i]) i--;
+        const lt = t - S[i];
+        if (i > 0 && lt < TR) { drawSlide(i - 1, D[i - 1], 1); drawSlide(i, lt, lt / TR); } else drawSlide(i, lt, 1);
+      }
       fx.restore();
       if (fxOn) {
         if (lite < 2 && P > 0.02) { fx.globalCompositeOperation = 'lighter'; fx.fillStyle = `rgba(255,110,20,${(P * 0.09 * LV).toFixed(3)})`; fx.fillRect(0, 0, W, H); }   // flash da palco
@@ -199,10 +220,10 @@
         fx.globalAlpha = 1;
       }
     };
-    // audio
+    // audio (l'eventuale richiamo finale a loop resta senza audio: la traccia e' gia' sfumata a zero entro la fine del contenuto)
     const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); if (ac.state === 'suspended') await ac.resume();
     const buf = await ac.decodeAudioData(await (await fetch(clipUrl(s))).arrayBuffer());
-    if (fxOn) { const hits = beatHits(buf, offset, offset + T); S.slice(1).forEach(t => hits.push({ t: t, s: 1 })); pulse = makePulse(hits, T); rl.beats = hits.length; }
+    if (fxOn) { const hits = beatHits(buf, offset, offset + contentT); S.slice(1).forEach(t => hits.push({ t: t, s: 1 })); pulse = makePulse(hits, T); rl.beats = hits.length; }
     const dest = ac.createMediaStreamDestination(), src = ac.createBufferSource(), gain = ac.createGain();
     src.buffer = buf; src.connect(gain); gain.connect(dest);
     frame(0);
@@ -216,8 +237,8 @@
     const done = new Promise(res => (rec.onstop = res));
     rec.start(1000); push();
     const t0 = ac.currentTime + 0.1;
-    gain.gain.setValueAtTime(0, t0); gain.gain.linearRampToValueAtTime(1, t0 + 0.4); gain.gain.setValueAtTime(1, t0 + T - 1.3); gain.gain.linearRampToValueAtTime(0, t0 + T - 0.05);
-    src.start(t0, offset, T + 0.2);
+    gain.gain.setValueAtTime(0, t0); gain.gain.linearRampToValueAtTime(1, t0 + 0.4); gain.gain.setValueAtTime(1, t0 + contentT - 1.3); gain.gain.linearRampToValueAtTime(0, t0 + contentT - 0.05);
+    src.start(t0, offset, contentT + 0.2);
     rl.lite = 0; if (!fxOn) rl.beats = 0; const stats = { maxGap: 0, ticks: 0, slides: new Set() };
     let lastTick = performance.now(), lastGood = performance.now();
     await new Promise(res => {
@@ -245,8 +266,8 @@
     return { blob: new Blob(chunks, { type }), ext: type.includes('mp4') ? 'mp4' : 'webm', mime };
   }
 
-  // chiave del video corrente: se non cambia nulla (slide, brano, tempi, qualita', effetti) il video gia' creato si riusa
-  const keyOf = () => JSON.stringify([st.slides.map(s => [s.layout, s.immagine, s.titolo, s.corpo, s.citazione, s.stat]), st.theme, $('rlSong').value, $('rlStart').value, $('rlDur').value, $('rlRes').value, $('rlFx').value]);
+  // chiave del video corrente: se non cambia nulla (slide, brano, tempi, qualita', effetti, loop, teaser) il video gia' creato si riusa
+  const keyOf = () => JSON.stringify([activeSlides().map(s => [s.layout, s.immagine, s.titolo, s.corpo, s.citazione, s.stat]), st.theme, $('rlSong').value, $('rlStart').value, $('rlDur').value, $('rlRes').value, $('rlFx').value, loopOn(), teaserOn()]);
   function showVideo(out) {
     if (rl.url) URL.revokeObjectURL(rl.url);
     rl.blob = out.blob; rl.ext = out.ext; rl.url = URL.createObjectURL(out.blob); rl.key = keyOf();
@@ -257,7 +278,7 @@
   async function ensure(opts) {
     opts = opts || {};
     if (rl.blob && rl.key === keyOf()) return { blob: rl.blob, ext: rl.ext, reused: true };
-    stopListen(); await window.Renderer.need(st.slides);
+    stopListen(); await window.Renderer.need(activeSlides());
     const out = await makeVideo(); showVideo(out); return { blob: out.blob, ext: out.ext, reused: false };
   }
   $('rlMake').onclick = async () => {
@@ -272,16 +293,17 @@
     if (!rl.blob) return;
     const a = document.createElement('a'); a.href = rl.url; a.download = `petrosa-reel-${(byN[$('rlSong').value] || {}).file || 'audio'}-${Date.now()}.${rl.ext}`.replace('.mp3', ''); a.click();
   };
-  // carica il video su PostFast (URL firmato) e lo programma come Reel
-  async function sendReel(blob, chosen, mode, dateIso, onStatus) {
+  // carica il video su PostFast (URL firmato) e lo programma come Reel; captionOverride: usata dal Reel breve indipendente al posto della caption del post
+  async function sendReel(blob, chosen, mode, dateIso, onStatus, captionOverride) {
     if (onStatus) onStatus('Carico il video...');
     const up = await api('/api/social/upload-url', { contentType: 'video/mp4' });
     let put; try { put = await fetch(up.signedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob }); }
     catch (e) { throw new Error('Il browser non puo\' caricare il video direttamente su PostFast (blocco CORS). Scarica il file e caricalo dal pannello PostFast.'); }
     if (!put.ok) throw new Error('Upload video fallito: HTTP ' + put.status);
     if (onStatus) onStatus('Programmo...');
-    return api('/api/social/publish', { video: true, caption: C.fullCaption(), keys: [up.key], mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
+    return api('/api/social/publish', { video: true, caption: captionOverride || C.fullCaption(), keys: [up.key], mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
   }
+  const teaserCaption = () => { const h = (activeSlides()[0] || {}).titolo; return window.Teaser ? window.Teaser.caption(h, Date.now()) : undefined; };
   $('rlPub').onclick = async () => {
     if (!rl.blob) return toast('Crea prima il video.', true);
     const chosen = [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]);
@@ -291,7 +313,7 @@
     if (rl.ext !== 'mp4' && !confirm('Il video e\' WebM: Instagram potrebbe rifiutarlo. Continuare?')) return;
     if (mode === 'now' && !confirm('Pubblicare il Reel tra pochi minuti su ' + chosen.map(c => c.name).join(', ') + '?')) return;
     try {
-      await sendReel(rl.blob, chosen, mode, C.whenFor('reel'), m => busy($('rlPub'), true, m));
+      await sendReel(rl.blob, chosen, mode, C.whenFor('reel'), m => busy($('rlPub'), true, m), teaserOn() ? teaserCaption() : undefined);
       toast(`PostFast: Reel su ${chosen.length} account (${mode === 'draft' ? 'bozza' : mode === 'now' ? 'pubblicazione tra pochi minuti' : 'programmato'}).`);
     } catch (e) { toast(e.message, true); } finally { busy($('rlPub'), false); }
   };

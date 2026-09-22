@@ -3,9 +3,11 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
+const fs = require('fs');
 const { ROOT } = require('./helpers');
 const L = require(path.join(ROOT, 'library.js'));
 const RC = require(path.join(ROOT, 'public', 'reelcut.js'));
+const Teaser = require(path.join(ROOT, 'public', 'teaser.js'));
 
 describe('1. testi su misura per il Reel', () => {
   const posts = [];
@@ -251,5 +253,49 @@ describe('6. cartella pronta da pubblicare', () => {
     const a = P.howTo({ n: 8, hasReel: true, whenLines: ['Carosello: mar 22 set · 19:00 Italia', 'Reel: mar 22 set · 21:15 Italia'] });
     assert.match(a, /2-reel/); assert.match(a, /REEL - Instagram/); assert.match(a, /ORARI CONSIGLIATI/); assert.match(a, /21:15 Italia/); assert.match(a, /8 slide/);
     const b = P.howTo({ n: 7, hasReel: false, whenLines: [] }); assert.ok(!/REEL - Instagram/.test(b)); assert.match(b, /USA/);
+  });
+});
+
+describe('7. contenuti che spingono condivisioni e commenti, riga SEO', () => {
+  const { lib } = L.load();
+  test('ci sono hook "a confronto" (fanno commentare) e CTA/caption con invito esplicito a condividere/taggare', () => {
+    assert.ok(lib.hooks.filter(h => h.id.startsWith('h-debate')).length >= 3);
+    assert.ok(lib.cta.filter(c => c.id.startsWith('c-share')).length >= 5);
+    assert.ok(lib.captions.filter(c => c.id.startsWith('cap-share') || c.id.startsWith('cap-debate')).length >= 4);
+    const shareTxt = lib.captions.filter(c => c.id.startsWith('cap-share')).map(c => c.text.toLowerCase());
+    assert.ok(shareTxt.every(t => /tag|send this|send it/.test(t)));
+  });
+  test('la caption include una riga SEO con parole chiave reali, coerente col mood, senza duplicarla se gia\' presente', () => {
+    for (const mood of ['riff', 'doom', 'psych', 'intro', 'road', 'proof', 'fans'])
+      for (let seed = 1; seed <= 8; seed++) {
+        const p = L.propose({ mood, focus: { type: 'auto' }, count: 1, seed }).proposals[0];
+        assert.match(p.caption, /stoner|doom|Italian|Italy|Milan/i);
+        const lines = p.caption.split('\n\n'); assert.equal(new Set(lines).size, lines.length, 'riga SEO duplicata');
+      }
+  });
+  test('le frasi SEO usano solo cifre e nomi veri (album, etichetta, città)', () => {
+    const band = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'band.json'), 'utf8'));
+    for (const s of lib.seoLines) {
+      assert.ok(!/\d{4}/.test(s.text) || s.text.includes('2026'));
+      if (/Octopus Rising/.test(s.text)) assert.ok(band.album.label.includes('Octopus Rising'));
+    }
+  });
+});
+
+describe('8. Reel breve "solo hook" (teaser): caption propria, invito al profilo', () => {
+  test('senza testo dell\'hook, sceglie comunque una frase e un invito a seguire, con hashtag', () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      const c = Teaser.caption('', seed);
+      assert.match(c, /profile/i);
+      assert.match(c, /#stonerrock|#doommetal|#stonerdoom/);
+      assert.ok(c.split('\n\n').length >= 3, 'titolo, invito e hashtag su blocchi separati');
+    }
+  });
+  test('col testo dell\'hook, lo mette tra virgolette come prima riga', () => {
+    const c = Teaser.caption('«This is the hook»', 3);
+    assert.match(c, /^"This is the hook"/);
+  });
+  test('lo stesso seed produce sempre la stessa caption (utile per confrontare in test)', () => {
+    assert.equal(Teaser.caption('X', 5), Teaser.caption('X', 5));
   });
 });

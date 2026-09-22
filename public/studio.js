@@ -88,6 +88,8 @@
   const RK = 'petrosa.recent';
   const recent = () => { try { return JSON.parse(localStorage.getItem(RK) || '[]'); } catch { return []; } };
   const remember = p => { try { const c0 = p.slides && p.slides[0] && p.slides[0].immagine; const ids = [...(p.slides || []).map(s => s._ref && s._ref.libId), p.captionId, c0 && !['cover', 'logo', 'none'].includes(c0) ? 'cp-' + c0 : null].filter(Boolean); localStorage.setItem(RK, JSON.stringify([...new Set([...ids, ...recent()])].slice(0, 90))); } catch { /* ok senza memoria */ } };
+  // "recent" (ripetizioni a breve termine) + contenuti segnati 👎 piu' spesso che 👍 nel feedback locale: entrambi solo scoraggiati, mai vietati
+  const avoidIds = () => { try { return [...new Set([...recent(), ...(window.Feedback ? window.Feedback.badIds() : [])])]; } catch { return recent(); } };
   async function propose(again) {
     const focus = focusObj();
     if (focus.type === 'custom' && !focus.text.trim()) return toast('Scrivi il testo da cui partire.', true);
@@ -95,7 +97,7 @@
     const btn = again ? $('btnVar') : $('btnGen');
     busy(btn, true, 'Assemblo...');
     try {
-      const out = await api('/api/propose', { mood: st.mood, focus, count: +$('slides').value, avoid: recent() });
+      const out = await api('/api/propose', { mood: st.mood, focus, count: +$('slides').value, avoid: avoidIds() });
       st.proposals = out.proposals; st.seed = out.seed;
       $('empty').style.display = 'none'; $('proposals').style.display = 'block'; $('btnVar').disabled = false;
       if (window.matchMedia('(max-width:700px)').matches) setTimeout(() => $('proposals').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
@@ -295,7 +297,11 @@
   $('btnSpec').onclick = async () => { await navigator.clipboard.writeText(specText() + '\n\nCAPTION:\n' + fullCaption()); toast('Scheda testuale copiata.'); };
 
   // ---------- Export ----------
-  function renderOff(i, fmt) { const c = document.createElement('canvas'); Renderer.render(c, forFmt(st.slides[i], fmt), i, st.slides.length, st.data.handle, st.theme, fmt || 'post'); return c; }
+  // slidesOverride: per rendere solo un sottoinsieme delle slide (es. il Reel breve "solo hook") senza toccare il carosello vero e proprio
+  function renderOff(i, fmt, slidesOverride) {
+    const arr = slidesOverride || st.slides;
+    const c = document.createElement('canvas'); Renderer.render(c, forFmt(arr[i], fmt), i, arr.length, st.data.handle, st.theme, fmt || 'post'); return c;
+  }
   const blobOf = c => new Promise(r => c.toBlob(r, 'image/png'));
   const dl = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   const slug = () => (st.argomento || 'carosello').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'carosello';
@@ -447,6 +453,6 @@
     } catch (e) { toast(e.message, true); } finally { busy($('btnScan'), false); }
   };
 
-  window.StudioCtx = { st, $, api, toast, busy, renderOff, fullCaption, packageFiles, zip, dl, slug, sendCarousel, chosenChannels: () => [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]), loadPost, recent, remember, setWhen, whenFor };
+  window.StudioCtx = { st, $, api, toast, busy, renderOff, fullCaption, packageFiles, zip, dl, slug, sendCarousel, chosenChannels: () => [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]), loadPost, recent, remember, avoidIds, setWhen, whenFor };
   init().catch(e => toast('Errore di avvio: ' + e.message, true));
 })();

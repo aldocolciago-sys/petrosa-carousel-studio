@@ -88,6 +88,7 @@
   .pday canvas { width:64px; height:80px; border-radius:6px; object-fit:cover; background:#000; }
   .pday .pd-h { font-size:13px; color:var(--amber); font-weight:700; } .pday .pd-t { font-size:13px; } .pday .pd-c { font-size:12.5px; color:var(--mut); }
   .pday .pd-when { color:var(--mut); font-weight:500; margin-left:6px; }
+  .pday button.on { background:var(--amber); color:#000; border-color:var(--amber); }
   @media (max-width:700px) { .pday { grid-template-columns:56px 1fr; } .pday .row { grid-column:1/-1; } }
   .props { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
   .prop { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
@@ -199,6 +200,12 @@
    <div id="planCard" class="card" style="display:none">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Piano della settimana</h2><div class="row"><button class="ghost" id="planAgain">Rigenera</button></div></div>
     <div class="hint" id="planHint"></div>
+    <div class="hint" id="planInsight" style="display:none;color:var(--amber)"></div>
+    <div id="planChBox" style="display:none;margin-top:10px">
+     <div class="row"><button class="ghost" id="planChBtn">Carica account PostFast</button><span class="hint" id="planChHint"></span></div>
+     <div class="hint" style="margin-top:2px">Scegli qui su quali account (anche di piattaforme diverse: Instagram, TikTok, Facebook, YouTube...) pubblicare i caroselli e i Reel del piano, giorno per giorno o tutti insieme.</div>
+     <div id="planChList"></div>
+    </div>
     <div class="row" style="margin-top:8px">
      <button class="btn" id="planZip" title="Una cartella per giorno: carosello, Reel, caption e istruzioni, piu' il calendario">Scarica tutto il piano (ZIP)</button>
      <select id="planMode" style="width:auto" title="Programma agli orari consigliati oppure salva come bozze in PostFast"><option value="schedule">Programma</option><option value="draft">Bozze</option></select>
@@ -303,6 +310,13 @@
        <button class="ghost" id="rlListen">&#9654; Ascolta</button><span class="hint" id="rlInfo" style="margin:0"></span>
       </div>
       <div class="row" style="margin-top:12px">
+       <label style="margin:0"><input type="checkbox" id="rlLoop" checked> Finale a loop (si richiude sulla prima slide, per far ripartire il video senza stacco)</label>
+      </div>
+      <div class="row" style="margin-top:4px">
+       <label style="margin:0"><input type="checkbox" id="rlTeaser"> Reel breve indipendente (solo hook, per farsi scoprire)</label>
+      </div>
+      <div class="hint" id="rlTeaserHint" style="display:none">Usa solo la prima slide (l'hook) per pochi secondi, con una caption diversa dal post che invita a scoprire il resto sul profilo: pensato per la scoperta (For You / Reels esplora), non per chi gia' ti segue.</div>
+      <div class="row" style="margin-top:12px">
        <label style="margin:0">Qualita'</label><select id="rlRes" style="width:auto"><option value="1080">1080x1920</option><option value="720">720x1280 (piu' leggero)</option></select>
        <label style="margin:0">Effetti</label><select id="rlFx" style="width:auto"><option value="mid">Rock (medio)</option><option value="hard">Rock (forte)</option><option value="off">Nessuno</option></select>
        <button class="btn" id="rlMake">&#127916; Crea video</button>
@@ -312,7 +326,7 @@
        <video id="rlVideo" controls playsinline style="max-width:270px;width:100%;border-radius:10px;background:#000"></video>
        <div class="hint" id="rlFmt"></div>
        <div class="row"><button class="ghost" id="rlDl">Scarica video</button><button class="btn" id="rlPub">Invia Reel a PostFast</button></div>
-       <div class="hint">L'invio usa gli account e il modo scelti nella sezione 6 (Instagram esce come Reel).</div>
+       <div class="hint">L'invio usa gli account e il modo scelti nella sezione 6 (Instagram esce come Reel); il Reel breve indipendente usa una caption propria al posto di quella del post.</div>
       </div>
      </div>
     </div>
@@ -366,6 +380,8 @@
 <script src="/schedule.js"></script>
 <script src="/pack.js"></script>
 <script src="/reelcut.js"></script>
+<script src="/teaser.js"></script>
+<script src="/feedback.js"></script>
 <script src="/render.js"></script>
 <script src="/studio.js"></script>
 <script src="/reel.js"></script>

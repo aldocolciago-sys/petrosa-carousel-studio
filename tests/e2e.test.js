@@ -287,6 +287,38 @@ describe('e2e', () => {
     assert.equal(await $(page, 'planSend').isDisabled(), false);
   }));
 
+  test('Piano: pulsanti per singolo giorno (Crea Reel, Programma carosello, Programma Reel), account multipiattaforma, feedback', T, () => run(async page => {
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+    await page.evaluate(() => { document.getElementById('rlRes').value = '720'; document.getElementById('rlDur').value = '3'; });
+    // account dedicati al piano (non quelli di sezione 6): il mock ne espone 2, su piattaforme diverse
+    assert.ok(await $(page, 'planChBox').isVisible());
+    await page.click('#planChBtn'); await page.waitForFunction(() => document.querySelectorAll('#planChList input').length === 2);
+    await page.selectOption('#planMode', 'draft');
+    // 👍 sul giorno 1: resta segnato dopo il ridisegno della lista
+    await page.click('.pday[data-i="0"] [data-rate="up"]');
+    await page.waitForFunction(() => /andata bene/.test(document.getElementById('toast').textContent));
+    assert.ok(await page.locator('.pday[data-i="0"] [data-rate="up"]').evaluate(b => b.classList.contains('on')));
+    // Crea Reel per il giorno 2, senza passare dall'editor
+    await page.click('[data-mkreel="1"]');
+    await page.waitForFunction(() => { const b = document.querySelector('[data-mkreel="1"]'); return b && !b.disabled; }, null, { timeout: 120000 });
+    assert.match(await page.locator('[data-status="1"]').innerText(), /Reel creato|Reel gia/);
+    // Programma il carosello del giorno 1 (bozza)
+    const postsBefore = pf.state.posts.length;
+    await page.click('[data-pubpost="0"]');
+    await page.waitForFunction(() => { const b = document.querySelector('[data-pubpost="0"]'); return b && !b.disabled; }, null, { timeout: 60000 });
+    assert.match(await page.locator('[data-status="0"]').innerText(), /salvato come bozza/);
+    assert.equal(pf.state.posts.length, postsBefore + 1);
+    assert.equal(pf.state.posts.at(-1).posts[0].mediaItems[0].type, 'IMAGE');
+    // Programma il Reel del giorno 2 (riusa il video appena creato)
+    const postsBefore2 = pf.state.posts.length, putsBefore2 = pf.state.puts.length;
+    await page.click('[data-pubreel="1"]');
+    await page.waitForFunction(() => { const b = document.querySelector('[data-pubreel="1"]'); return b && !b.disabled; }, null, { timeout: 120000 });
+    assert.match(await page.locator('[data-status="1"]').innerText(), /salvato come bozza/);
+    assert.equal(pf.state.posts.length, postsBefore2 + 1);
+    const last = pf.state.posts.at(-1); assert.equal(last.posts[0].mediaItems[0].type, 'VIDEO'); assert.equal(last.controls.instagramPublishType, 'REEL');
+    assert.ok(pf.state.puts.length > putsBefore2, 'il video e stato caricato');
+  }));
+
   test('Reel su misura: il video usa testi accorciati, il carosello no; verso integro', T, () => run(async page => {
     await gen(page, { focus: 'song', slides: 8 }); await useProposal(page);
     const r = await page.evaluate(() => {
@@ -344,6 +376,44 @@ describe('e2e', () => {
       const st = await page.evaluate(() => window.Reel.stats());
       assert.equal(st.fx, fxv); assert.equal(st.slides, st.of, 'slide mancanti con effetti ' + fxv); assert.ok(fxv === 'off' ? st.beats === 0 : st.beats >= 8, 'colpi: ' + st.beats);
     }
+  }));
+
+  test('Reel: finale a loop (durata annunciata e video effettivo piu\' lunghi di quanto dichiarato senza)', T, () => run(async page => {
+    await gen(page, { focus: 'song', item: 3, slides: 7 }); await useProposal(page);
+    await page.waitForFunction(() => document.querySelectorAll('#rlSong option').length === 10);
+    assert.ok(await $(page, 'rlLoop').isChecked(), 'il loop e\' attivo di default');
+    const durOf = txt => parseFloat(/Video di ([\d.]+) s\./.exec(txt)[1]);
+    const withLoop = durOf(await $(page, 'rlQuote').innerText());
+    await page.uncheck('#rlLoop');
+    const withoutLoop = durOf(await $(page, 'rlQuote').innerText());
+    assert.ok(withLoop - withoutLoop > 0.3 && withLoop - withoutLoop < 0.6, `il richiamo a loop deve aggiungere ~0,45 s (trovato ${withLoop} vs ${withoutLoop})`);
+    await page.check('#rlLoop');
+    await page.selectOption('#rlRes', '720'); await page.click('#rlMake');
+    await page.waitForSelector('#rlOut', { state: 'visible', timeout: 120000 });
+    // MediaRecorder in Chrome riporta video.duration=Infinity finche' non si fa un seek: si usano invece i fotogrammi
+    // effettivamente registrati (stats().ticks, ~30 al secondo) per verificare che la registrazione sia durata quanto annunciato.
+    const st = await page.evaluate(() => window.Reel.stats());
+    const real = st.ticks / 30;
+    assert.ok(Math.abs(real - withLoop) < 1.5, `il video registrato (${real.toFixed(1)}s da ${st.ticks} fotogrammi) deve durare quanto annunciato (${withLoop}s)`);
+  }));
+
+  test('Reel breve indipendente (solo hook): una slide, caption propria diversa dal post, invito al profilo', T, () => run(async page => {
+    await gen(page, { focus: 'song', item: 2, slides: 8 }); await useProposal(page);
+    await page.waitForFunction(() => document.querySelectorAll('#rlSong option').length === 10);
+    assert.ok(await $(page, 'rlTeaserHint').isHidden());
+    await page.check('#rlTeaser');
+    assert.ok(await $(page, 'rlTeaserHint').isVisible());
+    assert.match(await $(page, 'rlQuote').innerText(), /Reel breve indipendente/);
+    await page.selectOption('#rlRes', '720'); await page.click('#rlMake');
+    await page.waitForSelector('#rlOut', { state: 'visible', timeout: 120000 });
+    const st = await page.evaluate(() => window.Reel.stats());
+    assert.equal(st.of, 1, 'il video deve avere una sola slide (l\'hook)');
+    await page.click('#btnCh'); await page.waitForFunction(() => document.querySelectorAll('#chList input').length === 2); await page.selectOption('#pzMode', 'draft');
+    await page.click('#rlPub'); await page.waitForFunction(() => /Reel su/.test(document.getElementById('toast').textContent), null, { timeout: 60000 });
+    const b = pf.state.posts.at(-1); const capSent = b.posts[0].content;
+    assert.match(capSent, /profile/i, 'la caption del Reel breve invita al profilo');
+    const fullCap = await page.evaluate(() => StudioCtx.fullCaption());
+    assert.notEqual(capSent, fullCap, 'la caption del Reel breve deve essere diversa da quella del post');
   }));
 
   test('Audio & sync: 10 brani, punti di sincronizzazione, salvataggio, file JSON, effetto sul Reel', T, () => run(async page => {

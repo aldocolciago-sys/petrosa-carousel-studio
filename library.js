@@ -370,6 +370,9 @@ function buildCaption(slides, mood, seed, D, exclude, focusType) {
   const extra = fromSlides.filter(h => comm.has(h) && !text.toLowerCase().includes('@' + h.toLowerCase()));
   if (extra.length) { text += `\n\nThanks ${extra.map(h => '@' + h).join(' ')}`; mentions.push(...extra); }
   // hashtag
+  // riga SEO: parole chiave che la gente cerca davvero (non sostituiscono gli hashtag; TikTok e Instagram leggono anche il testo)
+  const seoPool = (lib.seoLines || []).filter(x => { const ms = x.moods || ['all']; return ms.includes(mood) || ms.includes('all'); });
+  if (seoPool.length) { const seo = one(seoPool, rng); if (!norm(text).includes(norm(seo.text))) text += `\n\n${seo.text}`; }
   const H = t => String(t).replace(/[#\s]/g, '').toLowerCase();
   const seen = new Set(); const out = [];
   const add = arr => arr.forEach(x => { const h = H(x); if (h && !seen.has(h)) { seen.add(h); out.push(h); } });
