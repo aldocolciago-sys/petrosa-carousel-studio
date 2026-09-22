@@ -55,6 +55,33 @@
   }
   // indice della riga in corso al tempo t (-1 se prima della prima riga); times deve essere non-decrescente
   function lineAt(times, t) { let i = -1; for (let k = 0; k < times.length; k++) { if (times[k] <= t) i = k; else break; } return i; }
+  // PRNG deterministico minimo (stessa formula usata nel resto dell'app): a parita' di brano e ordine delle righe
+  // lo sfondo scelto e' sempre lo stesso, non cambia a ogni rigenerazione del video
+  function rng32(seed) {
+    let a = (seed >>> 0) || 1;
+    return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  // sfondo del Video testi: assegna un'immagine a ogni riga, cambiando ogni circa "target" secondi di contenuto
+  // (non a ogni riga - sfarfallerebbe troppo sulle righe brevi, o resterebbe ferma troppo su una riga tenuta a
+  // lungo) e mai la stessa immagine due volte di fila. "pool" e' l'elenco delle chiavi immagine disponibili
+  // (membri della band, sfondi, logo, copertina); "seed" rende la sequenza stabile per lo stesso brano.
+  function backgroundSchedule(durs, pool, seed, target) {
+    target = target == null ? 12 : target;
+    const n = (durs || []).length;
+    if (!n || !pool || !pool.length) return Array(n).fill('none');
+    const rnd = rng32(seed || 1);
+    const order = pool.slice();
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = order[i]; order[i] = order[j]; order[j] = tmp; }
+    const out = []; let cur = 0, acc = 0;
+    for (let i = 0; i < n; i++) {
+      if (i > 0 && acc >= target) {
+        acc = 0; cur = (cur + 1) % order.length;
+        if (order.length > 1 && order[cur] === out[i - 1]) cur = (cur + 1) % order.length;
+      }
+      out.push(order[cur]); acc += durs[i] || 0;
+    }
+    return out;
+  }
   // tratto di testo (indici riga: da "from" a "to" esclusa) che copre circa "target" secondi (mai oltre "max"),
   // a partire dalla riga from0: e' il tratto proposto di default per il video (il brano intero e' quasi sempre troppo
   // lungo per un Reel - decine di minuti - anche quando e' sincronizzato per intero)
@@ -68,6 +95,6 @@
     return { from, to };
   }
 
-  const api = { timeOfPos, fullySynced, syncCount, lineTimes, lineDurs, lineDursExact, lineAt, suggestRange };
+  const api = { timeOfPos, fullySynced, syncCount, lineTimes, lineDurs, lineDursExact, lineAt, suggestRange, backgroundSchedule };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.LyricSync = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -374,7 +374,12 @@
   // Video testi: una riga di testo a tutto schermo (karaoke), con una barra di avanzamento nel brano
   L.lyric = (ctx, s, i) => {
     background(ctx, i + 23);
-    if (images[s.immagine] && s.immagine !== 'none') { ctx.globalAlpha = 0.16; coverImg(ctx, images[s.immagine], 0, 0, W, H, 0.5, 0.3); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.6, 0.88); }
+    // sfondo che ruota (membri della band, sfondi, logo, copertina - vedi ReelCut/LyricSync.backgroundSchedule):
+    // abbastanza visibile da riconoscersi, ma il velo scuro sotto (shade) tiene il testo sempre leggibile
+    if (images[s.immagine] && s.immagine !== 'none') {
+      const f = FOCUS[s.immagine] || [0.5, 0.3];
+      ctx.globalAlpha = 0.3; coverImg(ctx, images[s.immagine], 0, 0, W, H, f[0], f[1]); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.6, 0.88);
+    }
     if (s.fonte) kicker(ctx, s.fonte, 72, 210 + TP);
     const q = String(s.titolo || '').trim();
     const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, H - BM - 360 - TP, 108, 44, 1.18);

@@ -446,8 +446,12 @@
     const times = LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), allDurs = LSY.lineDursExact(times, s.dur);
     const lines = s.lines.slice(r.from, r.to), durs = allDurs.slice(r.from, r.to), nTot = s.lines.length;
     const W = $('lvRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9);
+    // sfondo: ruota tra le foto dei membri, gli sfondi del deserto, il logo e la copertina (sempre gia' precaricati,
+    // vedi Renderer.loadImages), cambiando ogni circa 12s di contenuto invece che a ogni riga
+    const BG_POOL = ['antonio', 'giorgio', 'aldo', 'andrea', 'desert1', 'desert2', 'desert3', 'cover', 'logo'];
+    const bg = LSY.backgroundSchedule(durs, BG_POOL, s.n, 12);
     // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema, marchio) gia' pronto per il Reel
-    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: 'none', _prog: (r.from + idx + 1) / nTot }));
+    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: bg[idx] || 'none', _prog: (r.from + idx + 1) / nTot }));
     const n = AS.length;
     const S = []; let acc = 0; durs.forEach(d => { S.push(acc); acc += d; }); const contentT = acc;
     const offset = Math.max(0, Math.min(times[r.from], Math.max(0, s.dur - contentT - 0.2)));
@@ -455,12 +459,16 @@
     for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS));
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
     const TR = 0.25;   // dissolvenza (s) tra una riga e la successiva
+    // leggero effetto "Ken Burns": ogni riga parte a schermo intero e si allarga piano, cosi' il cambio di sfondo/riga
+    // si sente anche quando la dissolvenza (sopra) e' gia' finita, senza distrarre dalla lettura
+    const ZOOM = 0.035;
+    const geo = (lt, dur) => { const z = 1 + ZOOM * Math.min(1, lt / Math.max(1.5, dur)); const w = W * z, h = H * z; return { w, h, x: (W - w) / 2, y: (H - h) / 2 }; };
     const frame = t => {
       fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1; fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
       let i = S.length - 1; while (i > 0 && t < S[i]) i--;
-      const lt = t - S[i];
-      if (i > 0 && lt < TR) { fx.globalAlpha = 1; fx.drawImage(sl[i - 1], 0, 0, W, H); fx.globalAlpha = lt / TR; fx.drawImage(sl[i], 0, 0, W, H); fx.globalAlpha = 1; }
-      else fx.drawImage(sl[i], 0, 0, W, H);
+      const lt = t - S[i], g = geo(lt, durs[i]);
+      if (i > 0 && lt < TR) { fx.globalAlpha = 1; fx.drawImage(sl[i - 1], 0, 0, W, H); fx.globalAlpha = lt / TR; fx.drawImage(sl[i], g.x, g.y, g.w, g.h); fx.globalAlpha = 1; }
+      else fx.drawImage(sl[i], g.x, g.y, g.w, g.h);
     };
     const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); if (ac.state === 'suspended') await ac.resume();
     const buf = await ac.decodeAudioData(await (await fetch(clipUrl(s))).arrayBuffer());
