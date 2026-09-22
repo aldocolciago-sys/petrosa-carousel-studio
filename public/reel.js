@@ -396,18 +396,34 @@
   // ogni riga e' quella VERA (lineDursExact), mai accorciata da una pausa lunga - altrimenti il video, e la stima
   // qui sotto, non corrisponderebbero a quanto viene davvero cantato.
   const lvLineDurs = s => LSY.lineDursExact(LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), s.dur);
+  // quale dei due campi l'utente ha scelto per ultimo: serve a lvRange() per capire, quando "Da riga" e "A riga" non
+  // sono (ancora) coerenti fra loro, quale dei due va rispettato e quale va invece adattato di conseguenza - MAI
+  // scartare entrambi e ripartire dall'inizio del brano, altrimenti la riga appena scelta dall'utente sparisce
+  // (bug: "seleziono una riga e non resta quella selezionata").
+  let lvLastTouched = 'from';
   function lvRange() {
     const s = byN[$('lvSong').value]; if (!s) return null;
     const n = s.lines.length;
     if ($('lvFull') && $('lvFull').checked) return { from: 0, to: n };
     const from = +$('lvFrom').value, to = +$('lvTo').value;
-    if (!(from >= 0) || !(to > from)) return LSY.suggestRange(lvLineDurs(s), LV_TARGET, LV_MAX, 0);
-    return { from: Math.max(0, Math.min(n - 1, from)), to: Math.max(from + 1, Math.min(n, to)) };
+    if (!(from >= 0)) return LSY.suggestRange(lvLineDurs(s), LV_TARGET, LV_MAX, 0);
+    const f = Math.max(0, Math.min(n - 1, from));
+    if (to > f) return { from: f, to: Math.min(n, to) };
+    // "A riga" non e' coerente con "Da riga" (es. e' rimasta al valore di prima, piu' basso): se e' stata "A riga"
+    // il campo appena toccato dall'utente, si tiene quella e si sposta "Da riga" appena dietro; altrimenti (e' "Da
+    // riga" quella appena scelta) si propone un tratto sensato che PARTE dalla riga scelta, mai dalla riga 0.
+    if (lvLastTouched === 'to') { const t = Math.max(1, Math.min(n, to)); return { from: Math.max(0, t - 1), to: t }; }
+    return LSY.suggestRange(lvLineDurs(s), LV_TARGET, LV_MAX, f);
   }
   function lvFillLineSelects(s) {
     const opt = i => `<option value="${i}">${String(i + 1).padStart(2, '0')} - ${esc(s.lines[i].text.slice(0, 40))}</option>`;
     $('lvFrom').innerHTML = s.lines.map((l, i) => opt(i)).join('');
     $('lvTo').innerHTML = s.lines.map((l, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')} - ${esc(l.text.slice(0, 40))}</option>`).join('');
+    // propone subito un tratto sensato (circa 45 s dall'inizio del brano): senza questo, i due <select> appena
+    // popolati resterebbero sulla loro prima opzione (riga 0 / riga 1 = una sola riga), non sul tratto "circa 45 s"
+    // promesso nel testo di aiuto qui sopra.
+    const sug = LSY.suggestRange(lvLineDurs(s), LV_TARGET, LV_MAX, 0);
+    $('lvFrom').value = sug.from; $('lvTo').value = sug.to; lvLastTouched = 'from';
   }
   function lvUpdateInfo() {
     const s = byN[$('lvSong').value]; if (!s) return;
@@ -441,7 +457,8 @@
     loadSongs().then(() => { renderLyric(); if (n && byN[n] && fullySynced(byN[n])) { $('lvSong').value = n; lvFillLineSelects(byN[n]); lvUpdateInfo(); } }).catch(e => toast(e.message, true));
   }
   $('lvSong').onchange = () => { const s = byN[$('lvSong').value]; if (s) { lvFillLineSelects(s); lvUpdateInfo(); } };
-  $('lvFrom').onchange = lvUpdateInfo; $('lvTo').onchange = lvUpdateInfo;
+  $('lvFrom').onchange = () => { lvLastTouched = 'from'; lvUpdateInfo(); };
+  $('lvTo').onchange = () => { lvLastTouched = 'to'; lvUpdateInfo(); };
   if ($('lvFull')) $('lvFull').onchange = lvUpdateInfo;
   document.querySelector('nav button[data-tab="lyrics"]').addEventListener('click', () => { loadSongs().then(renderLyric).catch(e => toast(e.message, true)); });
   ['lvGoSync', 'lvGoSync2'].forEach(id => { const g = $(id); if (g) g.onclick = e => { e.preventDefault(); openSync(); }; });
