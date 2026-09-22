@@ -114,7 +114,8 @@ function reviewFocus(ctx) { return ctx.focus.type === 'review' ? ctx.focus.item 
 const COVER_PHOTO_RATE = 0.6;      // quota di copertine "generiche" con foto live invece dell'album
 const COVER_MIN_IMPACT = 45;       // sotto questa soglia la foto non fa da copertina (le foto cupe restano per le slide Live)
 function coverCandidates(ctx) {
-  return (ctx.D.photos || []).filter(p => (p.q || 0) >= 2 && (p.impact || 0) >= COVER_MIN_IMPACT && (p.kind === 'solo' || p.kind === 'duo') && !ctx.imgs.has(p.id));
+  return (ctx.D.photos || []).filter(p => (p.q || 0) >= 2 && (p.impact || 0) >= COVER_MIN_IMPACT && !ctx.imgs.has(p.id)
+    && (ctx.onlyMember ? (p.kind === 'solo' && (p.members || []).includes(ctx.onlyMember)) : (p.kind === 'solo' || p.kind === 'duo')));   // carosello a tema membro: solo foto singole di quel membro
 }
 function coverPhoto(ctx) {
   const c = coverCandidates(ctx); if (!c.length) return null;
@@ -122,6 +123,17 @@ function coverPhoto(ctx) {
   let r = ctx.rng() * w.reduce((a, b) => a + b, 0);
   for (let i = 0; i < c.length; i++) { r -= w[i]; if (r <= 0) return c[i]; }
   return c[c.length - 1];
+}
+// Forza una foto live al posto della copertina generica sulla slide 1 (usata dal piano settimanale per garantire varieta' visiva:
+// non lasciarla al caso della sola COVER_PHOTO_RATE). avoidImgs = foto gia' usate altrove nello stesso carosello, da non ripetere.
+// onlyMember, se passato, limita la scelta alle foto di quel solo membro (i caroselli a tema membro restano tutti dello stesso membro).
+function forcePhotoHook(slide, mood, rng, D, avoidImgs, onlyMember) {
+  if (!slide || slide.immagine !== 'cover') return false;
+  const cp = coverPhoto({ D, mood, rng, imgs: avoidImgs || new Set(), onlyMember });
+  if (!cp) return false;
+  slide.immagine = cp.id;
+  slide.visual = `Full-bleed live photo (${cp.vibe}) with a dark gradient at the bottom, big amber title.`;
+  return true;
 }
 
 function buildHook(ctx, isFirstPick = true) {
@@ -134,22 +146,31 @@ function buildHook(ctx, isFirstPick = true) {
   const moodPool = pool.filter(h => (h.moods || []).includes(ctx.mood) || (h.moods || []).includes('all'));
   const h = pick(moodPool.length ? moodPool : pool, ctx.mood, ctx.rng, ctx.used);
   const vars = {};
-  let layout = 'hook', immagine = h.immagine || 'cover';
+  let layout = 'hook';
+  let memberId = null;
   if (h.kind === 'song') {
     const s = band.songs.find(x => x.n === songFocusN(ctx)) || band.songs[0];
     vars.song = s.title; vars.n = String(s.n).padStart(2, '0'); ctx.songs.add(s.n);
   } else if (h.kind === 'member') {
     const m = band.members.find(x => x.id === memberFocus(ctx)) || band.members[0];
     vars.member = m.name; vars.role = m.role.replace(/\s*\(.*\)/, ''); vars.rolel = vars.role.toLowerCase(); vars.photo = m.photo;
-    immagine = 'cover'; ctx.members.add(m.id); // copertina album: la foto del membro compare solo nella slide Band
+    memberId = m.id; ctx.members.add(m.id); // la foto DEL MEMBRO STESSO resta riservata alla slide Band; la copertina puo' pero' usare un'altra SUA foto live (sotto)
   } else if (h.kind === 'review') {
     const r = band.reviews.find(x => x.id === reviewFocus(ctx)) || band.reviews[0];
     vars.pub = r.publication; vars.verdict = r.verdict; ctx.reviews.add(r.id); ctx.pubs.add(r.publication);
   }
+  // '{photo}' era un vecchio placeholder per il ritratto ufficiale del membro: usarlo qui duplicherebbe la sua foto
+  // gia' presente nella slide Band, quindi si tratta come "nessuna immagine fissa" e si passa alla foto LIVE qui sotto.
+  let immagine = (h.immagine && h.immagine !== '{photo}') ? h.immagine : 'cover';
   ctx.used.add(h.id);
   let visual = 'Album cover over a blurred purple/black background, big amber title.';
-  if (!h.kind && immagine === 'cover' && ctx.rng() < COVER_PHOTO_RATE) {
-    const cp = coverPhoto(ctx);
+  // Copertine forti con foto live al posto della copertina generica: vale per gli hook generici e per song/review/member
+  // (la copertina "band" resta l'album per regola esplicita; "live" ha gia' una foto propria in libreria). Nel caso "member"
+  // la foto e' limitata a quel solo membro, per restare coerente col resto del carosello (e col testo che lo nomina).
+  const canSwapCover = !h.kind || h.kind === 'song' || h.kind === 'review' || h.kind === 'member';
+  const forceSwap = h.kind === 'member';   // un carosello dedicato a un membro apre SEMPRE con una SUA foto live, non con l'album (a caso solo per gli altri casi)
+  if (canSwapCover && immagine === 'cover' && (forceSwap || ctx.rng() < COVER_PHOTO_RATE)) {
+    const cp = coverPhoto(memberId ? { ...ctx, onlyMember: memberId } : ctx);
     if (cp) { immagine = cp.id; ctx.coverPhoto = cp.id; visual = `Full-bleed live photo (${cp.vibe}) with a dark gradient at the bottom, big amber title.`; }
   }
   return {
@@ -229,6 +250,10 @@ function buildInfo(ctx, step) {
   let pool = lib.info.filter(i => topics.includes(i.topic) && !ctx.used.has(i.id));
   if (step._ids) pool = lib.info.filter(i => step._ids.includes(i.id) && !ctx.used.has(i.id));
   if (!pool.length) pool = lib.info.filter(i => topics.includes(i.topic));
+  // se il topic scelto (magari dopo aver escluso quelli gia' usati) e' rimasto senza voci in libreria,
+  // riprova con l'elenco completo dei topic ammessi dallo step, cosi' non si va mai a un carosello rotto
+  if (!pool.length) pool = lib.info.filter(i => (step.topics || []).includes(i.topic) && !ctx.used.has(i.id));
+  if (!pool.length) pool = lib.info.filter(i => (step.topics || []).includes(i.topic));
   // scegli un topic a caso fra quelli ammessi, poi l'elemento migliore per il mood
   const newI = pool.filter(i => !ctx.imgs.has(i.immagine));   // la stessa foto non compare due volte (es. copertina live e slide Live)
   if (newI.length) pool = newI;
@@ -472,6 +497,13 @@ function assemble(recipe, mood, focus, seed, D) {
   const steps = applyFocusToSteps(recipe.steps, ctx.focus, ctx);
   // per due step "band member" servono membri diversi: gestito da ctx.members
   const slides = finalize(steps.map(st => buildSlide(ctx, st)), D);
+  // La copertina viene costruita per prima e puo' pescare una foto live prima che le slide successive scelgano
+  // le proprie: se per coincidenza finiscono sulla stessa foto, la copertina torna alla copertina generica
+  // (non il contrario, per non lasciare "buchi" nelle slide dedicate a un membro/argomento specifico).
+  if (slides[0] && slides[0].immagine && !['cover', 'logo', 'none'].includes(slides[0].immagine)) {
+    const dupe = slides.slice(1).some(sl => sl.immagine === slides[0].immagine);
+    if (dupe) { slides[0].immagine = 'cover'; slides[0].visual = 'Album cover over a blurred purple/black background, big amber title.'; }
+  }
   const cap = buildCaption(slides, mood, seed, D, undefined, ctx.focus && ctx.focus.type);
   return { recipeId: recipe.id, label: recipe.label, desc: recipe.desc, slides, ...cap };
 }
@@ -527,12 +559,16 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   return { slides: out, ...cap };
 }
 
-// ---------- Piano settimanale: 5 o 7 caroselli con Reel abbinato, argomenti e mood alternati, senza ripetizioni ----------
+// ---------- Piano settimanale: 5 o 7 giorni, 3 post al giorno (fasce 12:00/18:00/00:00), con Reel abbinato ----------
+// Argomenti e mood alternati, senza ripetizioni. Il piano resta un array PIATTO di post (out.plan), non annidato per
+// giorno: ogni post porta il proprio numero di giorno (post.day) e la propria fascia (post.slot/post.slotLabel), cosi'
+// il resto del codice (editor, Reel, PostFast, export) continua a trattarli come una lista di post indipendenti.
 const PLAN = {
   7: [{ t: 'song', m: 'riff' }, { t: 'review', m: 'proof' }, { t: 'member', m: 'intro' }, { t: 'live', m: 'road' }, { t: 'song', m: 'doom' }, { t: 'band', m: 'fans' }, { t: 'album', m: 'psych' }],
   5: [{ t: 'song', m: 'riff' }, { t: 'review', m: 'proof' }, { t: 'member', m: 'intro' }, { t: 'live', m: 'doom' }, { t: 'album', m: 'psych' }]
 };
 const PLAN_SIZES = [8, 9, 7, 10, 8, 9, 7];   // lunghezze diverse: il feed non sembra una fotocopia
+const DAY_SLOTS = [{ id: 'noon', label: 'Mezzogiorno', time: '12:00' }, { id: 'evening', label: 'Sera', time: '18:00' }, { id: 'midnight', label: 'Mezzanotte', time: '00:00' }];
 function weekPlan({ days = 7, seed, avoid = [] } = {}) {
   days = days === 5 ? 5 : 7;
   const D = load();
@@ -541,23 +577,39 @@ function weekPlan({ days = 7, seed, avoid = [] } = {}) {
   const rot = arr => { const k = Math.floor(rng() * arr.length); return arr.slice(k).concat(arr.slice(0, k)); };
   const songs = rot(D.band.songs.map(x => x.n)), members = rot(D.band.members.map(m => m.id)), reviews = rot(D.band.reviews.filter(r => r.quote).map(r => r.id));
   const taken = new Set(Array.isArray(avoid) ? avoid.map(String) : []);
-  const usedSongs = [], out = [];
+  const out = [];
   const recipesUsed = new Set();
-  PLAN[days].forEach((slot, k) => {
+  const weekPhotos = new Set();   // foto di copertina gia' usate in altri post della stessa settimana: mai due post con la stessa
+  let songIdx = 0, memberIdx = 0, reviewIdx = 0;
+  const cycle = PLAN[days], totalPosts = days * DAY_SLOTS.length;
+  for (let k = 0; k < totalPosts; k++) {
+    const slot = cycle[k % cycle.length];
+    const dayNum = Math.floor(k / DAY_SLOTS.length) + 1, daySlot = DAY_SLOTS[k % DAY_SLOTS.length];
     let focus = { type: slot.t };
-    if (slot.t === 'song') { focus.item = songs.find(n => !usedSongs.includes(n)); usedSongs.push(focus.item); }
-    else if (slot.t === 'member') focus.item = members.shift();
-    else if (slot.t === 'review') focus.item = reviews.shift();
+    if (slot.t === 'song') { focus.item = songs[songIdx % songs.length]; songIdx++; }
+    else if (slot.t === 'member') { focus.item = members[memberIdx % members.length]; memberIdx++; }
+    else if (slot.t === 'review') { focus.item = reviews[reviewIdx % reviews.length]; reviewIdx++; }
     AVOID = new Set(taken);
     const n = PLAN_SIZES[k % PLAN_SIZES.length];
     const rs = D.lib.recipes.filter(r => r.n === n), fresh = rs.filter(r => !recipesUsed.has(r.id));
     const recipe = one(fresh.length ? fresh : rs, rng); recipesUsed.add(recipe.id);
     const dseed = seed + 1000 * (k + 1);
     const p = assemble(recipe, slot.m, focus, dseed, D);
+    // Varieta' visiva nel piano: la copertina "band" resta l'album (regola esplicita), tutte le altre preferiscono
+    // una foto live vera invece della stessa copertina generica ripetuta post dopo post, e mai la stessa foto di
+    // un altro post della stessa settimana.
+    if (slot.t !== 'band') {
+      const usedImgs = new Set([...weekPhotos, ...p.slides.slice(1).map(sl => sl.immagine).filter(im => im && im !== 'none' && im !== 'cover' && im !== 'logo')]);
+      if (p.slides[0].immagine !== 'cover' && usedImgs.has(p.slides[0].immagine)) {
+        p.slides[0].immagine = 'cover'; p.slides[0].visual = 'Album cover over a blurred purple/black background, big amber title.';
+      }
+      forcePhotoHook(p.slides[0], slot.m, rng, D, usedImgs, slot.t === 'member' ? focus.item : null);
+      if (p.slides[0].immagine !== 'cover') weekPhotos.add(p.slides[0].immagine);
+    }
     p.slides.forEach(sl => {
       if (!sl._ref || !sl._ref.libId) return;
       taken.add(sl._ref.libId);
-      const q = D.lib.quotes.find(x => x.id === sl._ref.libId);   // stesso brano o stessa recensione: evitati anche nei giorni successivi
+      const q = D.lib.quotes.find(x => x.id === sl._ref.libId);   // stesso brano o stessa recensione: evitati anche nei post successivi
       if (q) D.lib.quotes.filter(x => x.kind === q.kind && (q.kind === 'song' ? x.song === q.song : x.review === q.review)).forEach(x => taken.add(x.id));
     });
     taken.add(p.captionId);
@@ -565,13 +617,21 @@ function weekPlan({ days = 7, seed, avoid = [] } = {}) {
     // Reel abbinato: stesso post, testi accorciati, sulla canzone del verso citato (o sulla prossima non ancora usata)
     const qs = p.slides.find(sl => sl.citazione && sl._ref && sl._ref.libId && (D.lib.quotes.find(q => q.id === sl._ref.libId) || {}).kind === 'song');
     const qn = qs ? (D.lib.quotes.find(q => q.id === qs._ref.libId) || {}).song : null;
-    const reelSong = qn;   // se null, viene assegnata dopo (una canzone diversa per ogni giorno)
+    const reelSong = qn;   // se null, viene assegnata dopo (una canzone diversa per ogni post)
     const label = { song: () => 'Brano: ' + (D.band.songs.find(x => x.n === focus.item) || {}).title, review: () => 'Recensione: ' + ((D.band.reviews.find(r => r.id === focus.item) || {}).publication), member: () => 'Membro: ' + ((D.band.members.find(m => m.id === focus.item) || {}).name), live: () => 'Live', band: () => 'Tutta la band', album: () => 'Album' }[slot.t]();
-    out.push({ day: k + 1, topic: slot.t, label, mood: slot.m, focus, n, recipeId: recipe.id, slides: p.slides, caption: p.caption, hashtags: p.hashtags, menzioni: p.menzioni, captionId: p.captionId, reel: { song: reelSong, slides: RC.cutAll(p.slides) } });
-  });
+    out.push({ day: dayNum, slot: daySlot.id, slotLabel: daySlot.label, slotTime: daySlot.time, topic: slot.t, label, mood: slot.m, focus, n, recipeId: recipe.id, slides: p.slides, caption: p.caption, hashtags: p.hashtags, menzioni: p.menzioni, captionId: p.captionId, reel: { song: reelSong, slides: RC.cutAll(p.slides) } });
+  }
+  // canzone del Reel per i post senza un verso citato: gira su tutte le canzoni (non sempre la stessa) prima e poi, se
+  // i post sono piu' dei brani, ricomincia dall'inizio della rotazione invece di incollarsi sempre sulla prima
   const claimed = new Set(out.map(o => o.reel.song).filter(Boolean));
-  out.forEach(o => { if (!o.reel.song) { const n = songs.find(x => !claimed.has(x)) || songs[0]; o.reel.song = n; claimed.add(n); } });
-  return { seed, days: out.length, plan: out };
+  let freeIdx = 0;
+  out.forEach(o => {
+    if (o.reel.song) return;
+    let n = songs.find(x => !claimed.has(x));
+    if (!n) { n = songs[freeIdx % songs.length]; freeIdx++; }
+    o.reel.song = n; claimed.add(n);
+  });
+  return { seed, days, plan: out };
 }
 
 function recaption({ mood = 'riff', slides = [], seed, exclude } = {}) {

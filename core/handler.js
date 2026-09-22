@@ -381,14 +381,15 @@ async function scanWeb() {
     tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
     messages: [{
       role: 'user',
-      content: `Cerca sul web recensioni, articoli, interviste, playlist o segnalazioni sull'album "Roadburn Chronicles" della band stoner/doom italiana Petrosa (Octopus Rising / Argonauta Records, agosto 2026), e sui singoli "Revenant" e "Viper". Cerca anche le Doom Charts. Escludi queste URL gia' note:\n${known.join('\n')}\n\nLeggi le recensioni e individua le band che i recensori paragonano ai Petrosa o citano come influenza. Rispondi SOLO con un oggetto JSON (nessun altro testo): {"reviews":[{"publication","author","verdict","quote","url"}],"bands":[{"name","source"}]}. La "quote" deve essere un passaggio copiato letteralmente dalla pagina (max 350 caratteri, nella lingua originale). In "bands" metti solo band esplicitamente citate come paragone o influenza, con "source" = testata e autore. Se non trovi nulla di nuovo usa array vuoti.`
+      content: `Cerca sul web recensioni, articoli, interviste, playlist o segnalazioni sull'album "Roadburn Chronicles" della band stoner/doom italiana Petrosa (Octopus Rising / Argonauta Records, agosto 2026), e sui singoli "Revenant" e "Viper". Cerca anche le Doom Charts. Escludi queste URL gia' note:\n${known.join('\n')}\n\nLeggi le recensioni e individua le band che i recensori paragonano ai Petrosa o citano come influenza. Rispondi SOLO con un oggetto JSON (nessun altro testo): {"reviews":[{"publication","author","verdict","quote","url"}],"bands":[{"name","source"}]}. La "quote" deve essere un passaggio copiato letteralmente dalla pagina (max 350 caratteri, nella lingua originale). "verdict" e' un\'etichetta breve in INGLESE (es. "Standout Debut", "Top Pick"), mai in italiano o nella lingua della testata, anche se la recensione stessa e' in un'altra lingua. "author" e' il nome della persona se c'e' (non tradurlo); se la firma e' generica usa un termine inglese come "Staff" o "Official Press Release", mai un termine italiano tipo "Redazione". In "bands" metti solo band esplicitamente citate come paragone o influenza, con "source" = testata e autore. Se non trovi nulla di nuovo usa array vuoti.`
     }]
   });
   const text = (j.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n');
   const m = text.match(/\{[\s\S]*\}/);
   let obj = { reviews: [], bands: [] };
   try { obj = m ? JSON.parse(m[0]) : obj; } catch { /* risposta non JSON */ }
-  const reviews = (obj.reviews || []).filter(r => r && r.url && r.quote && !known.includes(r.url)).map((r, i) => ({ id: 'web-' + Date.now() + '-' + i, publication: r.publication || 'Web', author: r.author || 'Redazione', verdict: r.verdict || 'Recensione', quote: r.quote, url: r.url }));
+  // publication/author/verdict finiscono nei testi delle slide: restano in inglese anche come default, come tutto il resto del post.
+  const reviews = (obj.reviews || []).filter(r => r && r.url && r.quote && !known.includes(r.url)).map((r, i) => ({ id: 'web-' + Date.now() + '-' + i, publication: r.publication || 'Web', author: r.author || 'Staff', verdict: r.verdict || 'Review', quote: r.quote, url: r.url }));
   const t = loadTags();
   const have = new Set(allTaggable(t).map(b => norm(b.name)));
   const bands = (obj.bands || []).filter(b => b && b.name && !have.has(norm(b.name))).map(b => ({ name: b.name, source: b.source || '' }));

@@ -175,7 +175,7 @@ describe('e2e', () => {
     await gen(page, { mood: 0 }); await useProposal(page);
     const w = await page.evaluate(() => ({ when: StudioCtx.st.when, val: document.getElementById('pzDate').value, local: Schedule.toLocalInput(new Date(StudioCtx.st.when.carousel)), txt: document.getElementById('pzWhen').innerText }));
     assert.equal(w.val, w.local); assert.ok(new Date(w.when.carousel) > new Date()); assert.match(w.txt, /New York/); assert.match(w.txt, /Reel/);
-    assert.ok(new Date(w.when.reel) - new Date(w.when.carousel) >= 90 * 60000 && new Date(w.when.reel) - new Date(w.when.carousel) <= 200 * 60000, 'il Reel esce 1,5-3 ore dopo');
+    assert.equal(new Date(w.when.reel) - new Date(w.when.carousel), 20 * 60000, 'il Reel della stessa fascia esce 20 minuti dopo il carosello');
     await page.click('#btnCh'); await page.waitForFunction(() => document.querySelectorAll('#chList input').length === 2);
     await page.selectOption('#pzMode', 'schedule'); await page.click('#btnPub'); await page.waitForFunction(() => /programmato/.test(document.getElementById('toast').textContent), null, { timeout: 60000 });
     assert.equal(new Date(pf.state.posts.at(-1).posts[0].scheduledAt).toISOString(), w.when.carousel);
@@ -184,7 +184,7 @@ describe('e2e', () => {
     await page.click('#pzSugCar'); assert.equal(await page.evaluate(() => StudioCtx.whenFor('reel')), w.when.reel);
     await page.click('#btnPlan'); await page.waitForSelector('#planList .pday', { timeout: 60000 });
     const p2 = await page.evaluate(() => window.Plan.get().plan.map(d => d.when.carousel));
-    assert.equal(new Set(p2).size, 7); assert.ok(p2.every((x, i) => !i || new Date(x) > new Date(p2[i - 1])));
+    assert.equal(new Set(p2).size, 21, '7 giorni x 3 post'); assert.ok(p2.every((x, i) => !i || new Date(x) > new Date(p2[i - 1])));
     await page.locator('[data-open="2"]').click(); await page.waitForSelector('#result', { state: 'visible' });
     assert.equal(await page.evaluate(() => StudioCtx.st.when.carousel), p2[2]);
   }));
@@ -224,19 +224,21 @@ describe('e2e', () => {
     assert.ok(await page.locator('#btnBoth').isVisible());
   }));
 
-  test('Piano settimanale: 7 e 5 giorni, anteprime, apertura di un giorno nell\'editor con la canzone del Reel', T, () => run(async page => {
+  test('Piano settimanale: 7 e 5 giorni, 3 post al giorno (mezzogiorno/sera/mezzanotte), anteprime, apertura di un giorno nell\'editor con la canzone del Reel', T, () => run(async page => {
     await page.click('#btnPlan'); await page.waitForSelector('#planList .pday', { timeout: 60000 });
-    assert.equal(await page.locator('#planList .pday').count(), 7);
+    assert.equal(await page.locator('#planList .pday').count(), 21, '7 giorni x 3 post');
     const thumbs = await page.evaluate(() => [...document.querySelectorAll('#planList canvas')].map(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 40) s += d[i]; return s > 0; }));
     assert.ok(thumbs.every(Boolean), 'anteprime vuote');
     const plan = await page.evaluate(() => window.Plan.get());
-    await page.locator('[data-open="1"]').click(); await page.waitForSelector('#result', { state: 'visible' });
+    // indice 3 = primo post (mezzogiorno) del giorno 2
+    assert.equal(plan.plan[3].day, 2); assert.equal(plan.plan[3].slot, 'noon');
+    await page.locator('[data-open="3"]').click(); await page.waitForSelector('#result', { state: 'visible' });
     await page.waitForFunction(() => document.querySelectorAll('#strip .thumb').length > 0);
     assert.match(await page.locator('#argom').innerText(), /Giorno 2/);
-    assert.equal(await page.evaluate(() => StudioCtx.st.slides.length), plan.plan[1].slides.length);
-    await page.waitForFunction(s => document.getElementById('rlSong').value === String(s), plan.plan[1].reel.song, { timeout: 15000 });
+    assert.equal(await page.evaluate(() => StudioCtx.st.slides.length), plan.plan[3].slides.length);
+    await page.waitForFunction(s => document.getElementById('rlSong').value === String(s), plan.plan[3].reel.song, { timeout: 15000 });
     await page.selectOption('#planDays', '5'); await page.click('#btnPlan');
-    await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+    await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 15, null, { timeout: 60000 });
   }));
   test('Cartella pronta per il telefono con Reel: carosello, video, caption da copiare, istruzioni con orari; il video si riusa', T, () => run(async page => {
     await gen(page, { focus: 'song', item: '1', slides: 7 }); await useProposal(page);
@@ -257,59 +259,65 @@ describe('e2e', () => {
     assert.equal(await $(page, 'btnPhone').innerText(), 'Cartella pronta per il telefono');
   }));
 
-  test('Piano: scarica tutto (ZIP con una cartella per giorno e calendario)', T, () => run(async page => {
-    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+  test('Piano: scarica tutto (ZIP con una cartella per post e calendario)', T, () => run(async page => {
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 15, null, { timeout: 60000 });
     await page.uncheck('#planReel');
     const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 170000 }), page.click('#planZip')]);
     const names = zipNames(fs.readFileSync(await saveDownload(dl)));
     assert.ok(names.includes('PIANO.txt'));
-    const plan = await page.evaluate(() => window.Plan.get().plan.map(d => [d.day, d.topic, d.slides.length]));
-    for (const [day, topic, n] of plan) {
-      const pre = `giorno-${String(day).padStart(2, '0')}-${topic}/`;
+    const plan = await page.evaluate(() => window.Plan.get().plan.map(d => [d.day, d.slot, d.topic, d.slides.length]));
+    const seenFolders = new Set();
+    for (const [day, slot, topic, n] of plan) {
+      const pre = `giorno-${String(day).padStart(2, '0')}-${slot}-${topic}/`;
+      assert.ok(!seenFolders.has(pre), 'cartella duplicata: ' + pre); seenFolders.add(pre);
       assert.equal(names.filter(x => x.startsWith(pre + '1-carosello/') && x.endsWith('.png')).length, n, pre);
       for (const f of ['caption.txt', 'tag-sulle-foto.txt', 'COME-PUBBLICARE.txt']) assert.ok(names.includes(pre + f), pre + f);
     }
     assert.equal(await $(page, 'planZip').innerText(), 'Scarica tutto il piano (ZIP)'); assert.equal(await $(page, 'planProg').innerText(), '');
   }));
 
-  test('Piano: programma tutto su PostFast (5 caroselli + 5 Reel agli orari consigliati)', { timeout: 600000 }, () => run(async page => {
-    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+  test('Piano: programma tutto su PostFast (15 caroselli + 15 Reel agli orari consigliati: 5 giorni x 3 fasce)', { timeout: 600000 }, () => run(async page => {
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 15, null, { timeout: 60000 });
     const when = await page.evaluate(() => window.Plan.get().plan.map(d => d.when));
     await page.evaluate(() => { document.getElementById('rlRes').value = '720'; document.getElementById('rlDur').value = '3'; }); await page.selectOption('#planMode', 'schedule');
     const before = pf.state.posts.length;
-    await page.click('#planSend'); await page.waitForFunction(() => /PostFast: 5 giorni programmati|errori/.test(document.getElementById('toast').textContent), null, { timeout: 540000 });
-    assert.match(await toastText(page), /5 giorni programmati/);
-    const posts = pf.state.posts.slice(before); assert.equal(posts.length, 10);
+    await page.click('#planSend'); await page.waitForFunction(() => /PostFast: 15 caroselli|errori/.test(document.getElementById('toast').textContent), null, { timeout: 540000 });
+    assert.match(await toastText(page), /PostFast: 15 caroselli e 15 Reel programmati/);
+    const posts = pf.state.posts.slice(before); assert.equal(posts.length, 30);
     const car = posts.filter(p => p.posts[0].mediaItems[0].type === 'IMAGE'), vid = posts.filter(p => p.posts[0].mediaItems[0].type === 'VIDEO');
-    assert.equal(car.length, 5); assert.equal(vid.length, 5);
+    assert.equal(car.length, 15); assert.equal(vid.length, 15);
     car.forEach((p, i) => assert.equal(new Date(p.posts[0].scheduledAt).toISOString(), when[i].carousel));
     vid.forEach((p, i) => { assert.equal(new Date(p.posts[0].scheduledAt).toISOString(), when[i].reel); assert.equal(p.controls.instagramPublishType, 'REEL'); });
     assert.equal(await $(page, 'planSend').isDisabled(), false);
   }));
 
-  test('Piano: pulsanti per singolo giorno (Crea Reel, Programma carosello, Programma Reel), account multipiattaforma, feedback', T, () => run(async page => {
-    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+  test('Piano: pulsanti per singolo post (Crea Reel, Programma carosello, Programma Reel), account multipiattaforma, feedback', T, () => run(async page => {
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 15, null, { timeout: 60000 });
     await page.evaluate(() => { document.getElementById('rlRes').value = '720'; document.getElementById('rlDur').value = '3'; });
     // account dedicati al piano (non quelli di sezione 6): il mock ne espone 2, su piattaforme diverse
     assert.ok(await $(page, 'planChBox').isVisible());
     await page.click('#planChBtn'); await page.waitForFunction(() => document.querySelectorAll('#planChList input').length === 2);
     await page.selectOption('#planMode', 'draft');
-    // 👍 sul giorno 1: resta segnato dopo il ridisegno della lista
+    // 👍 sul post di indice 0 (giorno 1, mezzogiorno): resta segnato dopo il ridisegno della lista
     await page.click('.pday[data-i="0"] [data-rate="up"]');
     await page.waitForFunction(() => /andata bene/.test(document.getElementById('toast').textContent));
     assert.ok(await page.locator('.pday[data-i="0"] [data-rate="up"]').evaluate(b => b.classList.contains('on')));
-    // Crea Reel per il giorno 2, senza passare dall'editor
+    // il flag del post 1 parte "da generare"
+    assert.ok(!(await page.locator('[data-reelflag="1"]').evaluate(el => el.classList.contains('ready'))));
+    // Crea Reel per il post di indice 1 (giorno 1, sera), senza passare dall'editor
     await page.click('[data-mkreel="1"]');
     await page.waitForFunction(() => { const b = document.querySelector('[data-mkreel="1"]'); return b && !b.disabled; }, null, { timeout: 120000 });
     assert.match(await page.locator('[data-status="1"]').innerText(), /Reel creato|Reel gia/);
-    // Programma il carosello del giorno 1 (bozza)
+    // e ora il flag segna "pronto"
+    assert.ok(await page.locator('[data-reelflag="1"]').evaluate(el => el.classList.contains('ready')));
+    // Programma il carosello del post di indice 0 (bozza)
     const postsBefore = pf.state.posts.length;
     await page.click('[data-pubpost="0"]');
     await page.waitForFunction(() => { const b = document.querySelector('[data-pubpost="0"]'); return b && !b.disabled; }, null, { timeout: 60000 });
     assert.match(await page.locator('[data-status="0"]').innerText(), /salvato come bozza/);
     assert.equal(pf.state.posts.length, postsBefore + 1);
     assert.equal(pf.state.posts.at(-1).posts[0].mediaItems[0].type, 'IMAGE');
-    // Programma il Reel del giorno 2 (riusa il video appena creato)
+    // Programma il Reel del post di indice 1 (riusa il video appena creato)
     const postsBefore2 = pf.state.posts.length, putsBefore2 = pf.state.puts.length;
     await page.click('[data-pubreel="1"]');
     await page.waitForFunction(() => { const b = document.querySelector('[data-pubreel="1"]'); return b && !b.disabled; }, null, { timeout: 120000 });
@@ -317,6 +325,14 @@ describe('e2e', () => {
     assert.equal(pf.state.posts.length, postsBefore2 + 1);
     const last = pf.state.posts.at(-1); assert.equal(last.posts[0].mediaItems[0].type, 'VIDEO'); assert.equal(last.controls.instagramPublishType, 'REEL');
     assert.ok(pf.state.puts.length > putsBefore2, 'il video e stato caricato');
+    // "Genera tutti i Reel": tronca il piano a 2 post per un test veloce (il post 0 e' gia' pronto da prima: deve saltarlo)
+    await page.evaluate(() => { window.Plan.get().plan.length = 2; window.Plan.redraw(); });
+    await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 2);
+    assert.equal(await page.locator('.reel-flag.ready').count(), 1, 'solo il post 1 e\' gia\' pronto');
+    await page.click('#planMkAllReels');
+    await page.waitForFunction(() => { const b = document.getElementById('planMkAllReels'); return b && !b.disabled; }, null, { timeout: 120000 });
+    assert.equal(await page.locator('.reel-flag.ready').count(), 2, 'entrambi i Reel devono risultare pronti dopo "Genera tutti i Reel"');
+    assert.match(await toastText(page), /2 Reel della settimana sono pronti/);
   }));
 
   test('Reel su misura: il video usa testi accorciati, il carosello no; verso integro', T, () => run(async page => {

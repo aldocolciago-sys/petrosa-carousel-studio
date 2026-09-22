@@ -130,20 +130,46 @@ describe('3. copertine forti', () => {
     let hit = 0, tot = 0; for (const c of covers) if (PH[c.s.immagine]) { tot++; if (PH[c.s.immagine].moods.includes(c.mood)) hit++; }
     assert.ok(hit / tot > 0.45, (hit / tot).toFixed(2));
   });
-  test('gli hook di un argomento preciso (brano, recensione, membro) non cambiano copertina', () => {
-    for (const focus of [{ type: 'song', item: 3 }, { type: 'review', item: 'outlaws' }, { type: 'member', item: 'aldo' }])
-      for (let seed = 1; seed <= 20; seed++) for (const p of L.propose({ mood: 'riff', focus, count: 1, seed }).proposals) assert.equal(p.slides[0].immagine, 'cover');
+  test('anche gli hook di brano o recensione possono usare una foto live, non solo la copertina generica', () => {
+    // Prima la copertina restava SEMPRE l'album per un focus preciso: troppa ripetizione nel piano settimanale.
+    // Ora puo' usare una foto live (con le stesse regole di qualita/impatto).
+    for (const focus of [{ type: 'song', item: 3 }, { type: 'review', item: 'outlaws' }]) {
+      let sawPhoto = false;
+      for (let seed = 1; seed <= 40; seed++) for (const p of L.propose({ mood: 'riff', focus, count: 1, seed }).proposals) {
+        const img = p.slides[0].immagine;
+        assert.ok(img === 'cover' || PH[img], `immagine di copertina inattesa: ${img}`);
+        if (img !== 'cover') sawPhoto = true;
+      }
+      assert.ok(sawPhoto, `nessuna foto di copertina in 40 tentativi per focus ${focus.type}`);
+    }
+  });
+  test('focus "member": la copertina mostra SEMPRE una foto live di quel membro (mai l\'album, mai un\'altra persona o una coppia)', () => {
+    const { band } = L.load();
+    for (const item of band.members.map(m => m.id)) {
+      for (let seed = 1; seed <= 30; seed++) for (const p of L.propose({ mood: 'riff', focus: { type: 'member', item }, count: 1, seed }).proposals) {
+        const img = p.slides[0].immagine;
+        assert.notEqual(img, 'cover', `copertina ancora sull'album per il membro ${item} (seed ${seed})`);
+        const ph = PH[img];
+        assert.ok(ph, `foto sconosciuta ${img}`);
+        assert.deepEqual(ph.members, [item], `copertina di ${img} (${ph.members}) nel carosello di ${item}`);
+      }
+    }
   });
 });
 
-describe('4. piano settimanale', () => {
+describe('4. piano settimanale (3 post al giorno: mezzogiorno, sera, mezzanotte)', () => {
   const plans = []; for (let seed = 1; seed <= 40; seed++) for (const days of [5, 7]) plans.push(L.weekPlan({ days, seed }));
   const { lib, band } = L.load();
-  test('5 o 7 giorni; ogni giorno ha carosello (7-10 slide), caption, hashtag e Reel abbinato', () => {
+  const SLOT_IDS = ['noon', 'evening', 'midnight'];
+  test('5 o 7 giorni di calendario, 3 post al giorno; ogni post ha carosello (7-10 slide), caption, hashtag e Reel abbinato', () => {
     for (const p of plans) {
-      assert.ok(p.plan.length === 5 || p.plan.length === 7);
+      assert.ok(p.days === 5 || p.days === 7, 'p.days: ' + p.days);
+      assert.equal(p.plan.length, p.days * 3, 'plan.length deve essere days*3');
       p.plan.forEach((d, i) => {
-        assert.equal(d.day, i + 1); assert.ok(d.slides.length >= 7 && d.slides.length <= 10); assert.equal(d.slides.length, d.n);
+        assert.equal(d.day, Math.floor(i / 3) + 1, 'numero di giorno errato all\'indice ' + i);
+        assert.equal(d.slot, SLOT_IDS[i % 3], 'fascia fuori ordine all\'indice ' + i);
+        assert.ok(d.slotLabel && d.slotTime, 'slotLabel/slotTime mancanti');
+        assert.ok(d.slides.length >= 7 && d.slides.length <= 10); assert.equal(d.slides.length, d.n);
         assert.equal(d.slides[0].tipo, 'Cover'); assert.equal(d.slides[d.slides.length - 1].layout, 'cta');
         assert.ok(d.caption.length > 60 && d.hashtags.length >= 8);
         assert.equal(d.reel.slides.length, d.slides.length); assert.ok(Number.isInteger(d.reel.song) && d.reel.song >= 1 && d.reel.song <= 10);
@@ -151,7 +177,15 @@ describe('4. piano settimanale', () => {
       });
     }
   });
-  test('argomenti alternati: mai due giorni di fila con lo stesso argomento, almeno 4 argomenti diversi', () => {
+  test('ogni giorno ha le sue 3 fasce, sempre nell\'ordine mezzogiorno/sera/mezzanotte', () => {
+    for (const p of plans) {
+      for (let day = 1; day <= p.days; day++) {
+        const slots = p.plan.filter(d => d.day === day).map(d => d.slot);
+        assert.deepEqual(slots, SLOT_IDS, 'giorno ' + day);
+      }
+    }
+  });
+  test('argomenti alternati: mai due post di fila (nello stesso giorno o a cavallo di due giorni) con lo stesso argomento; almeno 4 argomenti diversi', () => {
     for (const p of plans) {
       p.plan.forEach((d, i) => { if (i) assert.notEqual(d.topic, p.plan[i - 1].topic); });
       assert.ok(new Set(p.plan.map(d => d.topic)).size >= 4);
@@ -168,7 +202,7 @@ describe('4. piano settimanale', () => {
       if (d.topic === 'band') for (const m of band.members) assert.ok(txt.includes(m.name.split(' ')[0]), 'band: ' + m.name);
     }
   });
-  test('senza ripetizioni: brani, membri, recensioni in evidenza, caption e CTA diversi durante la settimana', () => {
+  test('senza ripetizioni: brani, membri, recensioni in evidenza, caption, CTA e copertine diversi durante la settimana', () => {
     for (const p of plans) {
       const f = t => p.plan.filter(d => d.topic === t).map(d => d.focus.item);
       for (const t of ['song', 'member', 'review']) assert.equal(new Set(f(t)).size, f(t).length, t);
@@ -176,8 +210,16 @@ describe('4. piano settimanale', () => {
       const cta = p.plan.map(d => d.slides[d.slides.length - 1].titolo); assert.equal(new Set(cta).size, cta.length, 'CTA ripetute: ' + cta);
       const hooks = p.plan.map(d => d.slides[0].titolo); assert.equal(new Set(hooks).size, hooks.length, 'hook ripetuti: ' + hooks);
       const covers = p.plan.map(d => d.slides[0].immagine).filter(i => i !== 'cover'); assert.equal(new Set(covers).size, covers.length, 'copertine ripetute');
-      const rs = p.plan.map(d => d.reel.song); assert.ok(new Set(rs).size >= rs.length - 1, 'canzoni dei Reel: ' + rs);
       assert.ok(new Set(p.plan.map(d => d.n)).size >= 3, 'lunghezze tutte uguali');
+    }
+  });
+  test('canzoni dei Reel: con 3 post al giorno si ripetono per forza (piu\' post che canzoni), ma tutte le canzoni vengono usate e nessuna domina', () => {
+    const { band } = L.load();
+    for (const p of plans) {
+      const rs = p.plan.map(d => d.reel.song), counts = {};
+      rs.forEach(s => counts[s] = (counts[s] || 0) + 1);
+      assert.equal(Object.keys(counts).length, band.songs.length, 'non tutte le canzoni sono state usate: ' + rs);
+      assert.ok(Math.max(...Object.values(counts)) <= 6, 'una canzone usata troppe volte: ' + JSON.stringify(counts));
     }
   });
   test('stesso seme = stesso piano; semi diversi = piani diversi', () => {
@@ -185,11 +227,17 @@ describe('4. piano settimanale', () => {
     const a = L.weekPlan({ days: 7, seed: 5 }).plan.map(d => d.slides[0].titolo).join(), b = L.weekPlan({ days: 7, seed: 6 }).plan.map(d => d.slides[0].titolo).join();
     assert.notEqual(a, b);
   });
-  test('"avoid" (post recenti) viene rispettato e days non valido diventa 7', () => {
+  test('"avoid" (post recenti) riduce sensibilmente le ripetizioni di caption (con 21 post/settimana la libreria non basta piu\' per zero ripetizioni, ma "avoid" deve comunque aiutare parecchio); days non valido diventa 7', () => {
+    // con 3 post al giorno una settimana da 21 usa gia' meta' della libreria di caption: qualche ripetizione e' inevitabile,
+    // ma "avoid" (deprioritizzazione, non esclusione rigida) deve comunque ridurla parecchio rispetto a un piano indipendente.
     const first = L.weekPlan({ days: 7, seed: 9 }); const avoid = first.plan.flatMap(d => [d.captionId]);
     const second = L.weekPlan({ days: 7, seed: 9, avoid });
-    assert.ok(second.plan.filter(d => avoid.includes(d.captionId)).length < 3);
-    assert.equal(L.weekPlan({ days: 3, seed: 1 }).plan.length, 7);
+    const independent = L.weekPlan({ days: 7, seed: 509 });
+    const withAvoid = second.plan.filter(d => avoid.includes(d.captionId)).length;
+    const withoutAvoid = independent.plan.filter(d => avoid.includes(d.captionId)).length;
+    assert.ok(withAvoid < withoutAvoid, `"avoid" non sta riducendo le ripetizioni: ${withAvoid} con avoid vs ${withoutAvoid} senza`);
+    assert.ok(withAvoid <= 12, 'troppe ripetizioni anche con "avoid": ' + withAvoid + '/21');
+    const bad = L.weekPlan({ days: 3, seed: 1 }); assert.equal(bad.days, 7); assert.equal(bad.plan.length, 21);
   });
   test('le slide del piano restano modificabili (riferimenti _ref per sostituzione e caption)', () => {
     const d = L.weekPlan({ days: 5, seed: 2 }).plan[1];
@@ -197,40 +245,57 @@ describe('4. piano settimanale', () => {
   });
 });
 
-describe('5. orari suggeriti', () => {
+describe('5. orari suggeriti (3 fasce fisse al giorno: 12:00 / 18:00 / 00:00 ora italiana)', () => {
   const S = require(path.join(ROOT, 'public', 'schedule.js'));
   const now = new Date('2026-09-21T09:00:00Z');
-  test('conversione di fuso con ora legale: Roma 19:00 = 13:00 New York a settembre, 14:00 dopo il cambio ora europeo del 25 ottobre', () => {
-    const sep = S.zonedToUtc(2026, 9, 22, 19, 0, 'Europe/Rome'); assert.equal(sep.toISOString(), '2026-09-22T17:00:00.000Z'); assert.equal(S.hm(sep, 'America/New_York'), '13:00');
-    const oct = S.zonedToUtc(2026, 10, 27, 19, 0, 'Europe/Rome'); assert.equal(oct.toISOString(), '2026-10-27T18:00:00.000Z'); assert.equal(S.hm(oct, 'America/New_York'), '14:00');
-    assert.equal(S.hm(S.zonedToUtc(2026, 3, 28, 19, 0, 'Europe/Rome'), 'Europe/Rome'), '19:00');
+  test('conversione di fuso con ora legale: mezzogiorno Roma = 06:00 New York a settembre, 07:00 dopo il cambio ora europeo del 25 ottobre (l\'Europa cambia ora prima degli USA)', () => {
+    const sep = S.zonedToUtc(2026, 9, 22, 12, 0, 'Europe/Rome'); assert.equal(sep.toISOString(), '2026-09-22T10:00:00.000Z'); assert.equal(S.hm(sep, 'America/New_York'), '06:00');
+    const oct = S.zonedToUtc(2026, 10, 27, 12, 0, 'Europe/Rome'); assert.equal(oct.toISOString(), '2026-10-27T11:00:00.000Z'); assert.equal(S.hm(oct, 'America/New_York'), '07:00');
+    assert.equal(S.hm(S.zonedToUtc(2026, 3, 28, 12, 0, 'Europe/Rome'), 'Europe/Rome'), '12:00');
   });
-  test('7 giorni consecutivi; 5 giorni = martedi, mercoledi, giovedi, sabato, domenica; mai nel passato', () => {
-    const p7 = S.pairs(now, 7), p5 = S.pairs(now, 5);
-    assert.equal(p7.length, 7); assert.equal(p5.length, 5);
-    assert.deepEqual(p5.map(x => S.parts(x.carousel, S.TZ).wd), [2, 3, 4, 6, 0]);
-    for (const p of p7.concat(p5)) assert.ok(p.carousel > now && p.reel > p.carousel);
-    for (let i = 1; i < p7.length; i++) assert.ok(p7[i].carousel > p7[i - 1].carousel);
+  test('"mezzanotte" (24:00) e\' il momento giusto DOPO mezzogiorno e sera dello stesso giorno, non l\'inizio dello stesso giorno', () => {
+    const noon = S.zonedToUtc(2026, 9, 22, 12, 0, 'Europe/Rome'), evening = S.zonedToUtc(2026, 9, 22, 18, 0, 'Europe/Rome'), midnight = S.zonedToUtc(2026, 9, 22, 24, 0, 'Europe/Rome');
+    assert.ok(noon < evening && evening < midnight, 'le tre fasce di un giorno devono essere in ordine cronologico');
+    assert.equal(midnight.toISOString(), S.zonedToUtc(2026, 9, 23, 0, 0, 'Europe/Rome').toISOString(), 'mezzanotte di un giorno = 00:00 del giorno dopo');
   });
-  test('orari nella fascia giusta: sera italiana = pranzo/primo pomeriggio a New York e mattina a Los Angeles', () => {
-    for (let k = 0; k < 60; k++) for (const x of S.pairs(new Date(now.getTime() + k * 86400000), 7)) {
-      const hr = (d, z) => S.parts(d, z).h;
-      assert.ok(hr(x.carousel, S.TZ) >= 17 && hr(x.carousel, S.TZ) <= 19, 'carosello ' + S.describe(x.carousel));
-      assert.ok(hr(x.carousel, 'America/New_York') >= 10 && hr(x.carousel, 'America/New_York') <= 14, 'NY ' + S.describe(x.carousel));
-      assert.ok(hr(x.carousel, 'America/Los_Angeles') >= 7 && hr(x.carousel, 'America/Los_Angeles') <= 11, 'LA ' + S.describe(x.carousel));
-      assert.ok(hr(x.reel, S.TZ) >= 20 && hr(x.reel, S.TZ) <= 21, 'reel ' + S.describe(x.reel));
-      assert.ok(hr(x.reel, 'America/New_York') >= 14 && hr(x.reel, 'America/New_York') <= 16, 'reel NY ' + S.describe(x.reel));
+  test('pairs(): sequenza sempre crescente nel tempo, mai nel passato, Reel 20 minuti dopo il carosello; 5 giorni = solo martedi/mercoledi/giovedi/sabato/domenica', () => {
+    const p9 = S.pairs(now, 9, { calendarDays: 7 }), p9five = S.pairs(now, 9, { calendarDays: 5 });
+    assert.equal(p9.length, 9); assert.equal(p9five.length, 9);
+    for (const p of p9.concat(p9five)) { assert.ok(p.carousel.getTime() >= now.getTime() + 30 * 60000); assert.equal(p.reel.getTime() - p.carousel.getTime(), 20 * 60000); }
+    for (let i = 1; i < p9.length; i++) assert.ok(p9[i].carousel > p9[i - 1].carousel, 'ordine cronologico rotto all\'indice ' + i);
+    for (let i = 1; i < p9five.length; i++) assert.ok(p9five[i].carousel > p9five[i - 1].carousel, 'ordine cronologico rotto (5gg) all\'indice ' + i);
+    // solo mezzogiorno/sera cadono sul vero giorno di contenuto: la fascia "mezzanotte" e' 00:00 del giorno dopo per costruzione,
+    // quindi la sua data di calendario puo' ricadere su un giorno escluso (es. venerdi) pur appartenendo a un giorno valido (giovedi)
+    const weekdays5 = [...new Set(p9five.filter(x => [12, 18].includes(S.parts(x.carousel, S.TZ).h)).map(x => S.parts(x.carousel, S.TZ).wd))];
+    for (const wd of weekdays5) assert.ok(S.BEST5.includes(wd), 'giorno fuori BEST5: ' + wd);
+  });
+  test('orari nella fascia giusta: le tre fasce di ogni giorno sono sempre 12:00 / 18:00 / 00:00 ora italiana', () => {
+    for (let k = 0; k < 30; k++) for (const x of S.pairs(new Date(now.getTime() + k * 86400000), 9, { calendarDays: 7 })) {
+      const h = S.parts(x.carousel, S.TZ).h; assert.ok([12, 18, 0].includes(h), 'orario fuori fascia: ' + S.describe(x.carousel));
     }
   });
   test('se lo slot di oggi e troppo vicino (meno di 30 minuti) si passa al giorno dopo', () => {
-    const t = S.zonedToUtc(2026, 9, 21, 18, 45, 'Europe/Rome'); assert.equal(S.parts(S.pairs(t, 1)[0].carousel, S.TZ).d, 22);
-    const early = S.zonedToUtc(2026, 9, 21, 12, 0, 'Europe/Rome'); assert.equal(S.parts(S.pairs(early, 1)[0].carousel, S.TZ).d, 21);
+    const t = S.zonedToUtc(2026, 9, 21, 23, 45, 'Europe/Rome'); assert.equal(S.parts(S.pairs(t, 1)[0].carousel, S.TZ).d, 22);
+    const early = S.zonedToUtc(2026, 9, 21, 9, 0, 'Europe/Rome'); assert.equal(S.parts(S.pairs(early, 1)[0].carousel, S.TZ).d, 21);
   });
-  test('describe e annotate: testo con i tre fusi; ogni giorno del piano ha data di carosello e Reel', () => {
-    const d = S.describe(S.zonedToUtc(2026, 9, 22, 19, 0, 'Europe/Rome')); assert.match(d, /mar 22 set/); assert.match(d, /19:00 Italia/); assert.match(d, /13:00 New York/); assert.match(d, /10:00 Los Angeles/);
-    const plan = L.weekPlan({ days: 7, seed: 1 }).plan; S.annotate(plan, now);
-    for (const p of plan) { assert.ok(p.when.carousel < p.when.reel); assert.match(p.whenText, /\d\d:\d\d/); }
-    assert.equal(S.next(now, 'reel') > now, true);
+  test('describe(): testo con i tre fusi', () => {
+    const d = S.describe(S.zonedToUtc(2026, 9, 22, 18, 0, 'Europe/Rome')); assert.match(d, /mar 22 set/); assert.match(d, /18:00 Italia/); assert.match(d, /12:00 New York/); assert.match(d, /09:00 Los Angeles/);
+  });
+  test('annotate(): ogni post del piano prende l\'orario della SUA fascia (noon=12:00, evening=18:00, midnight=00:00), tutti in ordine crescente e mai nel passato', () => {
+    for (const days of [5, 7]) {
+      const plan = L.weekPlan({ days, seed: 1 }).plan; S.annotate(plan, now);
+      const wantH = { noon: 12, evening: 18, midnight: 0 };
+      plan.forEach(p => {
+        assert.ok(new Date(p.when.carousel) < new Date(p.when.reel));
+        assert.match(p.whenText, /\d\d:\d\d/);
+        assert.equal(S.parts(new Date(p.when.carousel), S.TZ).h, wantH[p.slot], 'fascia ' + p.slot + ' non e\' alle ' + wantH[p.slot] + ':00');
+        assert.ok(new Date(p.when.carousel).getTime() >= now.getTime(), 'post nel passato: ' + p.day + '/' + p.slot);
+      });
+      for (let i = 1; i < plan.length; i++) assert.ok(new Date(plan[i].when.carousel) > new Date(plan[i - 1].when.carousel), 'ordine cronologico rotto all\'indice ' + i);
+    }
+  });
+  test('next(): il prossimo carosello e il prossimo Reel sono sempre nel futuro', () => {
+    assert.ok(S.next(now, 'carousel') > now); assert.ok(S.next(now, 'reel') > now);
   });
 });
 

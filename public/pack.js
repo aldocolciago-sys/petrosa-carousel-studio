@@ -40,13 +40,15 @@
   function planFile(days, describe) {
     const L = ['PIANO DELLA SETTIMANA - Petrosa', ''];
     days.forEach(d => {
-      L.push(`GIORNO ${d.day}: ${d.label} (${d.slides.length} slide, Reel su brano ${String(d.reel.song).padStart(2, '0')})`);
+      L.push(`GIORNO ${d.day}${d.slotLabel ? ' - ' + d.slotLabel : ''}: ${d.label} (${d.slides.length} slide, Reel su brano ${String(d.reel.song).padStart(2, '0')})`);
       if (d.when && describe) { L.push('  Carosello: ' + describe(new Date(d.when.carousel))); L.push('  Reel:      ' + describe(new Date(d.when.reel))); }
       L.push('  Cartella: ' + folder(d)); L.push('  Copertina: ' + String(d.slides[0].titolo || '').replace(/\s+/g, ' ')); L.push('');
     });
     return L.join('\n');
   }
-  const folder = d => `giorno-${String(d.day).padStart(2, '0')}-${String(d.topic || 'post')}`;
+  // include la fascia (noon/evening/midnight) nel nome: 3 post al giorno possono condividere sia "day" che "topic",
+  // e senza la fascia due cartelle diverse rischierebbero di chiamarsi allo stesso modo e sovrascriversi nello ZIP.
+  const folder = d => `giorno-${String(d.day).padStart(2, '0')}-${String(d.slot || 'post')}-${String(d.topic || 'post')}`;
   const api = { planFile, folder, DIR, pad, captionFile, tagFile, howTo, names };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Pack = api;
 })(typeof window !== 'undefined' ? window : globalThis);

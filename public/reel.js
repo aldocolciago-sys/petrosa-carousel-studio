@@ -168,7 +168,7 @@
     } catch (e) { const id = setInterval(fn, ms); return () => clearInterval(id); }
   }
 
-  async function makeVideo() {
+  async function makeVideo(onProgress) {
     if (!st.slides.length) throw new Error('Genera prima un carosello.');
     const s = byN[$('rlSong').value]; if (!s) throw new Error('Scegli una canzone.');
     if (!window.MediaRecorder) throw new Error('Questo browser non sa registrare video: usa Chrome.');
@@ -254,7 +254,7 @@
         gapEma = gapEma * 0.92 + (performance.now() - lastGood) * 0.08; lastGood = performance.now(); since++;
         if (fxOn && lite < 2 && since > 25 && gapEma > 75) { lite++; rl.lite = lite; since = 0; }
         let i = S.length - 1; while (i > 0 && tt < S[i]) i--; stats.slides.add(i);
-        busy($('rlMake'), true, `Registro ${tt.toFixed(0)}/${T.toFixed(0)} s (non cambiare scheda)...`);
+        onProgress(tt, T);
       };
       stop = startTimer(tick, 1000 / 30);
     });
@@ -274,17 +274,24 @@
     $('rlVideo').src = rl.url; $('rlOut').style.display = 'block';
     $('rlFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` + (rl.stats && rl.stats.maxGap > 1 ? ` <span style="color:var(--amber)">Attenzione: la registrazione si e' fermata per ${rl.stats.maxGap.toFixed(0)} s (scheda in secondo piano o computer occupato): controlla il video e, se serve, rigeneralo senza cambiare scheda.</span>` : '') : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
   }
-  // video del post corrente: riusa quello gia' fatto se e' ancora valido, altrimenti lo registra
+  // video del post corrente: riusa quello gia' fatto se e' ancora valido, altrimenti lo registra.
+  // onProgress (opzionale): chi chiama ensure() da un proprio pulsante (piano settimanale, export...) puo' passare la
+  // propria funzione di avanzamento; senza, il progresso va sul pulsante "Genera video" qui sotto (e viene sempre
+  // ripulito alla fine, altrimenti restava bloccato su "Registro N/N s..." anche quando il video era gia' pronto).
   async function ensure(opts) {
     opts = opts || {};
     if (rl.blob && rl.key === keyOf()) return { blob: rl.blob, ext: rl.ext, reused: true };
     stopListen(); await window.Renderer.need(activeSlides());
-    const out = await makeVideo(); showVideo(out); return { blob: out.blob, ext: out.ext, reused: false };
+    const onProgress = opts.onProgress || ((tt, T) => busy($('rlMake'), true, `Registro ${tt.toFixed(0)}/${T.toFixed(0)} s (non cambiare scheda)...`));
+    try {
+      const out = await makeVideo(onProgress); showVideo(out); return { blob: out.blob, ext: out.ext, reused: false };
+    } finally { if (!opts.onProgress) busy($('rlMake'), false); }
   }
   $('rlMake').onclick = async () => {
     stopListen(); busy($('rlMake'), true, 'Preparo...');
     try {
-      const out = await makeVideo(); showVideo(out);
+      const out = await makeVideo((tt, T) => busy($('rlMake'), true, `Registro ${tt.toFixed(0)}/${T.toFixed(0)} s (non cambiare scheda)...`));
+      showVideo(out);
       $('rlOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) { toast(e.message, true); } finally { busy($('rlMake'), false); }
   };

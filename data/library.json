@@ -1585,19 +1585,6 @@
    ]
   },
   {
-   "id": "i-press",
-   "topic": "press",
-   "moods": [
-    "proof",
-    "fans"
-   ],
-   "layout": "text",
-   "tipo": "Press",
-   "titolo": "Reviewed in four languages.",
-   "corpo": "Italian, French, German, English: Radiocoop, Heavy Metal Webzine, W.T.R. Mag', Der Fuzzer, Outlaws Of The Sun, Pitstop Metal.",
-   "immagine": "none"
-  },
-  {
    "id": "i-infl",
    "topic": "influences",
    "moods": [
@@ -1891,19 +1878,6 @@
    "titolo": "It ends on a road song.",
    "corpo": "The last track is An Old Van and a Couple of Beers.",
    "immagine": "cover"
-  },
-  {
-   "id": "i-press-b",
-   "topic": "press",
-   "moods": [
-    "proof",
-    "fans"
-   ],
-   "layout": "text",
-   "tipo": "Album",
-   "titolo": "Written about in four languages.",
-   "corpo": "Italian, French, German and English reviews of Roadburn Chronicles.",
-   "immagine": "none"
   }
  ],
  "band": [

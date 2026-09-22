@@ -113,15 +113,19 @@
   }
   function useProposal(i) {
     const p = JSON.parse(JSON.stringify(st.proposals[i])); remember(p);
+    st.planDay = null;   // non e' un giorno del piano: non c'e' uno stile da salvare/ripescare
     st.slides = p.slides; st.caption = p.caption; st.capId = p.captionId; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0; st.engine = 'library';
+    $('proposals').style.display = 'none';   // altrimenti le altre proposte restano sopra la pagina e bloccano i click (es. sul dock in mobile)
     showResult(); setWhen(null); $('result').scrollIntoView({ behavior: 'smooth' });
   }
-  // carica un post gia' assemblato (piano settimanale) nell'editor
+  // carica un post gia' assemblato (piano settimanale) nell'editor. Se quel giorno ha gia' uno stile scelto in precedenza
+  // (meta.theme), lo si riusa cosi' com'e' invece di pescarne uno nuovo ogni volta che si riapre lo stesso giorno.
   function loadPost(post, meta) {
     const p = JSON.parse(JSON.stringify(post)); remember(p);
     st.mood = meta.mood; st.focus = meta.focus || { type: 'auto' }; renderMoods();
     st.slides = p.slides; st.caption = p.caption; st.capId = p.captionId; st.hashtags = p.hashtags; st.argomento = meta.argomento || ''; st.sel = 0; st.engine = 'library';
-    showResult(); setWhen(meta.when || null); if (!meta.quiet) $('result').scrollIntoView({ behavior: 'smooth' });
+    if (meta.theme) { st.theme = { ...Styles.DEFAULT, ...meta.theme }; showResult(true); } else showResult();
+    setWhen(meta.when || null); if (!meta.quiet) $('result').scrollIntoView({ behavior: 'smooth' });
   }
   $('btnGen').onclick = () => propose(false);
   $('btnVar').onclick = () => propose(true);
@@ -155,6 +159,7 @@
     busy($('btnClaude'), true, 'L\'AI sta scrivendo (10-30 s)...');
     try {
       const out = await api('/api/generate', params);
+      st.planDay = null;   // generazione libera con l'AI, non un giorno del piano: nessuno stile da salvare/ripescare
       st.slides = out.slides; st.caption = out.caption; st.hashtags = out.hashtags; st.argomento = out.argomento; st.sel = 0; st.engine = 'claude';
       st.history.push(`${out.piano && out.piano.angolo ? '[angolo: ' + String(out.piano.angolo).slice(0, 80) + '] ' : ''}${out.argomento}: ${out.slides.slice(0, 3).map(x => x.titolo).join(' / ')}${out.stile ? ` [stile: ${out.stile.sfondo || ''}/${out.stile.palette || ''}/${out.stile.font || ''}]` : ''}`); st.history = st.history.slice(-10);
       st.capHistory.push(String(out.caption).split('\n')[0]); st.capHistory = st.capHistory.slice(-6);
@@ -175,10 +180,13 @@
   };
 
   // ---------- Stile visivo (sfondo, colori, font) ----------
+  // Se si sta modificando un giorno del piano settimanale (st.planDay), lo stile scelto va salvato su quel giorno:
+  // altrimenti ogni volta che si riapre lo stesso giorno nell'editor ne veniva ripescato uno nuovo a caso.
+  function persistTheme() { if (st.planDay != null && window.Plan && window.Plan.saveTheme) window.Plan.saveTheme(st.planDay, st.theme); }
   function fillSelect(id, map) { $(id).innerHTML = Object.entries(map).map(([k, v]) => `<option value="${k}">${esc(typeof v === 'string' ? v : v.label)}</option>`).join(''); }
   function initStyleBar() {
     fillSelect('stBg', Styles.BG); fillSelect('stPal', Styles.PALETTES); fillSelect('stFont', Styles.FONTS); fillSelect('stPhoto', Styles.PHOTO); fillSelect('stHook', Styles.HOOK);
-    [['stBg', 'bg'], ['stPal', 'pal'], ['stFont', 'font'], ['stPhoto', 'photo'], ['stHook', 'hook']].forEach(([id, k]) => { $(id).onchange = () => { st.theme = { ...st.theme, [k]: $(id).value }; redrawAll(); }; });
+    [['stBg', 'bg'], ['stPal', 'pal'], ['stFont', 'font'], ['stPhoto', 'photo'], ['stHook', 'hook']].forEach(([id, k]) => { $(id).onchange = () => { st.theme = { ...st.theme, [k]: $(id).value }; persistTheme(); redrawAll(); }; });
     $('btnStyle').onclick = () => { setTheme(Styles.pick({ slides: st.slides, mood: st.mood, argomento: st.argomento, prev: st.theme })); };
   }
   function syncStyleBar() { [['stBg', 'bg'], ['stPal', 'pal'], ['stFont', 'font'], ['stPhoto', 'photo'], ['stHook', 'hook']].forEach(([id, k]) => ($(id).value = st.theme[k])); }
@@ -188,7 +196,7 @@
     thumbs.forEach((_, i) => drawThumb(i)); drawBig();
   }
   Renderer.onImage = () => { if (st.slides && st.slides.length && thumbs.length) { thumbs.forEach((_, i) => drawThumb(i)); drawBig(); } };
-  function setTheme(t) { st.theme = { ...Styles.DEFAULT, ...t }; return redrawAll(); }
+  function setTheme(t) { st.theme = { ...Styles.DEFAULT, ...t }; persistTheme(); return redrawAll(); }
 
   // ---------- Barra fissa (mobile) ----------
   const scrollTo = el => el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -222,6 +230,7 @@
       const ai = aiStyle ? { bg: aiStyle.sfondo, pal: aiStyle.palette, font: aiStyle.font, photo: aiStyle.foto, hook: aiStyle.copertina } : {};
       const ok = Object.fromEntries(Object.entries(Styles.valid(ai)).filter(([, v]) => v));
       st.theme = { ...Styles.DEFAULT, ...Styles.pick({ slides: st.slides, mood: st.mood, argomento: st.argomento, prev: st.theme }), ...ok };
+      persistTheme();   // primo stile scelto per questo giorno del piano: lo salva, cosi' riaprendolo resta lo stesso
     }
     $('btnSwap').style.display = st.engine === 'claude' ? 'none' : '';
     $('empty').style.display = 'none'; $('result').style.display = 'block'; $('argom').textContent = st.argomento ? '- ' + st.argomento : '';

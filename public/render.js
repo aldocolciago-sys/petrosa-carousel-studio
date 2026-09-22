@@ -123,12 +123,15 @@
     return out;
   }
   function fit(ctx, text, font, maxW, maxH, max, min, lh) {
+    // Scende sotto "min" solo se serve: un testo senza spazi (es. un numero come "30-90") non va mai a capo,
+    // quindi il solo controllo sull'altezza non basta a garantire che resti dentro il riquadro in larghezza.
     let res;
-    for (let s = Math.round(max * FS); s >= Math.round(min * FS); s -= 2) {
+    for (let s = Math.round(max * FS); s >= 20; s -= 2) {
       ctx.font = font(s);
       const lines = wrap(ctx, text, maxW);
+      const w = Math.max(0, ...lines.map(l => ctx.measureText(l).width));
       res = { size: s, lines, h: lines.length * s * lh };
-      if (res.h <= maxH) return res;
+      if (res.h <= maxH && w <= maxW) return res;
     }
     return res;
   }

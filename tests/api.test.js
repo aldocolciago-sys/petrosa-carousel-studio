@@ -352,14 +352,14 @@ describe('password (senza Google)', () => {
   });
 });
 
-// ---- piano settimanale (punto 4) ----
+// ---- piano settimanale (punto 4): 3 post al giorno (mezzogiorno/sera/mezzanotte), piano piatto di days*3 post ----
 test('API /api/plan: 7 giorni, 5 giorni, giorni non validi e schema', async () => {
   const app2 = await H.startApp({});
   try {
     const post = async b => (await fetch(app2.url + '/api/plan', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) })).json();
     const a = await post({ days: 7, seed: 3 }), b = await post({ days: 5, seed: 3 }), c = await post({ days: 99 });
-    assert.equal(a.plan.length, 7); assert.equal(b.plan.length, 5); assert.equal(c.plan.length, 7);
-    for (const d of a.plan) assert.ok(d.slides.length >= 7 && d.caption && d.hashtags.length && d.reel.song);
+    assert.equal(a.days, 7); assert.equal(a.plan.length, 21); assert.equal(b.days, 5); assert.equal(b.plan.length, 15); assert.equal(c.days, 7); assert.equal(c.plan.length, 21);
+    for (const d of a.plan) assert.ok(d.slides.length >= 7 && d.caption && d.hashtags.length && d.reel.song && d.day && ['noon', 'evening', 'midnight'].includes(d.slot));
     assert.deepEqual((await post({ days: 7, seed: 3 })).plan.map(d => d.captionId), a.plan.map(d => d.captionId));
   } finally { app2.stop(); }
 });

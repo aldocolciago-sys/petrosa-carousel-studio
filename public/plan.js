@@ -3,7 +3,7 @@
   const C = window.StudioCtx, $ = C.$, st = C.st;
   const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const DAYS = ['domenica', 'lunedi\'', 'martedi\'', 'mercoledi\'', 'giovedi\'', 'venerdi\'', 'sabato'];
-  const plan = { data: null, seed: null };
+  const plan = { data: null, seed: null, reels: {} };   // reels[i] = {blob, ext} quando il Reel del giorno i e' gia' stato generato in questa sessione
   const songTitle = n => ((st.data.songs || []).find(x => x.n === n) || {}).title || '';
   const moodLabel = id => ((st.lib && st.lib.moods || []).find(m => m.id === id) || {}).label || id;
 
@@ -37,12 +37,12 @@
     await Promise.all(P.plan.map(d => window.Renderer.need([d.slides[0]])));
     const rateOf = d => window.Feedback ? window.Feedback.rated(d) : null;
     const canPub = !!(st.cfg && st.cfg.postfast);
-    $('planList').innerHTML = P.plan.map((d, i) => { const r = rateOf(d); return `<div class="pday" data-i="${i}">
+    $('planList').innerHTML = P.plan.map((d, i) => { const r = rateOf(d); const ready = !!plan.reels[i]; return `<div class="pday" data-i="${i}">
       <canvas width="270" height="338"></canvas>
-      <div><div class="pd-h">Giorno ${d.day}<span class="pd-when" data-when="${i}">${esc(d.whenText || '')}</span></div>
+      <div><div class="pd-h">Giorno ${d.day} &middot; ${esc(d.slotLabel || '')}<span class="pd-when" data-when="${i}">${esc(d.whenText || '')}</span></div>
        <div class="pd-t"><b>${esc(d.label)}</b> &middot; ${esc(moodLabel(d.mood))} &middot; ${d.slides.length} slide</div>
        <div class="pd-c">&laquo;${esc(String(d.slides[0].titolo).replace(/^[«“"]+|[»”"]+$/g, ''))}&raquo; &middot; ${esc(d.caption.split('\n')[0])}</div>
-       <div class="pd-c">Reel: ${String(d.reel.song).padStart(2, '0')} - ${esc(songTitle(d.reel.song))}</div></div>
+       <div class="pd-c">Reel: ${String(d.reel.song).padStart(2, '0')} - ${esc(songTitle(d.reel.song))} <span class="reel-flag${ready ? ' ready' : ''}" data-reelflag="${i}" title="${ready ? 'Reel gia\' generato in questa sessione' : 'Reel non ancora generato'}">${ready ? '&#9989; pronto' : '&#9675; da generare'}</span></div></div>
       <div class="row"><button class="btn" data-open="${i}">Apri nell'editor</button>
        <button class="ghost" data-mkreel="${i}">&#127916; Crea Reel</button>
        ${canPub ? `<button class="ghost" data-pubpost="${i}">Programma carosello</button><button class="ghost" data-pubreel="${i}">Programma Reel</button>` : ''}
@@ -64,16 +64,53 @@
     });
   }
   // ---- azioni per singolo giorno: si apre quel giorno nell'editor (senza far scorrere la pagina), si agisce, e lo stato compare sotto la sua scheda ----
+  function markReelReady(i, out) {
+    plan.reels[i] = { blob: out.blob, ext: out.ext };
+    const flag = document.querySelector(`[data-reelflag="${i}"]`);
+    if (flag) { flag.classList.add('ready'); flag.innerHTML = '&#9989; pronto'; flag.title = 'Reel gia\' generato in questa sessione'; }
+  }
+  // fa il lavoro vero (apre il giorno, genera il video se serve, segna il flag); onProgress e' facoltativo, per chi vuole
+  // mostrare l'avanzamento sul proprio pulsante invece che lasciarlo sul pulsante "Genera video" dell'editor Reel
+  async function generateDayReel(i, onProgress) {
+    await openDay(i, { quiet: true }); await window.Renderer.need(st.slides);
+    if (onProgress) onProgress('Creo il video (tieni questa scheda aperta e in primo piano)...');
+    const r = await window.Reel.ensure(onProgress ? { onProgress: (tt, T) => onProgress(`Registro ${tt.toFixed(0)}/${T.toFixed(0)} s (non cambiare scheda)...`) } : undefined);
+    markReelReady(i, r);
+    return r;
+  }
   async function dayCreateReel(i) {
     const btn = document.querySelector(`.pday[data-i="${i}"] [data-mkreel]`); if (!btn) return;
     C.busy(btn, true, 'Apro...');
     try {
-      await openDay(i, { quiet: true }); await window.Renderer.need(st.slides);
-      dayStatus(i, 'Creo il video (tieni questa scheda aperta e in primo piano)...');
-      const r = await window.Reel.ensure();
+      const r = await generateDayReel(i, m => dayStatus(i, m));
       dayStatus(i, r.reused ? 'Reel gia\' pronto (riusato).' : 'Reel creato: apri il giorno per vederlo e scaricarlo.');
-      C.toast(`Reel del giorno ${plan.data.plan[i].day} pronto.`);
+      const d = plan.data.plan[i]; C.toast(`Reel del giorno ${d.day} (${d.slotLabel}) pronto.`);
     } catch (e) { dayStatus(i, ''); C.toast(e.message, true); } finally { C.busy(btn, false); }
+  }
+  // ---- genera in coda tutti i Reel del piano corrente (uno alla volta: la registrazione richiede la scheda in primo piano) ----
+  async function generateAllReels() {
+    if (!plan.data || running) return;
+    const P = plan.data.plan, btn = $('planMkAllReels');
+    running = true;
+    for (const b of ['planZip', 'planSend', 'planAgain', 'btnPlan', 'planMkAllReels']) if ($(b)) $(b).disabled = true;
+    let done = 0, errors = [];
+    try {
+      for (let i = 0; i < P.length; i++) {
+        if (plan.reels[i]) { done++; continue; }   // gia' generato: passa al prossimo
+        const tag = `giorno ${P[i].day} (${P[i].slotLabel})`;
+        C.busy(btn, true, `Reel ${i + 1}/${P.length}: creo quello del ${tag}...`);
+        try {
+          await generateDayReel(i, m => { dayStatus(i, m); C.busy(btn, true, `Reel ${i + 1}/${P.length} (${tag}): ${m}`); });
+          dayStatus(i, 'Reel creato: apri il giorno per vederlo e scaricarlo.');
+          done++;
+        } catch (e) { dayStatus(i, ''); errors.push(`${tag}: ${e.message}`); }
+      }
+      C.toast(errors.length ? `${done}/${P.length} Reel pronti, ${errors.length} errori (${errors[0]}).` : `Tutti i ${P.length} Reel della settimana sono pronti.`, !!errors.length);
+    } finally {
+      running = false;
+      for (const b of ['planZip', 'planSend', 'planAgain', 'btnPlan', 'planMkAllReels']) if ($(b)) $(b).disabled = false;
+      C.busy(btn, false);
+    }
   }
   function pfPrereq(i) {
     const chosen = planChosenChannels();
@@ -92,7 +129,7 @@
       dayStatus(i, 'Carico il carosello su PostFast...');
       await C.sendCarousel(pre.chosen, pre.mode, d.when.carousel, m => dayStatus(i, m));
       dayStatus(i, `Carosello ${pre.mode === 'draft' ? 'salvato come bozza' : 'programmato'} su ${pre.chosen.map(c => c.name).join(', ')}.`);
-      C.toast(`Giorno ${d.day}: carosello su PostFast.`);
+      C.toast(`Giorno ${d.day} (${d.slotLabel}): carosello su PostFast.`);
     } catch (e) { dayStatus(i, ''); C.toast(e.message, true); } finally { C.busy(btn, false); }
   }
   async function dayScheduleReel(i) {
@@ -101,28 +138,26 @@
     const d = plan.data.plan[i];
     C.busy(btn, true, 'Preparo...');
     try {
-      await openDay(i, { quiet: true }); await window.Renderer.need(st.slides);
-      dayStatus(i, 'Creo il Reel (se non esiste gia\')...');
-      const r = await window.Reel.ensure();
+      const r = await generateDayReel(i, m => dayStatus(i, m));
       dayStatus(i, 'Carico il Reel su PostFast...');
       await window.Reel.sendReel(r.blob, pre.chosen, pre.mode, d.when.reel, m => dayStatus(i, m));
       dayStatus(i, `Reel ${pre.mode === 'draft' ? 'salvato come bozza' : 'programmato'} su ${pre.chosen.map(c => c.name).join(', ')}.`);
-      C.toast(`Giorno ${d.day}: Reel su PostFast.`);
+      C.toast(`Giorno ${d.day} (${d.slotLabel}): Reel su PostFast.`);
     } catch (e) { dayStatus(i, ''); C.toast(e.message, true); } finally { C.busy(btn, false); }
   }
 
   async function openDay(i, o) {
     const d = plan.data.plan[i];
-    C.loadPost(d, { mood: d.mood, focus: d.focus, when: d.when, quiet: !!(o && o.quiet), argomento: `Giorno ${d.day} - ${d.label}` });
+    st.planDay = i;   // prima di loadPost: se sceglie un primo stile per il giorno, deve salvarlo su QUESTO giorno, non sul precedente
+    C.loadPost(d, { mood: d.mood, focus: d.focus, when: d.when, quiet: !!(o && o.quiet), argomento: `Giorno ${d.day} - ${d.label}`, theme: d.theme });
     const R = window.Reel; if (R && R.setSong) await R.setSong(d.reel.song, { keepQuote: !!d.slides.find(s => s.citazione) });
-    st.planDay = i;
   }
 
   async function generate() {
     busy(true);
     try {
       const out = await C.api('/api/plan', { days: +$('planDays').value, avoid: C.avoidIds ? C.avoidIds() : C.recent() });
-      plan.data = out; plan.seed = out.seed; st.plan = out;
+      plan.data = out; plan.seed = out.seed; plan.reels = {}; st.plan = out;
       out.plan.forEach(d => C.remember(d));
       if (window.Schedule) window.Schedule.annotate(out.plan);
       await draw();
@@ -143,12 +178,13 @@
     const files = [], P = window.Pack, enc = new TextEncoder(), withReel = $('planReel').checked;
     try {
       await each(async (d, i, n) => {
+        const tag = `Giorno ${d.day} (${d.slotLabel}) ${i + 1}/${n}`;
         const pre = P.folder(d) + '/';
-        files.push(...await C.packageFiles({ prefix: pre, reel: withReel, onStatus: m => prog(`Giorno ${d.day}/${n}: ${m}`) }));
-        prog(`Giorno ${d.day}/${n} pronto.`);
+        files.push(...await C.packageFiles({ prefix: pre, reel: withReel, onStatus: m => prog(`${tag}: ${m}`) }));
+        prog(`${tag} pronto.`);
       });
       files.unshift({ name: 'PIANO.txt', data: enc.encode(P.planFile(plan.data.plan, window.Schedule && window.Schedule.describe)) });
-      C.dl(C.zip(files), `petrosa-piano-${plan.data.plan.length}-giorni.zip`);
+      C.dl(C.zip(files), `petrosa-piano-${plan.data.days || Math.round(plan.data.plan.length / 3)}-giorni.zip`);
       C.toast('Piano scaricato: una cartella per giorno con carosello, Reel, caption e istruzioni. Apri PIANO.txt per il calendario.');
     } catch (e) { C.toast(e.message, true); }
   }
@@ -163,20 +199,24 @@
     const res = [];
     try {
       await each(async (d, i, N) => {
+        const tag = `Giorno ${d.day} (${d.slotLabel})`;
         try {
-          prog(`Giorno ${d.day}/${N}: carico il carosello...`);
-          await C.sendCarousel(chosen, mode, d.when.carousel, m => prog(`Giorno ${d.day}/${N}: ${m}`));
-          if (withReel) { prog(`Giorno ${d.day}/${N}: creo il Reel...`); const r = await window.Reel.ensure(); await window.Reel.sendReel(r.blob, chosen, mode, d.when.reel, m => prog(`Giorno ${d.day}/${N}: Reel, ${m}`)); }
-          res.push([d.day, true]);
-        } catch (e) { res.push([d.day, false, e.message]); }
+          prog(`${tag} ${i + 1}/${N}: carico il carosello...`);
+          await C.sendCarousel(chosen, mode, d.when.carousel, m => prog(`${tag} ${i + 1}/${N}: ${m}`));
+          if (withReel) { const r = await window.Reel.ensure({ onProgress: (tt, T) => prog(`${tag} ${i + 1}/${N}: Registro ${tt.toFixed(0)}/${T.toFixed(0)} s...`) }); markReelReady(i, r); await window.Reel.sendReel(r.blob, chosen, mode, d.when.reel, m => prog(`${tag} ${i + 1}/${N}: Reel, ${m}`)); }
+          res.push([tag, true]);
+        } catch (e) { res.push([tag, false, e.message]); }
       });
     } catch (e) { return C.toast(e.message, true); }
     const bad = res.filter(r => !r[1]);
-    C.toast(bad.length ? `Piano inviato con ${bad.length} errori (giorni ${bad.map(b => b[0]).join(', ')}): ${bad[0][2]}` : `PostFast: ${n} giorni ${mode === 'draft' ? 'salvati come bozza' : 'programmati'}.`, !!bad.length);
+    C.toast(bad.length ? `Piano inviato con ${bad.length} errori (${bad.map(b => b[0]).join(', ')}): ${bad[0][2]}` : `PostFast: ${n} caroselli${withReel ? ' e ' + n + ' Reel' : ''} ${mode === 'draft' ? 'salvati come bozza' : 'programmati'}.`, !!bad.length);
   }
   $('planZip').onclick = exportAll; $('planSend').onclick = scheduleAll;
   if ($('planChBtn')) $('planChBtn').onclick = loadPlanChannels;
+  if ($('planMkAllReels')) $('planMkAllReels').onclick = generateAllReels;
   const busy = on => C.busy($('btnPlan'), on, 'Preparo il piano...');
   $('btnPlan').onclick = generate; $('planAgain').onclick = generate;
-  window.Plan = { generate, openDay, exportAll, scheduleAll, redraw: draw, get: () => plan.data, dayCreateReel, dayScheduleCarousel, dayScheduleReel };
+  // salva lo stile grafico scelto per il giorno i, cosi' riaprendolo nell'editor resta quello (non uno pescato a caso ogni volta)
+  function saveTheme(i, theme) { if (plan.data && plan.data.plan[i]) plan.data.plan[i].theme = { ...theme }; }
+  window.Plan = { generate, openDay, exportAll, scheduleAll, redraw: draw, get: () => plan.data, dayCreateReel, dayScheduleCarousel, dayScheduleReel, generateAllReels, reelsReady: () => Object.keys(plan.reels).length, saveTheme };
 })();
