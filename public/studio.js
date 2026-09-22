@@ -308,9 +308,10 @@
 
   // ---------- Export ----------
   // slidesOverride: per rendere solo un sottoinsieme delle slide (es. il Reel breve "solo hook") senza toccare il carosello vero e proprio
-  function renderOff(i, fmt, slidesOverride) {
+  // themeOverride: per rendere con uno stile diverso da quello del carosello (es. il Video testi ha il suo stile grafico, scelto a parte)
+  function renderOff(i, fmt, slidesOverride, themeOverride) {
     const arr = slidesOverride || st.slides;
-    const c = document.createElement('canvas'); Renderer.render(c, forFmt(arr[i], fmt), i, arr.length, st.data.handle, st.theme, fmt || 'post'); return c;
+    const c = document.createElement('canvas'); Renderer.render(c, forFmt(arr[i], fmt), i, arr.length, st.data.handle, themeOverride || st.theme, fmt || 'post'); return c;
   }
   const blobOf = c => new Promise(r => c.toBlob(r, 'image/png'));
   const dl = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };

@@ -563,6 +563,10 @@ function catalog() {
   return {
     moods: D.lib.moods, recipes: D.lib.recipes.map(({ id, n, label, desc }) => ({ id, n, label, desc })),
     journeys: (D.lib.journeys || []).map(({ id, title, subtitle }) => ({ id, title, subtitle })),
+    // catalogo foto live per il client (usato dal Video testi per ruotare lo sfondo su TUTTE le foto disponibili,
+    // non solo su un sottoinsieme fisso): stesso filtro di qualita' usato altrove per la scelta automatica (q:1
+    // resta scegliabile solo a mano, mai qui - vedi addPhotos in load()).
+    photos: (D.photos || []).filter(p => (p.q || 0) >= 2).map(({ id, kind, members, impact }) => ({ id, kind, members, impact })),
     counts: { hooks: D.lib.hooks.length, quotes: D.lib.quotes.length, info: D.lib.info.length, band: D.lib.band.length, cta: D.lib.cta.length, captions: D.lib.captions.length, photos: D.photos.length }
   };
 }

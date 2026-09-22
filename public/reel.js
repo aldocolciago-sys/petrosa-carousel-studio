@@ -381,6 +381,16 @@
   const lv = { blob: null, url: null, ext: 'mp4', key: null };
   const LV_TARGET = 45, LV_MAX = 90;   // secondi: lunghezza del tratto proposto di default / oltre cui si avvisa
 
+  // Stile grafico del Video testi: scelto qui a parte (Sfondo/Colori/Font, come per le slide del carosello - vedi
+  // styleBar in studio.js), NON legato al tema del carosello (st.theme): il Video testi e' spesso creato senza aver
+  // mai generato un carosello, e comunque puo' avere un look diverso dal post. Solo questi 3, non "Foto"/"Copertina":
+  // non hanno senso qui (il Video testi non mostra la copertina e tratta le foto sempre allo stesso modo).
+  const Styles = window.Styles;
+  const fillLvStyleSelect = (id, map) => { $(id).innerHTML = Object.entries(map).map(([k, v]) => `<option value="${k}">${esc(typeof v === 'string' ? v : v.label)}</option>`).join(''); };
+  fillLvStyleSelect('lvBg', Styles.BG); fillLvStyleSelect('lvPal', Styles.PALETTES); fillLvStyleSelect('lvFont', Styles.FONTS);
+  $('lvBg').value = Styles.DEFAULT.bg; $('lvPal').value = Styles.DEFAULT.pal; $('lvFont').value = Styles.DEFAULT.font;
+  const lvTheme = () => ({ ...(st.theme || {}), bg: $('lvBg').value, pal: $('lvPal').value, font: $('lvFont').value });
+
   const lvFullySyncedSongs = () => songs.filter(fullySynced);
   // "Video testi" lavora solo su brani completamente sincronizzati (ogni riga ha il suo punto esatto): la durata di
   // ogni riga e' quella VERA (lineDursExact), mai accorciata da una pausa lunga - altrimenti il video, e la stima
@@ -446,9 +456,16 @@
     const times = LSY.lineTimes(songOf(s), anchorsOf(s), s.lines), allDurs = LSY.lineDursExact(times, s.dur);
     const lines = s.lines.slice(r.from, r.to), durs = allDurs.slice(r.from, r.to), nTot = s.lines.length;
     const W = $('lvRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9);
-    // sfondo: ruota tra le foto dei membri, gli sfondi del deserto, il logo e la copertina (sempre gia' precaricati,
-    // vedi Renderer.loadImages), cambiando a OGNI riga (mai la stessa immagine due volte consecutive)
-    const BG_POOL = ['antonio', 'giorgio', 'aldo', 'andrea', 'desert1', 'desert2', 'desert3', 'cover', 'logo'];
+    // sfondo: ruota tra TUTTE le foto disponibili (i ritratti dei membri, gli sfondi del deserto, il logo e l'intero
+    // catalogo di foto live - st.lib.photos, stesso elenco usato per le slide "Live" dei caroselli), cambiando a OGNI
+    // riga (mai la stessa immagine due volte consecutive, vedi backgroundSchedule). La SOLA esclusione e' la
+    // copertina dell'album ("cover"): nel formato verticale del Reel viene tagliata male, quindi resta riservata
+    // alla slide di apertura/chiusura del carosello, mai qui.
+    const BG_POOL = ['antonio', 'giorgio', 'aldo', 'andrea', 'desert1', 'desert2', 'desert3', 'logo', ...(st.lib.photos || []).map(p => p.id)];
+    // precarica tutto il pool PRIMA di disegnare gli sfondi qui sotto: a differenza delle poche immagini di sempre
+    // (gia' precaricate all'avvio, vedi Renderer.loadImages), l'intero catalogo foto live si carica a richiesta -
+    // senza aspettarlo qui, le foto non ancora in cache resterebbero invisibili nel fotogramma (sfondo vuoto).
+    await window.Renderer.need(BG_POOL.map(k => ({ immagine: k })));
     const bg = LSY.backgroundSchedule(durs, BG_POOL, s.n);
     // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema) gia' pronto per il
     // Reel. _skipTitle: qui il bitmap pre-renderizzato contiene solo lo sfondo - il titolo (le parole del verso)
@@ -459,10 +476,12 @@
     const n = AS.length;
     const S = []; let acc = 0; durs.forEach(d => { S.push(acc); acc += d; }); const contentT = acc;
     const offset = Math.max(0, Math.min(times[r.from], Math.max(0, s.dur - contentT - 0.2)));
+    // stile grafico scelto qui (Sfondo/Colori/Font), non quello del carosello - vedi lvTheme piu' sopra
+    const theme = lvTheme();
     const sl = [];
-    for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS));
+    for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS, theme));
     // layout delle parole di ogni riga, calcolato una volta sola (non a ogni fotogramma) - vedi Renderer.drawLyricWords
-    const layouts = lines.map(l => window.Renderer.lyricWordLayout(l.text, st.theme));
+    const layouts = lines.map(l => window.Renderer.lyricWordLayout(l.text, theme));
     // pausa lunga (assolo, silenzio...) dopo una riga: il verso non deve restare scritto a schermo per tutta la
     // pausa. Dopo TEXT_HOLD (+ una breve dissolvenza TEXT_FADE) il testo sparisce; se la pausa continua, lo sfondo
     // prosegue da solo cambiando foto ogni PAUSE_CYCLE secondi (mai la stessa appena mostrata), cosi' lo schermo non
@@ -474,12 +493,12 @@
       const nSeg = Math.min(8, Math.max(1, Math.round(dead / PAUSE_CYCLE)));
       const pool = BG_POOL.filter(k => k !== bg[idx]);
       const seq = LSY.backgroundSchedule(Array(nSeg).fill(0), pool.length ? pool : BG_POOL, s.n * 1000 + idx + 7);
-      return seq.map(img => C.renderOff(0, 'reel', [{ layout: 'lyric', titolo: '', fonte: s.title, immagine: img, _skipTitle: true }]));
+      return seq.map(img => C.renderOff(0, 'reel', [{ layout: 'lyric', titolo: '', fonte: s.title, immagine: img, _skipTitle: true }], theme));
     });
     // overlay fisso (marchio in alto, titolo brano/album in basso): un solo canvas, disegnato una volta sola e
     // ricomposto sopra ogni fotogramma, sempre senza zoom/tremolio (vedi Renderer.lyricOverlay)
     const overlay = document.createElement('canvas');
-    window.Renderer.lyricOverlay(overlay, { song: s.title, album: (st.data.album || {}).title, handle: st.data.handle, theme: st.theme });
+    window.Renderer.lyricOverlay(overlay, { song: s.title, album: (st.data.album || {}).title, handle: st.data.handle, theme });
     // tela "di servizio" per le parole cantate animate: drawLyricWords calcola posizioni/misure per la tela nativa
     // del motore di rendering (1080x1920, vedi Renderer.W/HREEL), non per la risoluzione di export scelta - qui la
     // ridisegno a parte e poi la scalo (stessa g.x/g.y/g.w/g.h dello sfondo, cosi' resta perfettamente allineata e
@@ -513,7 +532,7 @@
       fx.globalAlpha = alpha; fx.drawImage(bgCanvas, g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
       if (textAlpha > 0) {
         wctx.clearRect(0, 0, wordsCanvas.width, wordsCanvas.height);
-        window.Renderer.drawLyricWords(wctx, layouts[idx], st.theme, localT, Math.min(dur, TEXT_HOLD), 1);
+        window.Renderer.drawLyricWords(wctx, layouts[idx], theme, localT, Math.min(dur, TEXT_HOLD), 1);
         fx.globalAlpha = alpha * textAlpha; fx.drawImage(wordsCanvas, g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
       }
       fx.restore();
@@ -637,7 +656,7 @@
     const first = (s.lines[from] || {}).text || s.title;
     return `"${first}"\n\n${s.title} - from Roadburn Chronicles.\nFull song and lyrics: link in bio.\n\n#stonerrock #doommetal #stonerdoom #lyricvideo #petrosa`;
   }
-  const lvKeyOf = () => JSON.stringify([$('lvSong').value, lvRange(), $('lvRes').value, st.theme]);
+  const lvKeyOf = () => JSON.stringify([$('lvSong').value, lvRange(), $('lvRes').value, $('lvFx').value, lvTheme()]);
   function lvShowVideo(out, s, r) {
     if (lv.url) URL.revokeObjectURL(lv.url);
     lv.blob = out.blob; lv.ext = out.ext; lv.url = URL.createObjectURL(out.blob); lv.key = lvKeyOf();
