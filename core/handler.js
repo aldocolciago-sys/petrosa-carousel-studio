@@ -31,7 +31,7 @@ const POSTFAST_URL = () => (process.env.POSTFAST_API_URL || 'https://api.postfa.
 const LIB = require('../library');
 const AUTH = require('./auth');
 function livePhotoList() {
-  return LIB.photos().filter(p => (p.q || 0) >= 2).map(p => `${p.id} (${p.members.join('+')}; ${(p.moods || []).join('/')}; ${p.vibe})`).join(', ');
+  return LIB.photos().filter(p => (p.q || 0) >= 2).map(p => `${p.id} (${p.members.join('+')}; ${(p.moods || []).join('/')}; ${p.vibe}; impatto ${p.impact || 0})`).join(', ');
 }
 function readJSON(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
@@ -110,7 +110,7 @@ Diretto, autorevole, amichevole ma senza fronzoli. Frasi corte. Spazi bianchi me
 - Usa SOLO i fatti presenti nella base di conoscenza. Non inventare recensioni, punteggi, date, nomi o versi.
 - Ogni citazione (campo "citazione") deve essere copiata LETTERALMENTE dai testi o dalle recensioni forniti. Se accorci, usa "..." tra i frammenti, senza riscrivere nulla. Le citazioni devono stare in 260 caratteri al massimo.
 - Nel campo "fonte" indica titolo del brano oppure "Autore, Testata".
-- Le foto disponibili sono: cover (copertina album), logo, antonio, giorgio, aldo, andrea (ritratti); FOTO LIVE (concerti; elenco qui sotto, con chi c'e' e il mood): ${livePhotoList()}; sfondi artistici (deserto psichedelico, senza persone): desert1, desert2, desert3. Nella slide Band usa la foto di un membro o (per tutta la band) "logo". Le foto live vanno usate SOLO nelle slide che parlano di concerti/live (tipo "Live", layout photo o hook); Scegli la foto live in base a CHI cita la slide (il membro giusto) e al mood del carosello; le foto con qualita' 1 non usarle; non abbinare la foto di un membro a un testo su un altro. Gli sfondi desert1-3 vanno bene per layout stat/hook in slide su live o atmosfera, mai come foto di un membro.
+- Le foto disponibili sono: cover (copertina album), logo, antonio, giorgio, aldo, andrea (ritratti); FOTO LIVE (concerti; elenco qui sotto, con chi c'e' e il mood): ${livePhotoList()}; sfondi artistici (deserto psichedelico, senza persone): desert1, desert2, desert3. Nella slide Band usa la foto di un membro o (per tutta la band) "logo". Le foto live vanno usate SOLO nelle slide che parlano di concerti/live (tipo "Live", layout photo o hook); Scegli la foto live in base a CHI cita la slide (il membro giusto) e al mood del carosello; le foto con qualita' 1 non usarle; non abbinare la foto di un membro a un testo su un altro. COPERTINA: per la slide 1 preferisci spesso una foto live con impatto >= 50 (contrasto, primo piano, luce forte) coerente col mood, invece della sola copertina dell'album; non riusarla in altre slide. Gli sfondi desert1-3 vanno bene per layout stat/hook in slide su live o atmosfera, mai come foto di un membro.
 - Quando una slide parla di concerti/esibizioni usa tipo "Live". Fatto da dichiarare nelle slide live e nella caption: il repertorio dei Petrosa copre live da 30 minuti fino a 1h30, a seconda delle occasioni (informazione fornita dalla band). Non inventare date, locali, festival o tour: usa solo quelli presenti nella base di conoscenza, se ci sono.
 - Titoli brevi (massimo ~60 caratteri), corpo massimo ~200 caratteri: le slide sono immagini 1080x1350 con testo grande.
 - Layout ammessi: hook (copertina con immagine a tutto schermo), quote (citazione), stat (numero grande, es. "#14"), photo (foto membro), text (titolo + testo), cta (invito finale).
@@ -518,6 +518,7 @@ async function handler(req, res) {
     }
     if (url.pathname === '/api/library') return send(res, 200, LIB.catalog());
     if (url.pathname === '/api/propose' && req.method === 'POST') return send(res, 200, LIB.propose(await readBody(req)));
+    if (url.pathname === '/api/plan' && req.method === 'POST') return send(res, 200, LIB.weekPlan(await readBody(req)));
     if (url.pathname === '/api/swap' && req.method === 'POST') return send(res, 200, LIB.swap(await readBody(req)));
     if (url.pathname === '/api/caption' && req.method === 'POST') return send(res, 200, LIB.recaption(await readBody(req)));
     if (url.pathname === '/api/ai-caption' && req.method === 'POST') return send(res, 200, await aiCaption(await readBody(req)));

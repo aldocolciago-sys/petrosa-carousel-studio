@@ -52,8 +52,7 @@
     $('pzOff').style.display = st.cfg.postfast ? 'none' : 'block';
     $('pzBox').style.display = st.cfg.postfast ? 'block' : 'none';
     $('genHint').innerHTML = `Libreria: ${st.lib.counts.hooks} copertine, ${st.lib.counts.quotes} citazioni verificate, ${st.lib.counts.info} post informativi, ${st.lib.counts.band} testi band, ${st.lib.counts.captions} caption.`;
-    const d = new Date(Date.now() + 24 * 3600e3); d.setHours(18, 0, 0, 0);
-    $('pzDate').value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setWhen(null);
     await Promise.all([Renderer.loadImages(), Renderer.loadFonts()]);
     renderTags(); renderSources(); onFocus(); initStyleBar();
   }
@@ -88,7 +87,7 @@
   // memoria degli ultimi caroselli usati (solo in questo browser): il server li evita, se ha alternative
   const RK = 'petrosa.recent';
   const recent = () => { try { return JSON.parse(localStorage.getItem(RK) || '[]'); } catch { return []; } };
-  const remember = p => { try { const ids = [...(p.slides || []).map(s => s._ref && s._ref.libId), p.captionId].filter(Boolean); localStorage.setItem(RK, JSON.stringify([...new Set([...ids, ...recent()])].slice(0, 90))); } catch { /* ok senza memoria */ } };
+  const remember = p => { try { const c0 = p.slides && p.slides[0] && p.slides[0].immagine; const ids = [...(p.slides || []).map(s => s._ref && s._ref.libId), p.captionId, c0 && !['cover', 'logo', 'none'].includes(c0) ? 'cp-' + c0 : null].filter(Boolean); localStorage.setItem(RK, JSON.stringify([...new Set([...ids, ...recent()])].slice(0, 90))); } catch { /* ok senza memoria */ } };
   async function propose(again) {
     const focus = focusObj();
     if (focus.type === 'custom' && !focus.text.trim()) return toast('Scrivi il testo da cui partire.', true);
@@ -113,7 +112,14 @@
   function useProposal(i) {
     const p = JSON.parse(JSON.stringify(st.proposals[i])); remember(p);
     st.slides = p.slides; st.caption = p.caption; st.capId = p.captionId; st.hashtags = p.hashtags; st.argomento = `${p.label} - ${st.lib.moods.find(m => m.id === st.mood).label}`; st.sel = 0; st.engine = 'library';
-    showResult(); $('result').scrollIntoView({ behavior: 'smooth' });
+    showResult(); setWhen(null); $('result').scrollIntoView({ behavior: 'smooth' });
+  }
+  // carica un post gia' assemblato (piano settimanale) nell'editor
+  function loadPost(post, meta) {
+    const p = JSON.parse(JSON.stringify(post)); remember(p);
+    st.mood = meta.mood; st.focus = meta.focus || { type: 'auto' }; renderMoods();
+    st.slides = p.slides; st.caption = p.caption; st.capId = p.captionId; st.hashtags = p.hashtags; st.argomento = meta.argomento || ''; st.sel = 0; st.engine = 'library';
+    showResult(); setWhen(meta.when || null); if (!meta.quiet) $('result').scrollIntoView({ behavior: 'smooth' });
   }
   $('btnGen').onclick = () => propose(false);
   $('btnVar').onclick = () => propose(true);
@@ -194,6 +200,20 @@
     $('cfgSum').textContent = `⚙ ${m} · ${f} · ${st.slides.length} slide — tocca per modificare`;
   }
 
+  // ---------- Orari suggeriti (USA / Nord Europa) ----------
+  // st.when = { carousel: ISO, reel: ISO }: dal piano settimanale, oppure il prossimo slot libero
+  function setWhen(when) {
+    const S = window.Schedule; if (!S) return;
+    if (!when) { const p = S.pairs(new Date(), 1)[0]; when = { carousel: p.carousel.toISOString(), reel: p.reel.toISOString() }; }
+    st.when = when; st.pzManual = false;
+    $('pzDate').value = S.toLocalInput(new Date(when.carousel));
+    $('pzWhen').innerHTML = `<b>Carosello</b>: ${S.describe(new Date(when.carousel))}<br><b>Reel</b> (stesso giorno): ${S.describe(new Date(when.reel))}`;
+  }
+  const whenFor = kind => { if (st.pzManual || !st.when) return $('pzDate').value ? new Date($('pzDate').value).toISOString() : null; return st.when[kind]; };
+  $('pzDate').addEventListener('input', () => { st.pzManual = true; });
+  $('pzSugCar').onclick = () => { if (st.when) { st.pzManual = false; $('pzDate').value = window.Schedule.toLocalInput(new Date(st.when.carousel)); } };
+  $('pzSugReel').onclick = () => { if (st.when) { st.pzManual = false; $('pzDate').value = window.Schedule.toLocalInput(new Date(st.when.reel)); } };
+
   function showResult(keepTheme, aiStyle) {
     updateSummary();
     if (!keepTheme || !st.theme) {
@@ -224,7 +244,9 @@
     thumbs[i].b.textContent = badge(st.slides[i]); thumbs[i].b.style.display = thumbs[i].b.textContent ? 'block' : 'none';
     thumbs[i].b.style.color = st.slides[i].verified === false ? 'var(--amber)' : 'var(--ok)';
   }
-  function drawBig() { Renderer.render($('big'), st.slides[st.sel], st.sel, st.slides.length, st.data.handle, st.theme, st.fmt); $('big').classList.toggle('reel', st.fmt === 'reel'); }
+  // il Reel usa testi accorciati (ReelCut); il carosello resta com'e'
+  const forFmt = (s, f) => f === 'reel' && window.ReelCut ? window.ReelCut.cut(s) : s;
+  function drawBig() { Renderer.render($('big'), forFmt(st.slides[st.sel], st.fmt), st.sel, st.slides.length, st.data.handle, st.theme, st.fmt); $('big').classList.toggle('reel', st.fmt === 'reel'); }
   st.fmt = 'post';
   const setFmt = f => { st.fmt = f; $('fmtPost').classList.toggle('on', f === 'post'); $('fmtReel').classList.toggle('on', f === 'reel'); if (st.slides.length) drawBig(); };
   $('fmtPost').onclick = () => setFmt('post'); $('fmtReel').onclick = () => setFmt('reel');
@@ -273,33 +295,32 @@
   $('btnSpec').onclick = async () => { await navigator.clipboard.writeText(specText() + '\n\nCAPTION:\n' + fullCaption()); toast('Scheda testuale copiata.'); };
 
   // ---------- Export ----------
-  function renderOff(i, fmt) { const c = document.createElement('canvas'); Renderer.render(c, st.slides[i], i, st.slides.length, st.data.handle, st.theme, fmt || 'post'); return c; }
+  function renderOff(i, fmt) { const c = document.createElement('canvas'); Renderer.render(c, forFmt(st.slides[i], fmt), i, st.slides.length, st.data.handle, st.theme, fmt || 'post'); return c; }
   const blobOf = c => new Promise(r => c.toBlob(r, 'image/png'));
   const dl = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   const slug = () => (st.argomento || 'carosello').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'carosello';
 
-  // Cartella pronta per il telefono: 01.png, 02.png..., caption.txt, tag e istruzioni
+  // Cartella pronta per il telefono: 1-carosello/01.png..., 2-reel/reel.mp4, caption.txt (caption + hashtag), tag e istruzioni
+  const u8 = async blob => new Uint8Array(await blob.arrayBuffer());
+  async function packageFiles(o) {
+    o = o || {}; const P = window.Pack, enc = new TextEncoder(), n = st.slides.length, files = [], pre = o.prefix || '';
+    for (let i = 0; i < n; i++) files.push({ name: `${pre}${P.DIR.post}/${P.pad(i)}.png`, data: await u8(await blobOf(renderOff(i))) });
+    let reel = null;
+    if (o.reel && window.Reel) { if (o.onStatus) o.onStatus('Creo il Reel...'); reel = await window.Reel.ensure(o.reelOpts); files.push({ name: `${pre}${P.DIR.reel}/reel.${reel.ext}`, data: await u8(reel.blob) }); }
+    const S = window.Schedule, w = st.when;
+    const whenLines = S && w ? [`Carosello: ${S.describe(new Date(w.carousel))}`, `Reel: ${S.describe(new Date(w.reel))}`] : [];
+    files.push({ name: `${pre}caption.txt`, data: enc.encode(P.captionFile(fullCaption())) });
+    files.push({ name: `${pre}tag-sulle-foto.txt`, data: enc.encode(P.tagFile(st.slides)) });
+    files.push({ name: `${pre}COME-PUBBLICARE.txt`, data: enc.encode(P.howTo({ n, hasReel: !!reel, whenLines })) });
+    return files;
+  }
   $('btnPhone').onclick = async () => {
-    busy($('btnPhone'), true, 'Preparo...');
+    const withReel = $('phoneReel').checked;
+    busy($('btnPhone'), true, withReel ? 'Creo carosello e Reel (~1 min)...' : 'Preparo...');
     try {
-      const n = st.slides.length, pad = i => String(i + 1).padStart(2, '0'), enc = new TextEncoder(), files = [];
-      for (let i = 0; i < n; i++) files.push({ name: `${pad(i)}.png`, data: new Uint8Array(await (await blobOf(renderOff(i))).arrayBuffer()) });
-      files.push({ name: 'caption.txt', data: enc.encode(fullCaption()) });
-      const tagLines = st.slides.map((s, i) => (s.tag && s.tag.length) ? `Slide ${pad(i)} (${pad(i)}.png): ${s.tag.map(t => '@' + t).join('  ')}` : '').filter(Boolean);
-      files.push({ name: 'tag-sulle-foto.txt', data: enc.encode(tagLines.length ? 'Tagga questi account sulla slide indicata (Instagram > Tagga persone):\n\n' + tagLines.join('\n') + '\n' : 'Nessun tag da inserire sulle foto: le @menzioni sono gia\' nella caption.\n') });
-      files.push({ name: 'COME-PUBBLICARE.txt', data: enc.encode([
-        'COME PUBBLICARE SU INSTAGRAM E TIKTOK (dal telefono)',
-        '',
-        '1. Salva le immagini 01.png, 02.png... nella galleria del telefono.',
-        '2. Instagram: tocca +  >  Post  >  icona selezione multipla, e scegli le slide in ordine (01, 02, 03...).',
-        '3. Apri caption.txt, copia tutto il testo (caption + hashtag) e incollalo nel campo didascalia.',
-        '4. Apri tag-sulle-foto.txt: se ci sono account elencati, usa "Tagga persone" sulla slide indicata.',
-        '5. Pubblica. Poi TikTok: + > Foto > stesse slide nello stesso ordine, stessa caption.',
-        '',
-        'Suggerimento: per il pubblico USA / Nord Europa pubblica la sera italiana (pomeriggio sulla costa est).',
-        ''].join('\n')) });
-      dl(zip(files), `petrosa-${slug()}-telefono.zip`);
-      toast('Cartella scaricata: scompattala e porta le immagini sul telefono (Drive, AirDrop...).');
+      const files = await packageFiles({ reel: withReel, onStatus: m => busy($('btnPhone'), true, m) });
+      dl(zip(files), `petrosa-${slug()}-pronto.zip`);
+      toast('Cartella scaricata: scompattala e porta i file sul telefono (Drive, AirDrop...). Dentro trovi le istruzioni.');
     } catch (e) { toast(e.message, true); } finally { busy($('btnPhone'), false); }
   };
 
@@ -346,6 +367,17 @@
       $('chHint').textContent = `${st.channels.length} account`;
     } catch (e) { toast(e.message, true); } finally { busy($('btnCh'), false); }
   };
+  // carica le slide del post corrente su PostFast e le programma come carosello
+  async function sendCarousel(chosen, mode, dateIso, onStatus) {
+    const keys = [];
+    for (let i = 0; i < st.slides.length; i++) {
+      if (onStatus) onStatus(`Carico slide ${i + 1}/${st.slides.length}...`);
+      const image = renderOff(i).toDataURL('image/jpeg', 0.92);
+      keys.push((await api('/api/social/upload', { image })).key);
+    }
+    if (onStatus) onStatus('Programmo...');
+    return api('/api/social/publish', { caption: fullCaption(), keys, mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
+  }
   $('btnPub').onclick = async () => {
     const chosen = [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]);
     if (!chosen.length) return toast('Carica gli account e selezionane almeno uno.', true);
@@ -355,18 +387,7 @@
     const bad = st.slides.filter(s => s.citazione && s.verified === false).length;
     if (bad && !confirm(`${bad} citazioni non sono state verificate. Pubblicare comunque?`)) return;
     try {
-      const keys = [];
-      for (let i = 0; i < st.slides.length; i++) {
-        busy($('btnPub'), true, `Carico slide ${i + 1}/${st.slides.length}...`);
-        const image = renderOff(i).toDataURL('image/jpeg', 0.92);
-        keys.push((await api('/api/social/upload', { image })).key);
-      }
-      busy($('btnPub'), true, 'Programmo...');
-      const out = await api('/api/social/publish', {
-        caption: fullCaption(), keys, mode,
-        accounts: chosen.map(c => ({ id: c.id, platform: c.platform })),
-        date: $('pzDate').value ? new Date($('pzDate').value).toISOString() : null
-      });
+      const out = await sendCarousel(chosen, mode, whenFor('carousel'), m => busy($('btnPub'), true, m));
       toast(`PostFast: ${out.slides} slide su ${out.accounts} account (${mode === 'draft' ? 'bozza' : mode === 'now' ? 'pubblicazione tra pochi minuti' : 'programmato'}).`);
     } catch (e) { toast(e.message, true); } finally { busy($('btnPub'), false); }
   };
@@ -426,6 +447,6 @@
     } catch (e) { toast(e.message, true); } finally { busy($('btnScan'), false); }
   };
 
-  window.StudioCtx = { st, $, api, toast, busy, renderOff, fullCaption };
+  window.StudioCtx = { st, $, api, toast, busy, renderOff, fullCaption, packageFiles, zip, dl, slug, sendCarousel, chosenChannels: () => [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]), loadPost, recent, remember, setWhen, whenFor };
   init().catch(e => toast('Errore di avvio: ' + e.message, true));
 })();

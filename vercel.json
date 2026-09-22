@@ -4,5 +4,5 @@
   "installCommand": "",
   "outputDirectory": "public",
   "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }],
-  "functions": { "api/index.js": { "includeFiles": "data/**", "maxDuration": 60 } }
+  "functions": { "api/index.js": { "includeFiles": "{data/**,public/reelcut.js}", "maxDuration": 60 } }
 }

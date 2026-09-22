@@ -10,7 +10,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "club, blue light, singing into the mic"
+  "vibe": "club, blue light, singing into the mic",
+  "impact": 26
  },
  {
   "id": "live_aldo2",
@@ -23,7 +24,8 @@
    "intro"
   ],
   "q": 2,
-  "vibe": "club, blue light, standing at the mic"
+  "vibe": "club, blue light, standing at the mic",
+  "impact": 3
  },
  {
   "id": "live_aldo3",
@@ -36,7 +38,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "club, blue light, head down"
+  "vibe": "club, blue light, head down",
+  "impact": 0
  },
  {
   "id": "live_andrea1",
@@ -49,7 +52,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "club, blue light, bass"
+  "vibe": "club, blue light, bass",
+  "impact": 28
  },
  {
   "id": "live_andrea2",
@@ -62,7 +66,8 @@
    "doom"
   ],
   "q": 2,
-  "vibe": "club, blue light, bass, eyes down"
+  "vibe": "club, blue light, bass, eyes down",
+  "impact": 40
  },
  {
   "id": "live_andrea3",
@@ -75,7 +80,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "club, blue light, bass"
+  "vibe": "club, blue light, bass",
+  "impact": 29
  },
  {
   "id": "live_antonio1",
@@ -88,7 +94,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "club, blue light, guitar"
+  "vibe": "club, blue light, guitar",
+  "impact": 26
  },
  {
   "id": "live_andrea_aldo",
@@ -102,7 +109,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "club, blue light, bass and vocals side by side"
+  "vibe": "club, blue light, bass and vocals side by side",
+  "impact": 35
  },
  {
   "id": "live_antonio_aldo",
@@ -116,7 +124,8 @@
    "riff"
   ],
   "q": 2,
-  "vibe": "club, smoke, guitar and vocals"
+  "vibe": "club, smoke, guitar and vocals",
+  "impact": 27
  },
  {
   "id": "live_antonio2",
@@ -129,7 +138,8 @@
    "intro"
   ],
   "q": 3,
-  "vibe": "close-up, guitar, intense"
+  "vibe": "close-up, guitar, intense",
+  "impact": 67
  },
  {
   "id": "live_antonio3",
@@ -142,7 +152,8 @@
    "riff"
   ],
   "q": 2,
-  "vibe": "festival, daylight, guitar"
+  "vibe": "festival, daylight, guitar",
+  "impact": 63
  },
  {
   "id": "live_antonio4",
@@ -155,7 +166,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "festival, daylight, guitar"
+  "vibe": "festival, daylight, guitar",
+  "impact": 76
  },
  {
   "id": "live_antonio5",
@@ -167,7 +179,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "guitar, stage light"
+  "vibe": "guitar, stage light",
+  "impact": 43
  },
  {
   "id": "live_antonio6",
@@ -179,7 +192,8 @@
    "riff"
   ],
   "q": 2,
-  "vibe": "guitar, side view"
+  "vibe": "guitar, side view",
+  "impact": 47
  },
  {
   "id": "live_antonio7",
@@ -191,7 +205,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "guitar, full body"
+  "vibe": "guitar, full body",
+  "impact": 75
  },
  {
   "id": "live_antonio8",
@@ -204,7 +219,8 @@
    "road"
   ],
   "q": 3,
-  "vibe": "wide stage, banner, crowd blur"
+  "vibe": "wide stage, banner, crowd blur",
+  "impact": 17
  },
  {
   "id": "live_antonio9",
@@ -217,7 +233,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "orange bandana, colourful blur foreground"
+  "vibe": "orange bandana, colourful blur foreground",
+  "impact": 62
  },
  {
   "id": "live_antonio10",
@@ -230,7 +247,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "yellow bandana, festival banner"
+  "vibe": "yellow bandana, festival banner",
+  "impact": 71
  },
  {
   "id": "live_antonio11",
@@ -243,7 +261,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "smiling, horns sign"
+  "vibe": "smiling, horns sign",
+  "impact": 100
  },
  {
   "id": "live_antonio12",
@@ -256,7 +275,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "portrait, guitar, energy"
+  "vibe": "portrait, guitar, energy",
+  "impact": 48
  },
  {
   "id": "live_giorgio1",
@@ -269,7 +289,8 @@
    "doom"
   ],
   "q": 2,
-  "vibe": "smoke, drums, hazy"
+  "vibe": "smoke, drums, hazy",
+  "impact": 37
  },
  {
   "id": "live_giorgio2",
@@ -281,7 +302,8 @@
    "psych"
   ],
   "q": 3,
-  "vibe": "drums, colourful light"
+  "vibe": "drums, colourful light",
+  "impact": 60
  },
  {
   "id": "live_giorgio3",
@@ -293,7 +315,8 @@
    "psych"
   ],
   "q": 3,
-  "vibe": "drums, colourful light"
+  "vibe": "drums, colourful light",
+  "impact": 46
  },
  {
   "id": "live_giorgio4",
@@ -305,7 +328,8 @@
    "psych"
   ],
   "q": 1,
-  "vibe": "drums, blown-out highlights"
+  "vibe": "drums, blown-out highlights",
+  "impact": 56
  },
  {
   "id": "live_giorgio5",
@@ -317,7 +341,8 @@
    "psych"
   ],
   "q": 3,
-  "vibe": "drums, colourful light"
+  "vibe": "drums, colourful light",
+  "impact": 40
  },
  {
   "id": "live_giorgio6",
@@ -329,7 +354,8 @@
    "intro"
   ],
   "q": 3,
-  "vibe": "clean close-up, drums"
+  "vibe": "clean close-up, drums",
+  "impact": 36
  },
  {
   "id": "live_giorgio7",
@@ -342,7 +368,8 @@
    "psych"
   ],
   "q": 3,
-  "vibe": "purple profile, cap, moody"
+  "vibe": "purple profile, cap, moody",
+  "impact": 2
  },
  {
   "id": "live_giorgio8",
@@ -354,7 +381,8 @@
    "doom"
   ],
   "q": 3,
-  "vibe": "dark profile, cap, moody"
+  "vibe": "dark profile, cap, moody",
+  "impact": 4
  },
  {
   "id": "live_andrea4",
@@ -367,7 +395,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "close-up, bass"
+  "vibe": "close-up, bass",
+  "impact": 71
  },
  {
   "id": "live_andrea5",
@@ -379,7 +408,8 @@
    "intro"
   ],
   "q": 3,
-  "vibe": "close-up, bass"
+  "vibe": "close-up, bass",
+  "impact": 22
  },
  {
   "id": "live_andrea6",
@@ -392,7 +422,8 @@
    "doom"
   ],
   "q": 3,
-  "vibe": "close-up, bass, orange flare"
+  "vibe": "close-up, bass, orange flare",
+  "impact": 31
  },
  {
   "id": "live_andrea7",
@@ -405,7 +436,8 @@
    "doom"
   ],
   "q": 3,
-  "vibe": "close-up, bass, eyes down"
+  "vibe": "close-up, bass, eyes down",
+  "impact": 69
  },
  {
   "id": "live_andrea8",
@@ -418,7 +450,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "full stage, blue light, red bass"
+  "vibe": "full stage, blue light, red bass",
+  "impact": 37
  },
  {
   "id": "live_andrea9",
@@ -431,7 +464,8 @@
    "riff"
   ],
   "q": 3,
-  "vibe": "festival, daylight, bass"
+  "vibe": "festival, daylight, bass",
+  "impact": 71
  },
  {
   "id": "live_andrea10",
@@ -444,7 +478,8 @@
    "proof"
   ],
   "q": 3,
-  "vibe": "bass, smiling, crowd blur"
+  "vibe": "bass, smiling, crowd blur",
+  "impact": 41
  },
  {
   "id": "live_aldo4",
@@ -457,7 +492,8 @@
    "intro"
   ],
   "q": 3,
-  "vibe": "profile, mic, green daylight"
+  "vibe": "profile, mic, green daylight",
+  "impact": 32
  },
  {
   "id": "live_aldo5",
@@ -470,7 +506,8 @@
    "intro"
   ],
   "q": 3,
-  "vibe": "close-up, beard, mic stand"
+  "vibe": "close-up, beard, mic stand",
+  "impact": 61
  },
  {
   "id": "live_aldo6",
@@ -484,7 +521,8 @@
    "proof"
   ],
   "q": 3,
-  "vibe": "blue smoke, smiling, wide"
+  "vibe": "blue smoke, smiling, wide",
+  "impact": 55
  },
  {
   "id": "live_aldo7",
@@ -496,7 +534,8 @@
    "doom"
   ],
   "q": 3,
-  "vibe": "head back, dramatic"
+  "vibe": "head back, dramatic",
+  "impact": 40
  },
  {
   "id": "live_aldo8",
@@ -509,7 +548,8 @@
    "psych"
   ],
   "q": 3,
-  "vibe": "bowing, hands together"
+  "vibe": "bowing, hands together",
+  "impact": 40
  },
  {
   "id": "live_aldo9",
@@ -522,7 +562,8 @@
    "psych"
   ],
   "q": 3,
-  "vibe": "mic close, purple light"
+  "vibe": "mic close, purple light",
+  "impact": 32
  },
  {
   "id": "live_aldo10",
@@ -535,7 +576,8 @@
    "intro"
   ],
   "q": 3,
-  "vibe": "eyes down, mic, purple light"
+  "vibe": "eyes down, mic, purple light",
+  "impact": 28
  },
  {
   "id": "live_aldo11",
@@ -548,7 +590,8 @@
    "doom"
   ],
   "q": 3,
-  "vibe": "low angle, portrait, mic stand"
+  "vibe": "low angle, portrait, mic stand",
+  "impact": 68
  },
  {
   "id": "live_aldo_giorgio1",
@@ -562,7 +605,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "dark orange stage light, vocals and drums"
+  "vibe": "dark orange stage light, vocals and drums",
+  "impact": 40
  },
  {
   "id": "live_aldo_giorgio2",
@@ -576,7 +620,8 @@
    "proof"
   ],
   "q": 3,
-  "vibe": "vocals and drums, stage light"
+  "vibe": "vocals and drums, stage light",
+  "impact": 62
  },
  {
   "id": "live_aldo_giorgio3",
@@ -590,7 +635,8 @@
    "psych"
   ],
   "q": 2,
-  "vibe": "warm flare, vocals and drums"
+  "vibe": "warm flare, vocals and drums",
+  "impact": 36
  },
  {
   "id": "live_andrea_aldo2",
@@ -604,7 +650,8 @@
    "fans"
   ],
   "q": 3,
-  "vibe": "sunset, bass and vocals"
+  "vibe": "sunset, bass and vocals",
+  "impact": 62
  },
  {
   "id": "live_andrea_aldo3",
@@ -618,7 +665,8 @@
    "proof"
   ],
   "q": 3,
-  "vibe": "dark stage, bass and vocals"
+  "vibe": "dark stage, bass and vocals",
+  "impact": 34
  },
  {
   "id": "live_antonio_aldo2",
@@ -632,7 +680,8 @@
    "fans"
   ],
   "q": 3,
-  "vibe": "under the eagle banner, guitar and vocals"
+  "vibe": "under the eagle banner, guitar and vocals",
+  "impact": 63
  },
  {
   "id": "live_band1",
@@ -649,7 +698,8 @@
    "fans"
   ],
   "q": 3,
-  "vibe": "all four members on stage, composite"
+  "vibe": "all four members on stage, composite",
+  "impact": 60
  },
  {
   "id": "live_banner1",
@@ -663,7 +713,8 @@
    "road"
   ],
   "q": 3,
-  "vibe": "PETROSA banner, singer small in frame, composite"
+  "vibe": "PETROSA banner, singer small in frame, composite",
+  "impact": 46
  },
  {
   "id": "live_aldo12",
@@ -677,7 +728,8 @@
    "fans"
   ],
   "q": 3,
-  "vibe": "gold light, singing, hand on the mic"
+  "vibe": "gold light, singing, hand on the mic",
+  "impact": 35
  },
  {
   "id": "live_antonio13",
@@ -691,6 +743,7 @@
    "road"
   ],
   "q": 3,
-  "vibe": "gold light, smiling, guitar"
+  "vibe": "gold light, smiling, guitar",
+  "impact": 39
  }
 ]

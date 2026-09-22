@@ -3,7 +3,7 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 const want = process.argv.slice(2);
-const suites = [['unit', 'Libreria, stili e dati'], ['api', 'API, PostFast, AI, accesso'], ['e2e', 'Interfaccia nel browser']].filter(([k]) => !want.length || want.includes(k));
+const suites = [['unit', 'Libreria, stili e dati'], ['features', 'Funzioni di crescita (Reel, piano, orari)'], ['api', 'API, PostFast, AI, accesso'], ['e2e', 'Interfaccia nel browser']].filter(([k]) => !want.length || want.includes(k));
 const t0 = Date.now(); const results = [];
 for (const [k, label] of suites) {
   console.log(`\n=== ${label} (tests/${k}.test.js) ===`);

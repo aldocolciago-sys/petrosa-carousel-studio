@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const DATA = path.join(__dirname, 'data');
+const RC = require('./public/reelcut.js');   // testi accorciati per il Reel
 
 const readJSON = (f, fb) => { try { return JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8')); } catch { return fb; } };
 const norm = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -102,12 +103,26 @@ function fill(str, vars) { return String(str || '').replace(/\{(\w+)\}/g, (m, k)
 
 // ---------- Costruzione di una slide da uno step ----------
 function ctxFrom(mood, focus, rng, D) {
-  return { mood, focus: focus || { type: 'auto' }, rng, D, used: new Set(), songs: new Set(), reviews: new Set(), pubs: new Set(), topics: new Set(), titles: new Set(), members: new Set(), firstQuote: true };
+  return { mood, focus: focus || { type: 'auto' }, rng, D, used: new Set(), songs: new Set(), reviews: new Set(), pubs: new Set(), topics: new Set(), titles: new Set(), imgs: new Set(), members: new Set(), firstQuote: true };
 }
 
 function songFocusN(ctx) { return ctx.focus.type === 'song' ? parseInt(ctx.focus.item, 10) : null; }
 function memberFocus(ctx) { return ctx.focus.type === 'member' ? ctx.focus.item : null; }
 function reviewFocus(ctx) { return ctx.focus.type === 'review' ? ctx.focus.item : null; }
+
+// ---------- Copertine forti: foto live scelta per mood e impatto visivo (data/photos.json: campo "impact" 0-100) ----------
+const COVER_PHOTO_RATE = 0.6;      // quota di copertine "generiche" con foto live invece dell'album
+const COVER_MIN_IMPACT = 45;       // sotto questa soglia la foto non fa da copertina (le foto cupe restano per le slide Live)
+function coverCandidates(ctx) {
+  return (ctx.D.photos || []).filter(p => (p.q || 0) >= 2 && (p.impact || 0) >= COVER_MIN_IMPACT && (p.kind === 'solo' || p.kind === 'duo') && !ctx.imgs.has(p.id));
+}
+function coverPhoto(ctx) {
+  const c = coverCandidates(ctx); if (!c.length) return null;
+  const w = c.map(p => Math.pow(Math.max(1, p.impact - 30), 1.5) * ((p.moods || []).includes(ctx.mood) ? 3 : 1) * (AVOID.has('cp-' + p.id) ? 0.3 : 1));
+  let r = ctx.rng() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < c.length; i++) { r -= w[i]; if (r <= 0) return c[i]; }
+  return c[c.length - 1];
+}
 
 function buildHook(ctx, isFirstPick = true) {
   const { lib, band } = ctx.D;
@@ -132,10 +147,15 @@ function buildHook(ctx, isFirstPick = true) {
     vars.pub = r.publication; vars.verdict = r.verdict; ctx.reviews.add(r.id); ctx.pubs.add(r.publication);
   }
   ctx.used.add(h.id);
+  let visual = 'Album cover over a blurred purple/black background, big amber title.';
+  if (!h.kind && immagine === 'cover' && ctx.rng() < COVER_PHOTO_RATE) {
+    const cp = coverPhoto(ctx);
+    if (cp) { immagine = cp.id; ctx.coverPhoto = cp.id; visual = `Full-bleed live photo (${cp.vibe}) with a dark gradient at the bottom, big amber title.`; }
+  }
   return {
     tipo: 'Cover', layout, immagine,
     titolo: fill(h.titolo, vars), corpo: fill(h.corpo, vars),
-    visual: 'Album cover over a blurred purple/black background, big amber title.',
+    visual,
     _libId: h.id
   };
 }
@@ -210,11 +230,15 @@ function buildInfo(ctx, step) {
   if (step._ids) pool = lib.info.filter(i => step._ids.includes(i.id) && !ctx.used.has(i.id));
   if (!pool.length) pool = lib.info.filter(i => topics.includes(i.topic));
   // scegli un topic a caso fra quelli ammessi, poi l'elemento migliore per il mood
+  const newI = pool.filter(i => !ctx.imgs.has(i.immagine));   // la stessa foto non compare due volte (es. copertina live e slide Live)
+  if (newI.length) pool = newI;
   const newT = pool.filter(i => !ctx.titles.has(i.titolo));   // mai due slide con lo stesso titolo (es. due foto dello stesso membro)
   if (newT.length) pool = newT;
   const avail = [...new Set(pool.map(i => i.topic))];
   const topic = one(avail, ctx.rng);
-  const it = pick(pool.filter(i => i.topic === topic), ctx.mood, ctx.rng, ctx.used);
+  let cand = pool.filter(i => i.topic === topic);
+  if (topic === 'live-band') { const mm = cand.filter(i => (i.moods || []).includes(ctx.mood)); if (mm.length) cand = mm; }   // foto live: prima quelle del mood scelto
+  const it = pick(cand, ctx.mood, ctx.rng, ctx.used);
   ctx.used.add(it.id); ctx.topics.add(it.topic); ctx.titles.add(it.titolo);
   const s = { tipo: it.tipo || 'Album', layout: it.layout || 'text', immagine: it.immagine || 'none', titolo: it.titolo, corpo: it.corpo, visual: '', _libId: it.id };
   if (it.stat) s.stat = it.stat;
@@ -269,6 +293,7 @@ function buildSlide(ctx, step) {
     case 'custom': s = { tipo: 'Content', layout: 'text', immagine: 'none', titolo: step.titolo || 'Petrosa.', corpo: step.corpo || '', visual: 'Dark background with purple/orange glow, large text.', _libId: 'custom' }; break;
     default: throw new Error('slot sconosciuto: ' + step.slot);
   }
+  if (s.immagine && !['none', 'cover', 'logo'].includes(s.immagine)) ctx.imgs.add(s.immagine);
   s._ref = { slot: step.slot, kind: step.kind, topics: step.topics, who: step.who, libId: s._libId, member: s._member };
   delete s._libId; delete s._member; delete s._analysis;
   return s;
@@ -289,7 +314,33 @@ function finalize(slides, D) {
 }
 
 // ---------- Caption & hashtag ----------
-function buildCaption(slides, mood, seed, D, exclude) {
+// Paragrafo di contesto: la caption nomina cio' che si vede nelle slide (brano, recensione e testata, membro, Doom Charts)
+const ROLE_VERB = { guitar: 'plays guitar', drums: 'plays drums', vocals: 'sings', bass: 'plays bass' };
+function contextParagraph(slides, D, focusType) {
+  const { lib, band } = D;
+  const found = {};
+  for (const s of slides) {
+    if (s.tipo === 'Song' && s.fonte && !found.song) {
+      const so = band.songs.find(x => x.title === s.fonte);
+      if (so) found.song = `"${so.title}": ${(lib.songNotes || {})[so.n] || 'Track ' + String(so.n).padStart(2, '0') + '.'}`;
+    }
+    if (s.tipo === 'Review' && s.citazione && s.fonte && !found.review) {
+      const [author, ...pub] = String(s.fonte).split(',');
+      let q = String(s.citazione).split(/\s\/\s|\s*(?:\.{3}|…)\s*/)[0].trim();
+      if (q.length > 130) q = q.slice(0, 130).replace(/\s+\S*$/, '') + '...';
+      found.review = pub.length ? `${author.trim()} in ${pub.join(',').trim()}: "${q}"` : `${s.fonte}: "${q}"`;
+    }
+    if (s.stat === '#14' && !found.charts) { const c = band.album.doomCharts; found.charts = `Roadburn Chronicles is #${c.position} in the Doom Charts, among ${c.pool} nominated albums.`; }
+    const mem = band.members.find(m => m.photo === s.immagine);
+    if (mem && !found.member) found.member = `${mem.name} ${ROLE_VERB[mem.role.replace(/\s*\(.*\)/, '').toLowerCase()] || 'is in the band'} in Petrosa.`;
+  }
+  const order = [focusType === 'song' ? 'song' : focusType === 'review' ? 'review' : focusType === 'member' ? 'member' : focusType === 'doomcharts' ? 'charts' : null, 'song', 'review', 'charts', 'member'].filter(Boolean);
+  const solo = order[0] && found[order[0]];   // con un argomento scelto (brano, recensione, membro, Doom Charts) la caption parla solo di quello
+  const kinds = solo ? [order[0]] : [...new Set(order)].filter(k => found[k]).slice(0, 2);
+  return kinds.map(k => found[k]).join(' ');
+}
+
+function buildCaption(slides, mood, seed, D, exclude, focusType) {
   const { lib, tags } = D;
   const rng = mulberry(seed + 77);
   const primary = confirmed(tags.similarBands.filter(b => b.tier === 'primary'));
@@ -306,6 +357,8 @@ function buildCaption(slides, mood, seed, D, exclude) {
   const cap = one(fresh2.length ? fresh2 : (pool.length ? pool : lib.captions.filter(c => !!c.band === wholeBand)), rng);
   const an = slides.map(s => s._ref && s._ref.slot === 'analysis' ? (lib.analyses || []).find(a => a.id === s._ref.libId) : null).find(Boolean);
   let text = fill(an ? an.caption : cap.text, { fans: fans.map(h => '@' + h).join(' ') });
+  const ctxP = contextParagraph(slides, D, focusType);
+  if (ctxP && !norm(text).includes(norm(ctxP.split(':')[0]))) { const k = text.indexOf('\n\n'); text = k > 0 ? text.slice(0, k) + '\n\n' + ctxP + text.slice(k) : text + '\n\n' + ctxP; }
   const mentions = fans.filter(h => text.toLowerCase().includes('@' + h.toLowerCase()));
   if (!mentions.length) {
     const list = rot(primary).slice(0, 4);
@@ -416,7 +469,7 @@ function assemble(recipe, mood, focus, seed, D) {
   const steps = applyFocusToSteps(recipe.steps, ctx.focus, ctx);
   // per due step "band member" servono membri diversi: gestito da ctx.members
   const slides = finalize(steps.map(st => buildSlide(ctx, st)), D);
-  const cap = buildCaption(slides, mood, seed, D);
+  const cap = buildCaption(slides, mood, seed, D, undefined, ctx.focus && ctx.focus.type);
   return { recipeId: recipe.id, label: recipe.label, desc: recipe.desc, slides, ...cap };
 }
 
@@ -467,8 +520,55 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   const ns = buildSlide(ctx, step);
   const out = slides.map((s, i) => i === index ? ns : s);
   finalize(out, D);
-  const cap = buildCaption(out, mood, seed, D);
+  const cap = buildCaption(out, mood, seed, D, undefined, focus && focus.type);
   return { slides: out, ...cap };
+}
+
+// ---------- Piano settimanale: 5 o 7 caroselli con Reel abbinato, argomenti e mood alternati, senza ripetizioni ----------
+const PLAN = {
+  7: [{ t: 'song', m: 'riff' }, { t: 'review', m: 'proof' }, { t: 'member', m: 'intro' }, { t: 'live', m: 'road' }, { t: 'song', m: 'doom' }, { t: 'band', m: 'fans' }, { t: 'album', m: 'psych' }],
+  5: [{ t: 'song', m: 'riff' }, { t: 'review', m: 'proof' }, { t: 'member', m: 'intro' }, { t: 'live', m: 'doom' }, { t: 'album', m: 'psych' }]
+};
+const PLAN_SIZES = [8, 9, 7, 10, 8, 9, 7];   // lunghezze diverse: il feed non sembra una fotocopia
+function weekPlan({ days = 7, seed, avoid = [] } = {}) {
+  days = days === 5 ? 5 : 7;
+  const D = load();
+  seed = Number.isFinite(+seed) ? +seed : Math.floor(Math.random() * 1e9);
+  const rng = mulberry(seed);
+  const rot = arr => { const k = Math.floor(rng() * arr.length); return arr.slice(k).concat(arr.slice(0, k)); };
+  const songs = rot(D.band.songs.map(x => x.n)), members = rot(D.band.members.map(m => m.id)), reviews = rot(D.band.reviews.filter(r => r.quote).map(r => r.id));
+  const taken = new Set(Array.isArray(avoid) ? avoid.map(String) : []);
+  const usedSongs = [], out = [];
+  const recipesUsed = new Set();
+  PLAN[days].forEach((slot, k) => {
+    let focus = { type: slot.t };
+    if (slot.t === 'song') { focus.item = songs.find(n => !usedSongs.includes(n)); usedSongs.push(focus.item); }
+    else if (slot.t === 'member') focus.item = members.shift();
+    else if (slot.t === 'review') focus.item = reviews.shift();
+    AVOID = new Set(taken);
+    const n = PLAN_SIZES[k % PLAN_SIZES.length];
+    const rs = D.lib.recipes.filter(r => r.n === n), fresh = rs.filter(r => !recipesUsed.has(r.id));
+    const recipe = one(fresh.length ? fresh : rs, rng); recipesUsed.add(recipe.id);
+    const dseed = seed + 1000 * (k + 1);
+    const p = assemble(recipe, slot.m, focus, dseed, D);
+    p.slides.forEach(sl => {
+      if (!sl._ref || !sl._ref.libId) return;
+      taken.add(sl._ref.libId);
+      const q = D.lib.quotes.find(x => x.id === sl._ref.libId);   // stesso brano o stessa recensione: evitati anche nei giorni successivi
+      if (q) D.lib.quotes.filter(x => x.kind === q.kind && (q.kind === 'song' ? x.song === q.song : x.review === q.review)).forEach(x => taken.add(x.id));
+    });
+    taken.add(p.captionId);
+    const c0 = p.slides[0].immagine; if (c0 && !['cover', 'logo', 'none'].includes(c0)) taken.add('cp-' + c0);
+    // Reel abbinato: stesso post, testi accorciati, sulla canzone del verso citato (o sulla prossima non ancora usata)
+    const qs = p.slides.find(sl => sl.citazione && sl._ref && sl._ref.libId && (D.lib.quotes.find(q => q.id === sl._ref.libId) || {}).kind === 'song');
+    const qn = qs ? (D.lib.quotes.find(q => q.id === qs._ref.libId) || {}).song : null;
+    const reelSong = qn;   // se null, viene assegnata dopo (una canzone diversa per ogni giorno)
+    const label = { song: () => 'Brano: ' + (D.band.songs.find(x => x.n === focus.item) || {}).title, review: () => 'Recensione: ' + ((D.band.reviews.find(r => r.id === focus.item) || {}).publication), member: () => 'Membro: ' + ((D.band.members.find(m => m.id === focus.item) || {}).name), live: () => 'Live', band: () => 'Tutta la band', album: () => 'Album' }[slot.t]();
+    out.push({ day: k + 1, topic: slot.t, label, mood: slot.m, focus, n, recipeId: recipe.id, slides: p.slides, caption: p.caption, hashtags: p.hashtags, menzioni: p.menzioni, captionId: p.captionId, reel: { song: reelSong, slides: RC.cutAll(p.slides) } });
+  });
+  const claimed = new Set(out.map(o => o.reel.song).filter(Boolean));
+  out.forEach(o => { if (!o.reel.song) { const n = songs.find(x => !claimed.has(x)) || songs[0]; o.reel.song = n; claimed.add(n); } });
+  return { seed, days: out.length, plan: out };
 }
 
 function recaption({ mood = 'riff', slides = [], seed, exclude } = {}) {
@@ -480,4 +580,4 @@ function recaption({ mood = 'riff', slides = [], seed, exclude } = {}) {
 // lo stato "avoid" vale solo per la singola richiesta (in serverless l'istanza resta viva fra una richiesta e l'altra)
 const scoped = fn => (...a) => { try { return fn(...a); } finally { AVOID = new Set(); } };
 function photos() { return readJSON('photos.json', []); }
-module.exports = { photos, propose: scoped(propose), swap: scoped(swap), recaption, catalog, load, assemble, mulberry, norm, finalize };
+module.exports = { weekPlan: scoped(weekPlan), photos, propose: scoped(propose), swap: scoped(swap), recaption, catalog, load, assemble, mulberry, norm, finalize };

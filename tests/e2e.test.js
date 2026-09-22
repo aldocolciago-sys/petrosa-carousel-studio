@@ -110,8 +110,9 @@ describe('e2e', () => {
     await page.locator('#strip .thumb').nth(2).click(); assert.notEqual(await hash(page), h0);
     // layout x immagini
     const layouts = await page.locator('#e_layout option').evaluateAll(o => o.map(x => x.value)); assert.equal(layouts.length, 6);
-    const imgs = await page.locator('#e_immagine option').evaluateAll(o => o.map(x => x.value)); assert.ok(imgs.length >= 19);
-    for (const l of layouts) { await page.selectOption('#e_layout', l); for (const im of imgs) { await page.selectOption('#e_immagine', im); } assert.ok(await hash(page)); }
+    const imgs = await page.locator('#e_immagine option').evaluateAll(o => o.map(x => x.value)); assert.ok(imgs.length >= 60);
+    // tutte le immagini sui layout a foto (photo, hook); sugli altri un campione (ogni quarta) per contenere i tempi
+    for (const l of layouts) { await page.selectOption('#e_layout', l); for (const im of (l === 'photo' || l === 'hook' ? imgs : imgs.filter((_, k) => k % 4 === 0))) { await page.selectOption('#e_immagine', im); } assert.ok(await hash(page)); }
     // testo
     await page.locator('#strip .thumb').nth(0).click(); await page.selectOption('#e_layout', 'hook'); await page.selectOption('#e_immagine', 'cover'); const hh = await hash(page);
     await page.fill('#e_titolo', 'Titolo modificato per il test'); await page.waitForTimeout(150); assert.notEqual(await hash(page), hh);
@@ -150,8 +151,10 @@ describe('e2e', () => {
     const png = fs.readFileSync(await saveDownload(dl)); assert.equal(png.slice(1, 4).toString(), 'PNG'); assert.equal(png.readUInt32BE(16), 1080); assert.equal(png.readUInt32BE(20), 1350);
     [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btnZip')]);
     let names = zipNames(fs.readFileSync(await saveDownload(dl))); assert.equal(names.filter(n => n.endsWith('.png')).length, 8); assert.ok(names.includes('caption.txt') && names.includes('scheda-slide.md'), names.join());
+    await page.uncheck('#phoneReel');
     [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.click('#btnPhone')]);
-    names = zipNames(fs.readFileSync(await saveDownload(dl))); assert.equal(names.filter(n => /^\d\d\.png$/.test(n)).length, 8); for (const f of ['caption.txt', 'tag-sulle-foto.txt', 'COME-PUBBLICARE.txt']) assert.ok(names.includes(f), f);
+    names = zipNames(fs.readFileSync(await saveDownload(dl))); assert.equal(names.filter(n => /^1-carosello\/\d\d\.png$/.test(n)).length, 8); for (const f of ['caption.txt', 'tag-sulle-foto.txt', 'COME-PUBBLICARE.txt']) assert.ok(names.includes(f), f);
+    assert.ok(!names.some(n => n.startsWith('2-reel')), 'senza Reel se la casella e spenta');
   }));
 
   test('PostFast: account, bozza, programma (data obbligatoria), pubblica subito', T, () => run(async page => {
@@ -166,6 +169,24 @@ describe('e2e', () => {
     assert.equal(pf.state.posts.at(-1).status, 'SCHEDULED');
     await page.selectOption('#pzMode', 'now'); await page.click('#btnPub'); await page.waitForFunction(() => /pubblicazione tra pochi minuti/.test(document.getElementById('toast').textContent), null, { timeout: 60000 });
     await page.locator('#chList input').first().uncheck(); await page.locator('#chList input').nth(1).uncheck(); await page.click('#btnPub'); assert.match(await toastText(page), /almeno uno/);
+  }));
+
+  test('Orari suggeriti: data precompilata, invio all\'orario consigliato, pulsante Reel, giorno del piano', T, () => run(async page => {
+    await gen(page, { mood: 0 }); await useProposal(page);
+    const w = await page.evaluate(() => ({ when: StudioCtx.st.when, val: document.getElementById('pzDate').value, local: Schedule.toLocalInput(new Date(StudioCtx.st.when.carousel)), txt: document.getElementById('pzWhen').innerText }));
+    assert.equal(w.val, w.local); assert.ok(new Date(w.when.carousel) > new Date()); assert.match(w.txt, /New York/); assert.match(w.txt, /Reel/);
+    assert.ok(new Date(w.when.reel) - new Date(w.when.carousel) >= 90 * 60000 && new Date(w.when.reel) - new Date(w.when.carousel) <= 200 * 60000, 'il Reel esce 1,5-3 ore dopo');
+    await page.click('#btnCh'); await page.waitForFunction(() => document.querySelectorAll('#chList input').length === 2);
+    await page.selectOption('#pzMode', 'schedule'); await page.click('#btnPub'); await page.waitForFunction(() => /programmato/.test(document.getElementById('toast').textContent), null, { timeout: 60000 });
+    assert.equal(new Date(pf.state.posts.at(-1).posts[0].scheduledAt).toISOString(), w.when.carousel);
+    await page.click('#pzSugReel'); assert.equal(await $(page, 'pzDate').inputValue(), await page.evaluate(() => Schedule.toLocalInput(new Date(StudioCtx.st.when.reel))));
+    await page.fill('#pzDate', '2031-01-02T10:00'); assert.equal(await page.evaluate(() => StudioCtx.whenFor('reel')), new Date('2031-01-02T10:00').toISOString());
+    await page.click('#pzSugCar'); assert.equal(await page.evaluate(() => StudioCtx.whenFor('reel')), w.when.reel);
+    await page.click('#btnPlan'); await page.waitForSelector('#planList .pday', { timeout: 60000 });
+    const p2 = await page.evaluate(() => window.Plan.get().plan.map(d => d.when.carousel));
+    assert.equal(new Set(p2).size, 7); assert.ok(p2.every((x, i) => !i || new Date(x) > new Date(p2[i - 1])));
+    await page.locator('[data-open="2"]').click(); await page.waitForSelector('#result', { state: 'visible' });
+    assert.equal(await page.evaluate(() => StudioCtx.st.when.carousel), p2[2]);
   }));
 
   test('modalita\' AI: genera, stile, citazioni inventate segnalate, caption AI, tag ripuliti', T, () => run(async page => {
@@ -203,6 +224,79 @@ describe('e2e', () => {
     assert.ok(await page.locator('#btnBoth').isVisible());
   }));
 
+  test('Piano settimanale: 7 e 5 giorni, anteprime, apertura di un giorno nell\'editor con la canzone del Reel', T, () => run(async page => {
+    await page.click('#btnPlan'); await page.waitForSelector('#planList .pday', { timeout: 60000 });
+    assert.equal(await page.locator('#planList .pday').count(), 7);
+    const thumbs = await page.evaluate(() => [...document.querySelectorAll('#planList canvas')].map(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let s = 0; for (let i = 0; i < d.length; i += 40) s += d[i]; return s > 0; }));
+    assert.ok(thumbs.every(Boolean), 'anteprime vuote');
+    const plan = await page.evaluate(() => window.Plan.get());
+    await page.locator('[data-open="1"]').click(); await page.waitForSelector('#result', { state: 'visible' });
+    await page.waitForFunction(() => document.querySelectorAll('#strip .thumb').length > 0);
+    assert.match(await page.locator('#argom').innerText(), /Giorno 2/);
+    assert.equal(await page.evaluate(() => StudioCtx.st.slides.length), plan.plan[1].slides.length);
+    await page.waitForFunction(s => document.getElementById('rlSong').value === String(s), plan.plan[1].reel.song, { timeout: 15000 });
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan');
+    await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+  }));
+  test('Cartella pronta per il telefono con Reel: carosello, video, caption da copiare, istruzioni con orari; il video si riusa', T, () => run(async page => {
+    await gen(page, { focus: 'song', item: '1', slides: 7 }); await useProposal(page);
+    await page.selectOption('#rlRes', '720'); await page.selectOption('#rlDur', '3');
+    const t0 = Date.now();
+    let [dl] = await Promise.all([page.waitForEvent('download', { timeout: 150000 }), page.click('#btnPhone')]);
+    const buf = fs.readFileSync(await saveDownload(dl)); const names = zipNames(buf);
+    assert.equal(names.filter(n => /^1-carosello\/\d\d\.png$/.test(n)).length, 7);
+    const reel = names.find(n => /^2-reel\/reel\.(mp4|webm)$/.test(n)); assert.ok(reel, names.join());
+    for (const f of ['caption.txt', 'tag-sulle-foto.txt', 'COME-PUBBLICARE.txt']) assert.ok(names.includes(f), f);
+    // il file del video ha una dimensione plausibile e il testo delle istruzioni cita il Reel e gli orari
+    const txt = buf.toString('latin1'); assert.match(txt, /COME PUBBLICARE/); assert.ok(buf.length > 60000, 'zip troppo piccolo: ' + buf.length);
+    assert.match(buf.toString('utf8'), /ORARI CONSIGLIATI/); assert.match(buf.toString('utf8'), /New York/); assert.match(buf.toString('utf8'), /reel\.mp4|reel\.webm|REEL - Instagram/);
+    const cap = await page.inputValue('#caption'); assert.ok(buf.toString('utf8').includes(cap.trim().slice(0, 40)), 'la caption e nel file');
+    // secondo download: il Reel non viene registrato di nuovo (molto piu veloce)
+    const t1 = Date.now(); [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#btnPhone')]); await saveDownload(dl);
+    assert.ok(Date.now() - t1 < (t1 - t0) * 0.6, `riuso del video: ${Date.now() - t1} ms contro ${t1 - t0} ms`);
+    assert.equal(await $(page, 'btnPhone').innerText(), 'Cartella pronta per il telefono');
+  }));
+
+  test('Piano: scarica tutto (ZIP con una cartella per giorno e calendario)', T, () => run(async page => {
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+    await page.uncheck('#planReel');
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 170000 }), page.click('#planZip')]);
+    const names = zipNames(fs.readFileSync(await saveDownload(dl)));
+    assert.ok(names.includes('PIANO.txt'));
+    const plan = await page.evaluate(() => window.Plan.get().plan.map(d => [d.day, d.topic, d.slides.length]));
+    for (const [day, topic, n] of plan) {
+      const pre = `giorno-${String(day).padStart(2, '0')}-${topic}/`;
+      assert.equal(names.filter(x => x.startsWith(pre + '1-carosello/') && x.endsWith('.png')).length, n, pre);
+      for (const f of ['caption.txt', 'tag-sulle-foto.txt', 'COME-PUBBLICARE.txt']) assert.ok(names.includes(pre + f), pre + f);
+    }
+    assert.equal(await $(page, 'planZip').innerText(), 'Scarica tutto il piano (ZIP)'); assert.equal(await $(page, 'planProg').innerText(), '');
+  }));
+
+  test('Piano: programma tutto su PostFast (5 caroselli + 5 Reel agli orari consigliati)', { timeout: 600000 }, () => run(async page => {
+    await page.selectOption('#planDays', '5'); await page.click('#btnPlan'); await page.waitForFunction(() => document.querySelectorAll('#planList .pday').length === 5, null, { timeout: 60000 });
+    const when = await page.evaluate(() => window.Plan.get().plan.map(d => d.when));
+    await page.evaluate(() => { document.getElementById('rlRes').value = '720'; document.getElementById('rlDur').value = '3'; }); await page.selectOption('#planMode', 'schedule');
+    const before = pf.state.posts.length;
+    await page.click('#planSend'); await page.waitForFunction(() => /PostFast: 5 giorni programmati|errori/.test(document.getElementById('toast').textContent), null, { timeout: 540000 });
+    assert.match(await toastText(page), /5 giorni programmati/);
+    const posts = pf.state.posts.slice(before); assert.equal(posts.length, 10);
+    const car = posts.filter(p => p.posts[0].mediaItems[0].type === 'IMAGE'), vid = posts.filter(p => p.posts[0].mediaItems[0].type === 'VIDEO');
+    assert.equal(car.length, 5); assert.equal(vid.length, 5);
+    car.forEach((p, i) => assert.equal(new Date(p.posts[0].scheduledAt).toISOString(), when[i].carousel));
+    vid.forEach((p, i) => { assert.equal(new Date(p.posts[0].scheduledAt).toISOString(), when[i].reel); assert.equal(p.controls.instagramPublishType, 'REEL'); });
+    assert.equal(await $(page, 'planSend').isDisabled(), false);
+  }));
+
+  test('Reel su misura: il video usa testi accorciati, il carosello no; verso integro', T, () => run(async page => {
+    await gen(page, { focus: 'song', slides: 8 }); await useProposal(page);
+    const r = await page.evaluate(() => {
+      const st = StudioCtx.st; let calls = 0; const orig = window.ReelCut.cut; window.ReelCut.cut = s => { calls++; return orig(s); };
+      StudioCtx.renderOff(0); const afterPost = calls; StudioCtx.renderOff(0, 'reel'); const afterReel = calls;
+      const q = st.slides.find(x => x.citazione); const cut = orig(q);
+      return { afterPost, afterReel, same: cut.citazione === q.citazione, total: window.ReelCut.stats(st.slides) };
+    });
+    assert.equal(r.afterPost, 0); assert.equal(r.afterReel, 1); assert.ok(r.same); assert.ok(r.total.after <= r.total.before);
+  }));
   test('Reel: brano, verso sincronizzato, ascolto, durata, video e invio a PostFast', T, () => run(async page => {
     await gen(page, { focus: 'song', item: 4, slides: 7 }); await useProposal(page);
     await page.waitForFunction(() => document.querySelectorAll('#rlSong option').length === 10);

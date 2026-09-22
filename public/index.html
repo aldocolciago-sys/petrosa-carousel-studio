@@ -84,6 +84,11 @@
   .mood { text-align:left; background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--c,#f59e0b); border-radius:10px; padding:9px 10px; cursor:pointer; color:var(--text); font:inherit; }
   .mood b { display:block; font-size:13px; } .mood span { display:block; color:var(--mut); font-size:11.5px; margin-top:2px; line-height:1.35; }
   .mood.sel { outline:2px solid var(--c,#f59e0b); background:rgba(245,158,11,.1); }
+  .pday { display:grid; grid-template-columns:64px 1fr auto; gap:12px; align-items:center; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:10px; }
+  .pday canvas { width:64px; height:80px; border-radius:6px; object-fit:cover; background:#000; }
+  .pday .pd-h { font-size:13px; color:var(--amber); font-weight:700; } .pday .pd-t { font-size:13px; } .pday .pd-c { font-size:12.5px; color:var(--mut); }
+  .pday .pd-when { color:var(--mut); font-weight:500; margin-left:6px; }
+  @media (max-width:700px) { .pday { grid-template-columns:56px 1fr; } .pday .row { grid-column:1/-1; } }
   .props { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
   .prop { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
   .prop h3 { margin:0; font-size:14px; color:var(--amber); } .prop small { color:var(--mut); }
@@ -154,6 +159,11 @@
 <section id="tab-studio" class="tab active">
  <div class="cols">
   <div>
+   <div class="card" id="planCfg">
+    <h2>Piano settimanale</h2>
+    <div class="hint" style="margin-top:0">5 o 7 caroselli con il Reel abbinato: argomenti e mood alternati, senza ripetizioni, con orari di pubblicazione suggeriti.</div>
+    <div class="row" style="margin-top:8px"><select id="planDays" style="width:auto"><option value="7">7 giorni</option><option value="5">5 giorni</option></select><button class="btn" id="btnPlan">Genera il piano</button></div>
+   </div>
    <div class="card" id="cfg">
     <h2>1 &middot; Mood</h2>
     <div class="moods" id="moods"></div>
@@ -186,6 +196,18 @@
   </div>
 
   <div>
+   <div id="planCard" class="card" style="display:none">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Piano della settimana</h2><div class="row"><button class="ghost" id="planAgain">Rigenera</button></div></div>
+    <div class="hint" id="planHint"></div>
+    <div class="row" style="margin-top:8px">
+     <button class="btn" id="planZip" title="Una cartella per giorno: carosello, Reel, caption e istruzioni, piu' il calendario">Scarica tutto il piano (ZIP)</button>
+     <select id="planMode" style="width:auto" title="Programma agli orari consigliati oppure salva come bozze in PostFast"><option value="schedule">Programma</option><option value="draft">Bozze</option></select>
+     <button class="btn" id="planSend" title="Invia caroselli e Reel a PostFast, programmati agli orari consigliati">Programma tutto su PostFast</button>
+     <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--text)"><input type="checkbox" id="planReel" checked style="width:auto"> con Reel (circa 1 minuto a giorno)</label>
+    </div>
+    <div class="hint" id="planProg"></div>
+    <div id="planList"></div>
+   </div>
    <div id="empty" class="card empty">Scegli un mood e un argomento, poi premi <b>Proponi assemblaggi</b>.<br>Le proposte usano frasi e post gia' scritti nella libreria: nessuna chiave API.<br>Le slide vengono create come immagini PNG 1080&times;1350, pronte per Instagram e TikTok.</div>
    <div id="proposals" class="card" style="display:none"><h2>3 proposte di assemblaggio</h2><div class="props" id="propList"></div></div>
    <div id="result" style="display:none">
@@ -196,7 +218,7 @@
       <div class="row acts">
         <button class="ghost" id="btnSwap">Cambia questa slide</button>
         <button class="btn" id="btnBoth" title="Scarica il carosello (ZIP) e crea il Reel verticale con la musica">Carosello + Reel</button>
-        <button class="btn" id="btnPhone">Cartella per il telefono</button>
+        <button class="btn" id="btnPhone">Cartella pronta per il telefono</button><label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--text)" title="Aggiunge il Reel verticale con la musica (registrazione: circa 30-60 secondi, tieni aperta la scheda)"><input type="checkbox" id="phoneReel" checked style="width:auto"> con Reel</label>
         <button class="ghost" id="btnZip">Scarica ZIP</button>
         <button class="ghost" id="btnPng">PNG slide corrente</button>
         <button class="ghost" id="btnSpec">Copia scheda testuale</button>
@@ -258,6 +280,9 @@
         <input type="datetime-local" id="pzDate" style="width:auto">
         <button class="btn" id="btnPub">Invia a PostFast</button>
       </div>
+      <div class="hint" id="pzWhen" style="margin-top:8px"></div>
+      <div class="row"><button class="ghost" id="pzSugCar">Orario consigliato: carosello</button><button class="ghost" id="pzSugReel">Orario consigliato: Reel</button></div>
+      <div class="hint">Orari pensati per USA e Nord Europa: la sera italiana e' pranzo / primo pomeriggio sulla costa est e mattina sulla ovest. Se non cambi la data, il carosello esce all'orario consigliato e il Reel due ore dopo. Regolali con le statistiche di Instagram quando avrai abbastanza dati.</div>
       <div class="hint">Le slide vengono caricate su PostFast e pubblicate come carosello. Prova prima con &laquo;Salva come bozza&raquo;. Su Instagram esce in automatico all'ora scelta.</div>
      </div>
     </div>
@@ -338,8 +363,12 @@
 </section>
 
 <script src="/styles.js"></script>
+<script src="/schedule.js"></script>
+<script src="/pack.js"></script>
+<script src="/reelcut.js"></script>
 <script src="/render.js"></script>
 <script src="/studio.js"></script>
 <script src="/reel.js"></script>
+<script src="/plan.js"></script>
 </body>
 </html>

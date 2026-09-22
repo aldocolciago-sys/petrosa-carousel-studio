@@ -245,14 +245,25 @@
     return { blob: new Blob(chunks, { type }), ext: type.includes('mp4') ? 'mp4' : 'webm', mime };
   }
 
+  // chiave del video corrente: se non cambia nulla (slide, brano, tempi, qualita', effetti) il video gia' creato si riusa
+  const keyOf = () => JSON.stringify([st.slides.map(s => [s.layout, s.immagine, s.titolo, s.corpo, s.citazione, s.stat]), st.theme, $('rlSong').value, $('rlStart').value, $('rlDur').value, $('rlRes').value, $('rlFx').value]);
+  function showVideo(out) {
+    if (rl.url) URL.revokeObjectURL(rl.url);
+    rl.blob = out.blob; rl.ext = out.ext; rl.url = URL.createObjectURL(out.blob); rl.key = keyOf();
+    $('rlVideo').src = rl.url; $('rlOut').style.display = 'block';
+    $('rlFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` + (rl.stats && rl.stats.maxGap > 1 ? ` <span style="color:var(--amber)">Attenzione: la registrazione si e' fermata per ${rl.stats.maxGap.toFixed(0)} s (scheda in secondo piano o computer occupato): controlla il video e, se serve, rigeneralo senza cambiare scheda.</span>` : '') : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
+  }
+  // video del post corrente: riusa quello gia' fatto se e' ancora valido, altrimenti lo registra
+  async function ensure(opts) {
+    opts = opts || {};
+    if (rl.blob && rl.key === keyOf()) return { blob: rl.blob, ext: rl.ext, reused: true };
+    stopListen(); await window.Renderer.need(st.slides);
+    const out = await makeVideo(); showVideo(out); return { blob: out.blob, ext: out.ext, reused: false };
+  }
   $('rlMake').onclick = async () => {
     stopListen(); busy($('rlMake'), true, 'Preparo...');
     try {
-      const out = await makeVideo();
-      if (rl.url) URL.revokeObjectURL(rl.url);
-      rl.blob = out.blob; rl.ext = out.ext; rl.url = URL.createObjectURL(out.blob);
-      $('rlVideo').src = rl.url; $('rlOut').style.display = 'block';
-      $('rlFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` + (rl.stats && rl.stats.maxGap > 1 ? ` <span style="color:var(--amber)">Attenzione: la registrazione si e' fermata per ${rl.stats.maxGap.toFixed(0)} s (scheda in secondo piano o computer occupato): controlla il video e, se serve, rigeneralo senza cambiare scheda.</span>` : '') : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
+      const out = await makeVideo(); showVideo(out);
       $('rlOut').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) { toast(e.message, true); } finally { busy($('rlMake'), false); }
   };
@@ -261,6 +272,16 @@
     if (!rl.blob) return;
     const a = document.createElement('a'); a.href = rl.url; a.download = `petrosa-reel-${(byN[$('rlSong').value] || {}).file || 'audio'}-${Date.now()}.${rl.ext}`.replace('.mp3', ''); a.click();
   };
+  // carica il video su PostFast (URL firmato) e lo programma come Reel
+  async function sendReel(blob, chosen, mode, dateIso, onStatus) {
+    if (onStatus) onStatus('Carico il video...');
+    const up = await api('/api/social/upload-url', { contentType: 'video/mp4' });
+    let put; try { put = await fetch(up.signedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob }); }
+    catch (e) { throw new Error('Il browser non puo\' caricare il video direttamente su PostFast (blocco CORS). Scarica il file e caricalo dal pannello PostFast.'); }
+    if (!put.ok) throw new Error('Upload video fallito: HTTP ' + put.status);
+    if (onStatus) onStatus('Programmo...');
+    return api('/api/social/publish', { video: true, caption: C.fullCaption(), keys: [up.key], mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
+  }
   $('rlPub').onclick = async () => {
     if (!rl.blob) return toast('Crea prima il video.', true);
     const chosen = [...document.querySelectorAll('#chList input:checked')].map(x => st.channels[+x.dataset.i]);
@@ -270,13 +291,7 @@
     if (rl.ext !== 'mp4' && !confirm('Il video e\' WebM: Instagram potrebbe rifiutarlo. Continuare?')) return;
     if (mode === 'now' && !confirm('Pubblicare il Reel tra pochi minuti su ' + chosen.map(c => c.name).join(', ') + '?')) return;
     try {
-      busy($('rlPub'), true, 'Carico il video...');
-      const up = await api('/api/social/upload-url', { contentType: 'video/mp4' });
-      let put; try { put = await fetch(up.signedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: rl.blob }); }
-      catch (e) { throw new Error('Il browser non puo\' caricare il video direttamente su PostFast (blocco CORS). Scarica il file e caricalo dal pannello PostFast.'); }
-      if (!put.ok) throw new Error('Upload video fallito: HTTP ' + put.status);
-      busy($('rlPub'), true, 'Programmo...');
-      await api('/api/social/publish', { video: true, caption: C.fullCaption(), keys: [up.key], mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: $('pzDate').value ? new Date($('pzDate').value).toISOString() : null });
+      await sendReel(rl.blob, chosen, mode, C.whenFor('reel'), m => busy($('rlPub'), true, m));
       toast(`PostFast: Reel su ${chosen.length} account (${mode === 'draft' ? 'bozza' : mode === 'now' ? 'pubblicazione tra pochi minuti' : 'programmato'}).`);
     } catch (e) { toast(e.message, true); } finally { busy($('rlPub'), false); }
   };
@@ -319,5 +334,11 @@
   };
   document.querySelector('nav button[data-tab="audio"]').addEventListener('click', () => { loadSongs().then(renderSync).catch(e => toast(e.message, true)); });
 
-  window.Reel = { refresh, makeAndDownload, stats: () => rl.stats };
+  // sceglie la canzone del Reel (usato dal piano settimanale): punto di partenza ricalcolato sul verso citato
+  async function setSong(n) {
+    await refresh();
+    if (!byN[n]) return false;
+    $('rlSong').value = n; rl.auto = true; $('rlStart').value = suggestStart().toFixed(1); updateInfo(); return true;
+  }
+  window.Reel = { refresh, setSong, ensure, sendReel, makeAndDownload, stats: () => rl.stats };
 })();

@@ -55,6 +55,13 @@ Con `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` impostati, l'app richiede il log
 - Scheda **Audio & sync**: si segnano una volta per brano i punti in cui vengono cantati i versi (bottone "Qui"). I punti stanno nel browser; scarica `audio-sync.json` e mettilo in `data/` per averli ovunque.
 - Audio: i brani compressi (96 kbps) sono in `public/assets/clips/01.mp3 ... 10.mp3`. Non caricare su GitHub la cartella `public/assets/Audio` con gli MP3 originali (troppo pesanti).
 
+## Piano settimanale, orari e cartella pronta
+- **Piano settimanale** (colonna a sinistra): 5 o 7 caroselli, ognuno con il suo Reel. Argomenti alternati (brano, recensione, membro, live, album, band), mood diversi, lunghezze diverse, nessun brano/caption/CTA/copertina ripetuti. "Apri nell'editor" per rivedere un giorno; "Scarica tutto il piano (ZIP)" crea una cartella per giorno con carosello, Reel, caption e istruzioni piu' un `PIANO.txt` con il calendario; "Programma tutto su PostFast" invia caroselli e Reel agli orari consigliati (o come bozze). Il Reel di ogni giorno si registra in tempo reale (circa 1 minuto): tieni la scheda aperta e in primo piano.
+- **Reel su misura**: il Reel usa una versione accorciata dei testi (`public/reelcut.js`): una frase per schermata, verso e recensione sempre interi.
+- **Orari consigliati** (`public/schedule.js`): sera italiana (17-19 per il carosello, 20-21 per il Reel), cioe' pranzo / primo pomeriggio sulla costa est e mattina sulla ovest. Con 5 caroselli: mar, mer, gio, sab, dom. La data in "Pubblica con PostFast" e' precompilata; se non la cambi, il Reel esce due ore dopo il carosello.
+- **Copertine**: meta circa delle copertine generiche usa una foto live scelta per mood e impatto visivo (`impact` in `data/photos.json`, 0-100, calcolato da contrasto, nitidezza, saturazione e primo piano).
+- **Cartella pronta per il telefono**: `1-carosello/`, `2-reel/reel.mp4`, `caption.txt` (caption + hashtag da copiare), `tag-sulle-foto.txt` e `COME-PUBBLICARE.txt` con gli orari.
+
 ## Test automatici
 
 Servono a controllare che ogni funzione dell'app continui a funzionare dopo ogni modifica. Non usano chiavi vere e non pubblicano nulla: Anthropic, PostFast e Google sono simulati, e i test lavorano su una copia temporanea del progetto (i tuoi dati non vengono toccati).

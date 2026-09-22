@@ -13,6 +13,50 @@ for (const q of lib.quotes) {
 }
 const ok = new Set(tags.similarBands.concat(tags.community).filter(b => b.handle && b.confirmed).map(b => b.handle.replace(/^@/, '').toLowerCase()));
 const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'band' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'live' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
+// ---- coerenza: foto <-> testo, arco, lingua, caption ----
+const PH = Object.fromEntries(L.photos().map(x => [x.id, x]));
+const PORTRAIT = Object.fromEntries(band.members.map(m => [m.photo, m.id]));
+const first = m => m.name.split(' ')[0].toLowerCase();
+const named = txt => band.members.filter(m => new RegExp('\\b' + first(m) + '\\b', 'i').test(txt)).map(m => m.id);
+const IT = /\b(che|della|delle|degli|sono|anche|questo|questa|nel|nella|dei|gli|piu|perche|come mai|il tuo|una volta)\b/i;
+const stats = { liveSlides: 0, moodMatch: 0 };
+function coherence(id, m, f, p) {
+  const seenImg = new Set();
+  p.slides.forEach((s, i) => {
+    const txt = (s.titolo || '') + ' ' + (s.corpo || '');
+    const mem = PH[s.immagine] ? PH[s.immagine].members : PORTRAIT[s.immagine] ? [PORTRAIT[s.immagine]] : null;
+    if (mem && PH[s.immagine] && PH[s.immagine].kind !== 'group' && PH[s.immagine].kind !== 'brand' || PORTRAIT[s.immagine]) {
+      const extra = named(txt).filter(x => !mem.includes(x));
+      if (extra.length) bad(id + ` slide ${i + 1}: foto di ${mem.join('+')} ma il testo nomina ${extra.join(',')}`);
+      if (PH[s.immagine] && PH[s.immagine].kind === 'duo' && s.layout === 'photo' && named(s.titolo).length !== mem.length) bad(id + ` slide ${i + 1}: foto di coppia senza i due nomi nel titolo`);
+    }
+    if (s.tipo === 'Live' && s.layout === 'photo' && !PH[s.immagine]) bad(id + ` slide ${i + 1}: slide Live senza foto live`);
+    if (PH[s.immagine] || PORTRAIT[s.immagine]) { if (seenImg.has(s.immagine)) bad(id + ` foto ripetuta ${s.immagine}`); seenImg.add(s.immagine); }
+    if (PH[s.immagine] && s.tipo === 'Live' && s.layout === 'photo') { stats.liveSlides++; if (PH[s.immagine].moods.includes(m.id)) stats.moodMatch++; if (PH[s.immagine].q < 2) bad(id + ' foto di bassa qualita in automatico ' + s.immagine); }
+    if (s.tipo !== 'Review' && s.tipo !== 'Song' && IT.test(txt)) bad(id + ` slide ${i + 1}: testo non inglese "${txt.slice(0, 50)}"`);
+    if ((s.titolo || '').length > 90) bad(id + ` slide ${i + 1}: titolo troppo lungo (${s.titolo.length})`);
+    if ((s.corpo || '').length > 300) bad(id + ` slide ${i + 1}: corpo troppo lungo (${s.corpo.length})`);
+  });
+  if (IT.test(p.caption)) bad(id + ' caption non inglese');
+  if (f.type === 'member') {
+    const mb = band.members.find(x => x.id === f.item);
+    const imgs = p.slides.map(s => s.immagine).filter(x => PH[x] || PORTRAIT[x]);
+    for (const x of imgs) { const who = PH[x] ? PH[x].members : [PORTRAIT[x]]; if (who.length !== 1 || who[0] !== f.item) bad(id + ` foto di altri membri (${x}) nel carosello di ${f.item}`); }
+    if (!named(p.slides[0].titolo + ' ' + p.slides[0].corpo).includes(f.item)) bad(id + ' copertina senza il nome del membro');
+    if (!norm(p.caption).includes(norm(first(mb)))) bad(id + ' caption senza il nome del membro');
+  }
+  if (f.type === 'band') {
+    const all = named(p.slides.map(s => s.titolo + ' ' + s.corpo).join(' '));
+    if (new Set(all).size !== 4) bad(id + ' intera band: non tutti i membri nelle slide');
+    if (band.members.some(x => !norm(p.caption).includes(norm(first(x))))) bad(id + ' intera band: caption senza tutti i membri');
+    for (const x of band.members) if (p.slides.filter(s => s.immagine === x.photo).length > 1) bad(id + ' ritratto ripetuto ' + x.id);
+  }
+  if (f.type === 'review') { const pub = (band.reviews.find(r => r.id === f.item) || {}).publication; if (pub && !norm(p.caption).includes(norm(pub))) bad(id + ' caption senza la testata scelta'); }
+  if (f.type === 'doomcharts' && !/doom charts|#14/i.test(p.caption)) bad(id + ' caption senza Doom Charts');
+  if (f.type === 'song') { const t = band.songs.find(x => x.n === f.item).title; if (!norm(p.caption).includes(norm(t))) bad(id + ' caption senza il titolo del brano'); }
+  const last = p.slides[p.slides.length - 1];
+  if (!/spotify/i.test(last.titolo + ' ' + last.corpo + ' ' + (last.servizio || ''))) bad(id + ' ultima slide senza Spotify');
+}
 let n = 0;
 for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of focuses) for (let seed = 1; seed <= 6; seed++) {
   let r; try { r = L.propose({ mood: m.id, focus: f, count, seed }); } catch (e) { bad(`${m.id}/${count}/${f.type}: ${e.message}`); continue; }
@@ -51,8 +95,13 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
     }
     if (f.type === 'doomcharts' && !p.slides.some(s => s.stat === '#14')) bad(id + ' doomcharts assente');
     if (/\{\w+\}/.test(JSON.stringify(p))) bad(id + ' placeholder residuo');
+    coherence(id, m, f, p);
   }
 }
+// le foto live seguono il mood scelto (assegnazione morbida: almeno meta' delle foto deve essere del mood richiesto)
+const rate = stats.liveSlides ? stats.moodMatch / stats.liveSlides : 1;
+console.log(`foto live: ${stats.liveSlides} slide, ${(rate * 100).toFixed(0)}% del mood richiesto`);
+if (rate < 0.6) bad('foto live poco coerenti col mood: ' + (rate * 100).toFixed(0) + '%');
 // analisi: ogni frase tra virgolette deve essere letterale nel testo del brano (slide e caption)
 const allLyrics = norm(band.songs.map(s => s.lyrics).join(' '));
 for (const a of lib.analyses) {
