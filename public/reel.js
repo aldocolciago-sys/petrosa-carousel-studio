@@ -447,28 +447,51 @@
     const lines = s.lines.slice(r.from, r.to), durs = allDurs.slice(r.from, r.to), nTot = s.lines.length;
     const W = $('lvRes').value === '720' ? 720 : 1080, H = Math.round(W * 16 / 9);
     // sfondo: ruota tra le foto dei membri, gli sfondi del deserto, il logo e la copertina (sempre gia' precaricati,
-    // vedi Renderer.loadImages), cambiando ogni circa 12s di contenuto invece che a ogni riga
+    // vedi Renderer.loadImages), cambiando a OGNI riga (mai la stessa immagine due volte consecutive)
     const BG_POOL = ['antonio', 'giorgio', 'aldo', 'andrea', 'desert1', 'desert2', 'desert3', 'cover', 'logo'];
-    const bg = LSY.backgroundSchedule(durs, BG_POOL, s.n, 12);
-    // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema, marchio) gia' pronto per il Reel
-    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: bg[idx] || 'none', _prog: (r.from + idx + 1) / nTot }));
+    const bg = LSY.backgroundSchedule(durs, BG_POOL, s.n);
+    // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema, marchio) gia' pronto
+    // per il Reel. _skipTitle: qui il bitmap pre-renderizzato contiene solo sfondo/kicker/barra - il titolo (le
+    // parole del verso) viene disegnato a parte a ogni fotogramma qui sotto, per poterlo animare parola per parola.
+    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: bg[idx] || 'none', _prog: (r.from + idx + 1) / nTot, _skipTitle: true }));
     const n = AS.length;
     const S = []; let acc = 0; durs.forEach(d => { S.push(acc); acc += d; }); const contentT = acc;
     const offset = Math.max(0, Math.min(times[r.from], Math.max(0, s.dur - contentT - 0.2)));
     const sl = [];
     for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS));
+    // layout delle parole di ogni riga, calcolato una volta sola (non a ogni fotogramma) - vedi Renderer.drawLyricWords
+    const layouts = lines.map(l => window.Renderer.lyricWordLayout(l.text, st.theme));
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
     const TR = 0.25;   // dissolvenza (s) tra una riga e la successiva
     // leggero effetto "Ken Burns": ogni riga parte a schermo intero e si allarga piano, cosi' il cambio di sfondo/riga
-    // si sente anche quando la dissolvenza (sopra) e' gia' finita, senza distrarre dalla lettura
+    // si sente anche quando la dissolvenza e' gia' finita, senza distrarre dalla lettura
     const ZOOM = 0.035;
     const geo = (lt, dur) => { const z = 1 + ZOOM * Math.min(1, lt / Math.max(1.5, dur)); const w = W * z, h = H * z; return { w, h, x: (W - w) / 2, y: (H - h) / 2 }; };
+    // qualche transizione in piu' tra una riga e l'altra, non solo la dissolvenza: si alternano da sole (in ordine,
+    // mai due uguali di fila dato che sono 3) cosi' il video non si ripete sempre uguale a ogni cambio verso
+    const TRANS = ['fade', 'slide', 'punch'];
+    // disegna una riga (sfondo zoomato + parole animate sopra), con un'eventuale trasformazione di transizione
+    // (dx/dy/scale) applicata a entrambi insieme cosi' restano coerenti
+    const drawLine = (idx, localT, alpha, dx, dy, scale) => {
+      const g = geo(localT, durs[idx]);
+      fx.save();
+      const cx = W / 2, cy = H / 2;
+      fx.translate(cx + dx, cy + dy); if (scale !== 1) fx.scale(scale, scale); fx.translate(-cx, -cy);
+      fx.globalAlpha = alpha; fx.drawImage(sl[idx], g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
+      window.Renderer.drawLyricWords(fx, layouts[idx], st.theme, localT, durs[idx], alpha);
+      fx.restore();
+    };
     const frame = t => {
       fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1; fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
       let i = S.length - 1; while (i > 0 && t < S[i]) i--;
-      const lt = t - S[i], g = geo(lt, durs[i]);
-      if (i > 0 && lt < TR) { fx.globalAlpha = 1; fx.drawImage(sl[i - 1], 0, 0, W, H); fx.globalAlpha = lt / TR; fx.drawImage(sl[i], g.x, g.y, g.w, g.h); fx.globalAlpha = 1; }
-      else fx.drawImage(sl[i], g.x, g.y, g.w, g.h);
+      const lt = t - S[i];
+      if (i > 0 && lt < TR) {
+        const p = lt / TR, kind = TRANS[i % TRANS.length];
+        drawLine(i - 1, durs[i - 1], 1, 0, 0, 1);
+        if (kind === 'slide') drawLine(i, lt, p, 0, (1 - p) * 90, 1);
+        else if (kind === 'punch') drawLine(i, lt, p, 0, 0, 0.9 + 0.1 * p);
+        else drawLine(i, lt, p, 0, 0, 1);
+      } else drawLine(i, lt, 1, 0, 0, 1);
     };
     const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); if (ac.state === 'suspended') await ac.resume();
     const buf = await ac.decodeAudioData(await (await fetch(clipUrl(s))).arrayBuffer());

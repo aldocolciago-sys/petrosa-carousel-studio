@@ -487,21 +487,18 @@ describe('9. Video testi (motore puro tempo<->testo, per il Reel dedicato a un b
     const durs2 = LS.lineDursExact([10, 10.2], 20, 1.1, 6);
     assert.ok(Math.abs(durs2[0] - 0.2) < 1e-9, 'lineDursExact non alza un intervallo reale sotto il minimo (solo l\'ultima riga lo fa)');
   });
-  test('backgroundSchedule: sfondo del Video testi che ruota fra le immagini ogni circa "target" secondi (resta lo stesso per piu\' righe di fila, mai lo stesso in due segmenti consecutivi), stabile per lo stesso brano', () => {
-    const durs = Array(30).fill(2);   // 30 righe da 2s: 60s totali di contenuto
+  test('backgroundSchedule: sfondo del Video testi assegnato riga per riga, mai la stessa immagine due volte consecutive (ma si puo\' ripetere piu\' avanti nel video), stabile per lo stesso brano', () => {
+    const lines = Array(30).fill(0);   // 30 righe (il contenuto non conta, solo quante sono)
     const pool = ['antonio', 'giorgio', 'aldo', 'andrea'];
-    const sched = LS.backgroundSchedule(durs, pool, 7, 12);
+    const sched = LS.backgroundSchedule(lines, pool, 7);
     assert.equal(sched.length, 30);
     for (const k of sched) assert.ok(pool.includes(k), 'ogni voce viene dal pool: ' + k);
-    // "segmenti": l'immagine resta la stessa per piu' righe (12s / 2s a riga = ~6 righe a segmento), cambia solo al
-    // passaggio da un segmento al successivo - e li' non deve mai ripetere l'immagine appena mostrata
-    const segments = sched.filter((k, i) => i === 0 || k !== sched[i - 1]);
-    for (let i = 1; i < segments.length; i++) assert.notEqual(segments[i], segments[i - 1], 'mai la stessa immagine in due segmenti consecutivi');
-    assert.ok(segments.length >= 3, 'lo sfondo cambia piu\' volte in 60s, non resta fermo su una sola immagine per tutto il video: ' + segments.length);
-    assert.deepEqual(LS.backgroundSchedule(durs, pool, 7, 12), sched, 'stesso brano (stesso seed): stessa sequenza ogni volta');
-    assert.notDeepEqual(LS.backgroundSchedule(durs, pool, 99, 12), sched, 'un brano diverso (seed diverso) da una sequenza diversa');
+    for (let i = 1; i < sched.length; i++) assert.notEqual(sched[i], sched[i - 1], 'mai la stessa immagine due volte consecutive (riga ' + i + ')');
+    assert.ok(new Set(sched).size < sched.length, 'con piu\' righe che immagini nel pool, qualche immagine si ripete (non di fila) nel corso del video');
+    assert.deepEqual(LS.backgroundSchedule(lines, pool, 7), sched, 'stesso brano (stesso seed): stessa sequenza ogni volta');
+    assert.notDeepEqual(LS.backgroundSchedule(lines, pool, 99), sched, 'un brano diverso (seed diverso) da una sequenza diversa');
     assert.deepEqual(LS.backgroundSchedule([], pool, 1), [], 'nessuna riga: nessuno sfondo');
-    assert.deepEqual(LS.backgroundSchedule(durs, [], 1), Array(30).fill('none'), 'nessuna immagine disponibile: sempre "none"');
+    assert.deepEqual(LS.backgroundSchedule(lines, [], 1), Array(30).fill('none'), 'nessuna immagine disponibile: sempre "none"');
   });
   test('lineAt: trova la riga in corso al tempo t (-1 se prima della prima riga)', () => {
     const times = [5, 10, 20];

@@ -61,24 +61,25 @@
     let a = (seed >>> 0) || 1;
     return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   }
-  // sfondo del Video testi: assegna un'immagine a ogni riga, cambiando ogni circa "target" secondi di contenuto
-  // (non a ogni riga - sfarfallerebbe troppo sulle righe brevi, o resterebbe ferma troppo su una riga tenuta a
-  // lungo) e mai la stessa immagine due volte di fila. "pool" e' l'elenco delle chiavi immagine disponibili
-  // (membri della band, sfondi, logo, copertina); "seed" rende la sequenza stabile per lo stesso brano.
-  function backgroundSchedule(durs, pool, seed, target) {
-    target = target == null ? 12 : target;
-    const n = (durs || []).length;
+  // sfondo del Video testi: assegna un'immagine a ogni riga del testo, cambiando a OGNI riga (una transizione a ogni
+  // cambio di frase), mai la stessa immagine due volte consecutive - ma si puo' ripetere piu' avanti nel video (con
+  // poche foto disponibili e molte righe e' inevitabile, e va bene cosi'). "pool" e' l'elenco delle chiavi immagine
+  // disponibili (membri della band, sfondi, logo, copertina); "seed" rende la sequenza stabile per lo stesso brano
+  // (non cambia a ogni rigenerazione del video). Il primo argomento serve solo a contare le righe (una voce per
+  // riga: durate o testi, non importa cosa contiene).
+  function backgroundSchedule(lines, pool, seed) {
+    const n = (lines || []).length;
     if (!n || !pool || !pool.length) return Array(n).fill('none');
     const rnd = rng32(seed || 1);
     const order = pool.slice();
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = order[i]; order[i] = order[j]; order[j] = tmp; }
-    const out = []; let cur = 0, acc = 0;
+    const out = []; let cur = 0;
     for (let i = 0; i < n; i++) {
-      if (i > 0 && acc >= target) {
-        acc = 0; cur = (cur + 1) % order.length;
+      if (i > 0) {
+        cur = (cur + 1) % order.length;
         if (order.length > 1 && order[cur] === out[i - 1]) cur = (cur + 1) % order.length;
       }
-      out.push(order[cur]); acc += durs[i] || 0;
+      out.push(order[cur]);
     }
     return out;
   }

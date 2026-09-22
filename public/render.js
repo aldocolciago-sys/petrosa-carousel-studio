@@ -371,22 +371,28 @@
     tagChips(ctx, s.tag, H - BM + 10 - tagH + 10);
   };
 
-  // Video testi: una riga di testo a tutto schermo (karaoke), con una barra di avanzamento nel brano
+  // Video testi: una riga di testo a tutto schermo (karaoke), con una barra di avanzamento nel brano.
+  // s._skipTitle: usato dal Video testi per pre-renderizzare UNA VOLTA per riga solo sfondo/kicker/barra (il
+  // bitmap che poi ruota/zooma in reel.js), mentre il titolo vero viene disegnato a parte a ogni fotogramma con
+  // lyricWordLayout/drawLyricWords qui sotto, per poter animare le singole parole. Se non impostato si comporta
+  // come sempre (titolo incluso) - usato per eventuali anteprime statiche.
   L.lyric = (ctx, s, i) => {
     background(ctx, i + 23);
     // sfondo che ruota (membri della band, sfondi, logo, copertina - vedi ReelCut/LyricSync.backgroundSchedule):
-    // abbastanza visibile da riconoscersi, ma il velo scuro sotto (shade) tiene il testo sempre leggibile
+    // ben visibile (si riconosce chi/cosa e'), ma il velo scuro sotto (shade) tiene il testo sempre leggibile
     if (images[s.immagine] && s.immagine !== 'none') {
       const f = FOCUS[s.immagine] || [0.5, 0.3];
-      ctx.globalAlpha = 0.3; coverImg(ctx, images[s.immagine], 0, 0, W, H, f[0], f[1]); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.6, 0.88);
+      ctx.globalAlpha = 0.48; coverImg(ctx, images[s.immagine], 0, 0, W, H, f[0], f[1]); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.45, 0.8);
     }
     if (s.fonte) kicker(ctx, s.fonte, 72, 210 + TP);
-    const q = String(s.titolo || '').trim();
-    const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, H - BM - 360 - TP, 108, 44, 1.18);
-    const top = TP + (H - TP - BM - f.h) / 2;
-    ctx.font = `${DW} ${f.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.55), 40);
-    ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
-    drawLines(ctx, f, W / 2, top, 1.18, 'center'); noGlow(ctx);
+    if (!s._skipTitle) {
+      const q = String(s.titolo || '').trim();
+      const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, H - BM - 360 - TP, 108, 44, 1.18);
+      const top = TP + (H - TP - BM - f.h) / 2;
+      ctx.font = `${DW} ${f.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.55), 40);
+      ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
+      drawLines(ctx, f, W / 2, top, 1.18, 'center'); noGlow(ctx);
+    }
     if (s._prog != null) {
       const by = H - BM - 30, bw = W - 144, bx = 72, p = Math.max(0, Math.min(1, s._prog));
       ctx.strokeStyle = hexA(C.soft, 0.28); ctx.lineWidth = 6; ctx.lineCap = 'round';
@@ -395,6 +401,76 @@
       ctx.lineCap = 'butt';
     }
   };
+
+  // ---------- Video testi: parole animate ----------
+  // Calcola UNA VOLTA per riga (non a ogni fotogramma) la posizione di ogni singola parola del titolo "lyric",
+  // cosi' reel.js puo' disegnarle una per una, animate, sopra il bitmap di sfondo gia' pronto (vedi L.lyric sopra).
+  // Stessa geometria del blocco titolo di L.lyric (stesso fit, stesso centro), cosi' il risultato coincide.
+  function lyricWordLayout(text, theme) {
+    REEL = true; H = 1920; BM = 470; TP = 190; XR = 60; FS = 1.28;
+    applyTheme(theme);
+    const scratch = document.createElement('canvas'); scratch.width = W; scratch.height = H;
+    const ctx = scratch.getContext('2d');
+    const q = String(text || '').trim();
+    const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, H - BM - 360 - TP, 108, 44, 1.18);
+    const top = TP + (H - TP - BM - f.h) / 2;
+    ctx.font = `${DW} ${f.size}px ${BRAND}`;
+    const spaceW = ctx.measureText(' ').width;
+    let k = 0;
+    const lines = f.lines.map((line, li) => {
+      const ws = line.split(/\s+/).filter(Boolean);
+      const widths = ws.map(w => ctx.measureText(w).width);
+      const total = widths.reduce((a, b) => a + b, 0) + spaceW * Math.max(0, ws.length - 1);
+      let x = W / 2 - total / 2;
+      const words = ws.map((w, wi) => { const o = { text: w, x, w: widths[wi], k: k++ }; x += widths[wi] + spaceW; return o; });
+      return { words, y: top + li * f.size * 1.18 };
+    });
+    return { size: f.size, lines, count: k };
+  }
+  const easeOutBack = t => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+  // Disegna le parole del layout sopra lo sfondo gia' pronto, animate: compaiono una alla volta come se venissero
+  // lette/cantate (comparsa con un piccolo "pop"), poi oscillano piano seguendo il ritmo di quella riga (piu'
+  // veloce se la riga e' cantata in fretta, piu' lenta se e' tenuta a lungo) - un'approssimazione onesta: l'app
+  // non analizza la melodia vera (non decodifica intonazione/pitch dall'audio), ma il tempo di ogni riga e' quello
+  // VERO (sincronizzato), quindi il movimento segue comunque il ritmo reale del canto, non e' casuale.
+  // tRel: secondi trascorsi dall'inizio di QUESTA riga; dur: durata vera della riga; alpha: dissolvenza esterna
+  // (usata durante le transizioni fra una riga e la successiva).
+  function drawLyricWords(ctx, layout, theme, tRel, dur, alpha) {
+    REEL = true; H = 1920; BM = 470; TP = 190; XR = 60; FS = 1.28;
+    applyTheme(theme);
+    if (!layout || !layout.count) return;
+    const N = layout.count;
+    const revealSpan = Math.max(0.12, Math.min(Math.max(0.12, dur - 0.15), dur * 0.7 || 0.12));
+    const pop = Math.min(0.16, Math.max(0.08, revealSpan / N));
+    const pace = N / Math.max(0.5, dur || 0.5);
+    const freq = Math.max(1, Math.min(3.2, pace * 0.9));
+    ctx.save();
+    ctx.font = `${DW} ${layout.size}px ${BRAND}`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    layout.lines.forEach(line => {
+      line.words.forEach(w => {
+        const revealAt = N > 1 ? (w.k / (N - 1)) * revealSpan : 0;
+        const localT = tRel - revealAt;
+        if (localT < -0.001) return;
+        let a = 1, scale = 1, dy = 0;
+        if (localT < pop) {
+          const p = Math.max(0, localT / pop);
+          a = p; scale = 0.7 + 0.3 * Math.max(0, Math.min(1.15, easeOutBack(p))); dy = (1 - p) * 10;
+        } else {
+          dy = Math.sin(2 * Math.PI * freq * (tRel - revealAt) + w.k * 0.5) * 4.5;
+        }
+        ctx.save();
+        ctx.globalAlpha = alpha * a;
+        glow(ctx, hexA(C.orange, 0.55), 40);
+        ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
+        const cx = w.x + w.w / 2, cy = line.y + dy;
+        ctx.translate(cx, cy); ctx.scale(scale, scale); ctx.translate(-cx, -cy);
+        ctx.fillText(w.text, w.x, cy);
+        ctx.restore();
+      });
+    });
+    noGlow(ctx); ctx.restore();
+  }
 
   function render(canvas, s, i, n, handle, theme, fmt) {
     REEL = fmt === 'reel'; H = REEL ? 1920 : 1350; BM = REEL ? 470 : 130; TP = REEL ? 190 : 0; XR = REEL ? 60 : 0; FS = REEL ? 1.28 : 1;
@@ -417,5 +493,5 @@
     chrome(ctx, i, n, handle, layout === 'cta' || i === n - 1);
   }
 
-  const api = window.Renderer = { W, H, HREEL: 1920, render, loadImages, need, loadFonts, ensureFonts, images };
+  const api = window.Renderer = { W, H, HREEL: 1920, render, loadImages, need, loadFonts, ensureFonts, images, lyricWordLayout, drawLyricWords };
 })();
