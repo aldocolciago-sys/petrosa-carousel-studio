@@ -433,14 +433,16 @@
   // veloce se la riga e' cantata in fretta, piu' lenta se e' tenuta a lungo) - un'approssimazione onesta: l'app
   // non analizza la melodia vera (non decodifica intonazione/pitch dall'audio), ma il tempo di ogni riga e' quello
   // VERO (sincronizzato), quindi il movimento segue comunque il ritmo reale del canto, non e' casuale.
-  // tRel: secondi trascorsi dall'inizio di QUESTA riga; dur: durata vera della riga; alpha: dissolvenza esterna
-  // (usata durante le transizioni fra una riga e la successiva).
+  // tRel: secondi trascorsi dall'inizio di QUESTA riga; dur: durata "utile" per il ritmo della comparsa (chi chiama
+  // di solito la limita al tempo in cui il testo resta davvero a schermo, non alla pausa lunga che puo' seguirlo -
+  // qui c'e' comunque un tetto di sicurezza, cosi' anche una durata enorme non fa comparire le parole al rallentatore);
+  // alpha: dissolvenza esterna (usata durante le transizioni fra una riga e la successiva, o quando il testo sparisce).
   function drawLyricWords(ctx, layout, theme, tRel, dur, alpha) {
     REEL = true; H = 1920; BM = 470; TP = 190; XR = 60; FS = 1.28;
     applyTheme(theme);
     if (!layout || !layout.count) return;
     const N = layout.count;
-    const revealSpan = Math.max(0.12, Math.min(Math.max(0.12, dur - 0.15), dur * 0.7 || 0.12));
+    const revealSpan = Math.max(0.12, Math.min(1.4, dur * 0.7 || 0.12, Math.max(0.12, dur - 0.15)));
     const pop = Math.min(0.16, Math.max(0.08, revealSpan / N));
     const pace = N / Math.max(0.5, dur || 0.5);
     const freq = Math.max(1, Math.min(3.2, pace * 0.9));

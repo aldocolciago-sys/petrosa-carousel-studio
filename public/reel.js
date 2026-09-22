@@ -461,24 +461,44 @@
     for (let i = 0; i < n; i++) sl.push(C.renderOff(i, 'reel', AS));
     // layout delle parole di ogni riga, calcolato una volta sola (non a ogni fotogramma) - vedi Renderer.drawLyricWords
     const layouts = lines.map(l => window.Renderer.lyricWordLayout(l.text, st.theme));
+    // pausa lunga (assolo, silenzio...) dopo una riga: il verso non deve restare scritto a schermo per tutta la
+    // pausa. Dopo TEXT_HOLD (+ una breve dissolvenza TEXT_FADE) il testo sparisce; se la pausa continua, lo sfondo
+    // prosegue da solo cambiando foto ogni PAUSE_CYCLE secondi (mai la stessa appena mostrata), cosi' lo schermo non
+    // resta fermo su una sola inquadratura - il verso torna, sincronizzato come sempre, quando riprende il canto.
+    const TEXT_HOLD = 4.5, TEXT_FADE = 0.7, PAUSE_CYCLE = 6;
+    const pauseSl = lines.map((l, idx) => {
+      const dead = durs[idx] - TEXT_HOLD - TEXT_FADE;
+      if (dead <= 0.5) return [];
+      const nSeg = Math.min(8, Math.max(1, Math.round(dead / PAUSE_CYCLE)));
+      const pool = BG_POOL.filter(k => k !== bg[idx]);
+      const seq = LSY.backgroundSchedule(Array(nSeg).fill(0), pool.length ? pool : BG_POOL, s.n * 1000 + idx + 7);
+      return seq.map(img => C.renderOff(0, 'reel', [{ layout: 'lyric', titolo: '', fonte: s.title, immagine: img, _prog: (r.from + idx + 1) / nTot, _skipTitle: true }]));
+    });
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
     const TR = 0.25;   // dissolvenza (s) tra una riga e la successiva
-    // leggero effetto "Ken Burns": ogni riga parte a schermo intero e si allarga piano, cosi' il cambio di sfondo/riga
-    // si sente anche quando la dissolvenza e' gia' finita, senza distrarre dalla lettura
+    // leggero effetto "Ken Burns": ogni riga (o, in pausa, ogni foto) parte a schermo intero e si allarga piano, cosi'
+    // il cambio si sente anche quando la dissolvenza e' gia' finita, senza distrarre dalla lettura
     const ZOOM = 0.035;
     const geo = (lt, dur) => { const z = 1 + ZOOM * Math.min(1, lt / Math.max(1.5, dur)); const w = W * z, h = H * z; return { w, h, x: (W - w) / 2, y: (H - h) / 2 }; };
     // qualche transizione in piu' tra una riga e l'altra, non solo la dissolvenza: si alternano da sole (in ordine,
     // mai due uguali di fila dato che sono 3) cosi' il video non si ripete sempre uguale a ogni cambio verso
     const TRANS = ['fade', 'slide', 'punch'];
-    // disegna una riga (sfondo zoomato + parole animate sopra), con un'eventuale trasformazione di transizione
-    // (dx/dy/scale) applicata a entrambi insieme cosi' restano coerenti
+    // disegna una riga (sfondo zoomato + parole animate sopra, o - in pausa lunga - solo lo sfondo che ruota da
+    // solo e nessun testo), con un'eventuale trasformazione di transizione (dx/dy/scale) applicata a entrambi insieme
     const drawLine = (idx, localT, alpha, dx, dy, scale) => {
-      const g = geo(localT, durs[idx]);
+      const dur = durs[idx], PS = pauseSl[idx];
+      const paused = localT > TEXT_HOLD + TEXT_FADE && PS.length;
+      let bgCanvas = sl[idx], textAlpha = 1, zt = Math.min(localT, dur), zdur = dur;
+      if (paused) {
+        const segT = localT - TEXT_HOLD - TEXT_FADE, segI = Math.min(PS.length - 1, Math.floor(segT / PAUSE_CYCLE));
+        bgCanvas = PS[segI]; textAlpha = 0; zt = segT % PAUSE_CYCLE; zdur = PAUSE_CYCLE;
+      } else if (localT > TEXT_HOLD) textAlpha = Math.max(0, 1 - (localT - TEXT_HOLD) / TEXT_FADE);
+      const g = geo(zt, zdur);
       fx.save();
       const cx = W / 2, cy = H / 2;
       fx.translate(cx + dx, cy + dy); if (scale !== 1) fx.scale(scale, scale); fx.translate(-cx, -cy);
-      fx.globalAlpha = alpha; fx.drawImage(sl[idx], g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
-      window.Renderer.drawLyricWords(fx, layouts[idx], st.theme, localT, durs[idx], alpha);
+      fx.globalAlpha = alpha; fx.drawImage(bgCanvas, g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
+      if (textAlpha > 0) window.Renderer.drawLyricWords(fx, layouts[idx], st.theme, localT, Math.min(dur, TEXT_HOLD), alpha * textAlpha);
       fx.restore();
     };
     const frame = t => {
