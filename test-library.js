@@ -81,8 +81,15 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
       const title = band.songs.find(x => x.n === f.item).title;
       if (!p.slides.some(s => s.citazione && s.fonte === title)) bad(id + ' nessun verso del brano scelto');
       for (const s of p.slides) if (s.tipo === 'Song' && s.fonte !== title) bad(id + ' verso di un altro brano: ' + s.fonte);
+      // 80% delle slide dedicate al testo: un solo verso citato letteralmente ('Song') + una slide di analisi per
+      // ogni altro slot non-hook/non-cta (il totale atteso e' count - hook - cta - il verso citato = count - 3)
       const an = p.slides.filter(s => s.tipo === 'Analysis');
-      if (an.length !== 1) bad(id + ' analisi: ' + an.length);
+      const songQuotes = p.slides.filter(s => s.tipo === 'Song');
+      if (songQuotes.length !== 1) bad(id + ' versi letterali attesi 1, trovati ' + songQuotes.length);
+      if (an.length !== count - 3) bad(id + ' analisi: ' + an.length + ' attese ' + (count - 3));
+      const dedicated = (an.length + songQuotes.length) / count;
+      if (dedicated < 0.7) bad(id + ' quota di slide dedicate al testo troppo bassa: ' + Math.round(dedicated * 100) + '%');
+      const anTitles = an.map(s => s.titolo); if (new Set(anTitles).size !== anTitles.length) bad(id + ' parti di analisi ripetute');
       if (!p.caption.startsWith(lib.analyses.find(a => a.song === f.item).caption.split('\n')[0])) bad(id + ' caption senza analisi');
     } else if (p.slides.some(s => s.tipo === 'Analysis')) bad(id + ' analisi fuori focus');
     if (f.type === 'live') {
@@ -102,17 +109,29 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
 const rate = stats.liveSlides ? stats.moodMatch / stats.liveSlides : 1;
 console.log(`foto live: ${stats.liveSlides} slide, ${(rate * 100).toFixed(0)}% del mood richiesto`);
 if (rate < 0.6) bad('foto live poco coerenti col mood: ' + (rate * 100).toFixed(0) + '%');
-// analisi: ogni frase tra virgolette deve essere letterale nel testo del brano (slide e caption)
+// analisi: ogni frase tra virgolette deve essere letterale nel testo del brano (ogni parte e la caption)
 const allLyrics = norm(band.songs.map(s => s.lyrics).join(' '));
 for (const a of lib.analyses) {
   const own = norm((band.songs.find(x => x.n === a.song) || {}).lyrics || '');
-  if (a.corpo.length > 300) bad(`analisi ${a.song}: corpo troppo lungo`);
-  for (const [field, text] of [['corpo', a.corpo], ['caption', a.caption]]) {
-    for (const m of text.matchAll(/"([^"]+)"/g)) {
-      const q = norm(m[1]); if (q.length < 4) continue;
-      const pool = (field === 'caption' && a.song === 8) ? allLyrics : own;
-      if (!pool.includes(q)) bad(`analisi ${a.song} ${field}: citazione non letterale "${m[1]}"`);
+  // il brano 8 (una sola riga di testo reale) cita anche altri brani dell'album: per lui il pool e' l'intero songbook
+  const pool = a.song === 8 ? allLyrics : own;
+  if (!Array.isArray(a.parts) || a.parts.length !== 7) bad(`analisi ${a.song}: servono 7 parti, trovate ${(a.parts || []).length}`);
+  const seenTitles = new Set();
+  for (const part of a.parts || []) {
+    if ((part.titolo || '').length > 90) bad(`analisi ${a.song}: titolo troppo lungo`);
+    if ((part.corpo || '').length > 300) bad(`analisi ${a.song}: corpo troppo lungo`);
+    if (seenTitles.has(part.titolo)) bad(`analisi ${a.song}: titolo di parte duplicato "${part.titolo}"`);
+    seenTitles.add(part.titolo);
+    for (const [field, text] of [['titolo', part.titolo], ['corpo', part.corpo]]) {
+      for (const m of (text || '').matchAll(/"([^"]+)"/g)) {
+        const q = norm(m[1]); if (q.length < 4) continue;
+        if (!pool.includes(q)) bad(`analisi ${a.song} parte "${part.titolo}" ${field}: citazione non letterale "${m[1]}"`);
+      }
     }
+  }
+  for (const m of a.caption.matchAll(/"([^"]+)"/g)) {
+    const q = norm(m[1]); if (q.length < 4) continue;
+    if (!pool.includes(q)) bad(`analisi ${a.song} caption: citazione non letterale "${m[1]}"`);
   }
 }
 // swap
@@ -122,6 +141,18 @@ for (let i = 1; i < 8; i++) {
   let out; try { out = L.swap({ mood: 'doom', slides: s, index: i, seed: 9 + i }); } catch (e) { bad('swap ' + i + ' ' + e.message); continue; }
   if (out.slides.length !== 8) bad('swap len');
 }
+// swap sulle slide di analisi (focus canzone, ricetta a 10 slide: 7 parti diverse, nessuna disponibile per un doppione)
+const songFocus = { type: 'song', item: 3 };
+const rs = L.propose({ mood: 'doom', focus: songFocus, count: 10, seed: 7 });
+let s10 = rs.proposals[0].slides;
+for (let i = 0; i < s10.length; i++) {
+  if (s10[i].tipo !== 'Analysis') continue;
+  let out; try { out = L.swap({ mood: 'doom', focus: songFocus, slides: s10, index: i, seed: 20 + i }); } catch (e) { bad('swap analisi ' + i + ' ' + e.message); continue; }
+  if (out.slides.length !== 10) bad('swap analisi len');
+  s10 = out.slides;
+}
+const anTitlesAfterSwap = s10.filter(s => s.tipo === 'Analysis').map(s => s.titolo);
+if (new Set(anTitlesAfterSwap).size !== anTitlesAfterSwap.length) bad('swap analisi: parti ripetute dopo lo swap');
 console.log(`${n} caroselli assemblati, ${fail} errori`);
 process.exit(fail ? 1 : 0);
 

@@ -274,13 +274,24 @@ function buildQuote(ctx, step) {
   return { tipo: 'Review', layout: 'quote', immagine: 'none', titolo: r.publication, corpo: again ? 'Same review, another line.' : r.verdict, citazione: q.cit, fonte: `${r.author}, ${r.publication}`, visual: 'Dark background with purple glow. Large quote, publication and author highlighted.', _libId: q.id };
 }
 
-function buildAnalysis(ctx) {
+function buildAnalysis(ctx, step) {
   const { lib, band } = ctx.D;
   const n = songFocusN(ctx);
   const a = (lib.analyses || []).find(x => x.song === n);
   if (!a) throw new Error('Nessuna analisi disponibile per questo brano.');
   const s = band.songs.find(x => x.n === n);
-  return { tipo: 'Analysis', layout: 'text', immagine: 'none', titolo: a.titolo, corpo: a.corpo, fonte: s.title, visual: 'Dark generative background, big headline, short reading of the lyrics (from the official Roadburn Chronicles deep lyrical analysis: shadow, inner conflict, transformation, loss).', _libId: a.id, _analysis: a.id };
+  const parts = a.parts || [];
+  // ogni slide di analisi mostra una parte diversa della lettura ufficiale del testo: si segue l'ordine indicato
+  // dalla ricetta (step._part) e, in ogni caso, non si ripete mai una parte gia' usata in questo stesso carosello
+  ctx.usedParts = ctx.usedParts || new Set();
+  let idx = (step && Number.isInteger(step._part)) ? step._part : -1;
+  if (idx < 0 || idx >= parts.length || ctx.usedParts.has(idx)) {
+    const free = parts.map((_, i) => i).filter(i => !ctx.usedParts.has(i));
+    idx = free.length ? free[0] : 0;
+  }
+  ctx.usedParts.add(idx);
+  const p = parts[idx] || parts[0];
+  return { tipo: 'Analysis', layout: 'text', immagine: 'none', titolo: p.titolo, corpo: p.corpo, fonte: s.title, visual: 'Dark generative background, big headline, short reading of the lyrics (from the official Roadburn Chronicles deep lyrical analysis: shadow, inner conflict, transformation, loss).', _libId: a.id, _analysis: a.id, _part: idx };
 }
 
 function resolveTags(item, tags) {
@@ -362,13 +373,13 @@ function buildSlide(ctx, step) {
     case 'info': s = buildInfo(ctx, step); break;
     case 'band': s = buildBand(ctx, step); break;
     case 'cta': s = buildCta(ctx); break;
-    case 'analysis': s = buildAnalysis(ctx); break;
+    case 'analysis': s = buildAnalysis(ctx, step); break;
     case 'custom': s = { tipo: 'Content', layout: 'text', immagine: 'none', titolo: step.titolo || 'Petrosa.', corpo: step.corpo || '', visual: 'Dark background with purple/orange glow, large text.', _libId: 'custom' }; break;
     default: throw new Error('slot sconosciuto: ' + step.slot);
   }
   if (s.immagine && !['none', 'cover', 'logo'].includes(s.immagine)) ctx.imgs.add(s.immagine);
-  s._ref = { slot: step.slot, kind: step.kind, topics: step.topics, who: step.who, libId: s._libId, member: s._member };
-  delete s._libId; delete s._member; delete s._analysis;
+  s._ref = { slot: step.slot, kind: step.kind, topics: step.topics, who: step.who, libId: s._libId, member: s._member, part: s._part };
+  delete s._libId; delete s._member; delete s._analysis; delete s._part;
   return s;
 }
 
@@ -520,15 +531,20 @@ function applyFocusToSteps(steps, focus, ctx) {
     steps[inf[inf.length - 1]] = { slot: 'info', topics: ['live-band'] };
   }
   if (focus.type === 'song') {
-    // la prima citazione del carosello e' sempre un verso del brano scelto
+    // la prima citazione del carosello resta un verso letterale del brano scelto: e' l'unico testo "grezzo" del carosello
     const qi = steps.findIndex(s => s.slot === 'quote');
     if (qi >= 0) steps[qi] = { slot: 'quote', kind: 'song' };
+    if ((ctx.D.lib.analyses || []).some(a => a.song === parseInt(focus.item, 10))) {
+      // Deep Lyrical Analysis: ogni altra slide (tranne copertina, CTA e il verso citato) diventa una lettura in sequenza
+      // del testo, cosi' l'80% circa del carosello (fino a 8 slide su 10) e' dedicato all'analisi del brano
+      let part = 0;
+      steps = steps.map((s, i) => {
+        if (i === qi || s.slot === 'hook' || s.slot === 'cta') return s;
+        return { slot: 'analysis', _part: part++ };
+      });
+    }
   }
   const infos = steps.map((s, i) => s.slot === 'info' ? i : -1).filter(i => i >= 0);
-  if (focus.type === 'song' && (ctx.D.lib.analyses || []).some(a => a.song === parseInt(focus.item, 10)) && infos.length) {
-    // una slide e' dedicata all'analisi ufficiale del testo (Roadburn Chronicles Deep Lyrical Analysis: shadow, inner conflict, transformation, loss); si sacrifica la seconda slide informativa
-    steps[infos.length > 1 ? infos[1] : infos[0]] = { slot: 'analysis' };
-  }
   if (focus.type === 'doomcharts' && infos.length) steps[infos[0]]._force = 'charts';
   else if (focus.type === 'album' && infos.length) {
     // carosello dedicato all'intero album: prima slide fattuale (uscita/etichetta), seconda (se c'e') presa dall'analisi ufficiale del disco invece di un argomento a caso
@@ -588,7 +604,6 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
   const cur = slides[index];
   if (!cur || !cur._ref) throw new Error('Questa slide non e\' sostituibile (modificata a mano).');
   const ctx = ctxFrom(mood, { type: 'auto' }, rng, D);
-  if (cur._ref.slot === 'analysis') throw new Error('L\'analisi del brano non ha alternative: e\' scritta apposta per questa canzone.');
   // marca come usato il resto del carosello
   slides.forEach((s, i) => {
     if (!s._ref) return;
@@ -598,15 +613,17 @@ function swap({ mood = 'riff', focus = { type: 'auto' }, slides = [], index = 1,
     if (q && i !== index) { if (q.kind === 'song') ctx.songs.add(q.song); else { ctx.reviews.add(q.review); const r = D.band.reviews.find(x => x.id === q.review); if (r) ctx.pubs.add(r.publication); } }
     if (s._ref.member && i !== index) ctx.members.add(s._ref.member);
     if (s._ref.slot === 'info' && i !== index) { const it = D.lib.info.find(x => x.id === s._ref.libId); if (it) ctx.topics.add(it.topic); }
+    // le altre slide di analisi gia' presenti non devono ripetere la stessa parte del testo
+    if (s._ref.slot === 'analysis' && i !== index && Number.isInteger(s._ref.part)) { ctx.usedParts = ctx.usedParts || new Set(); ctx.usedParts.add(s._ref.part); }
     // la slide sostitutiva non deve ripetere la foto (ne' il titolo) di un'altra slide gia' presente nel carosello
     if (i !== index && s.immagine && !['none', 'cover', 'logo'].includes(s.immagine)) ctx.imgs.add(s.immagine);
     if (i !== index && s.titolo) ctx.titles.add(s.titolo);
   });
   ctx.firstQuote = false;
   const step = { ...cur._ref };
-  delete step.libId; delete step.member;
+  delete step.libId; delete step.member; delete step.part;   // niente _part in ingresso: buildAnalysis sceglie da solo una parte non ancora usata nel carosello
   if (focus && ['song', 'member', 'review', 'live', 'band'].includes(focus.type) && (step.slot === 'hook' || (step.slot === 'band' && focus.type === 'member'))) ctx.focus = focus;
-  if (focus && focus.type === 'song' && step.slot === 'quote') ctx.focus = focus;
+  if (focus && focus.type === 'song' && (step.slot === 'quote' || step.slot === 'analysis')) ctx.focus = focus;
   if (step.slot === 'band' && step.who !== 'all' && cur._ref.member && ctx.focus.type !== 'member') ctx.members.add(cur._ref.member);
   if (focus && focus.type === 'band' && step.slot === 'band' && cur._ref.member) { step._member = cur._ref.member; step._role = true; ctx.members.delete(cur._ref.member); }   // ogni membro resta al suo posto: cambia solo il testo
   if (step.slot === 'custom') throw new Error('La slide personalizzata non ha alternative.');

@@ -43,13 +43,14 @@ describe('senza chiavi (solo libreria)', () => {
       }
     });
   }
-  test('propose: brano scelto -> versi solo di quel brano + analisi', async () => {
+  test('propose: brano scelto -> un solo verso letterale + l\'80% circa delle slide dedicate all\'analisi del testo', async () => {
     const title = (await H.get(app, '/api/data')).body.songs.find(x => x.n === 7).title;
     const r = await H.post(app, '/api/propose', { mood: 'doom', focus: { type: 'song', item: 7 }, count: 8, seed: 3 });
     for (const p of r.body.proposals) {
-      assert.ok(p.slides.filter(s => s.tipo === 'Song').length >= 1);
+      assert.equal(p.slides.filter(s => s.tipo === 'Song').length, 1);
       assert.ok(p.slides.filter(s => s.tipo === 'Song').every(s => s.fonte === title));
-      assert.equal(p.slides.filter(s => s.tipo === 'Analysis').length, 1);
+      // ricetta da 8 slide: hook + cta + il verso citato lasciano 5 slide, tutte di analisi
+      assert.equal(p.slides.filter(s => s.tipo === 'Analysis').length, 5);
     }
   });
   test('propose: live -> foto live, durata set 30 min - 1h30, hashtag live', async () => {
