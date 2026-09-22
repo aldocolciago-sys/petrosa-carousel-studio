@@ -12,7 +12,7 @@ for (const q of lib.quotes) {
   for (const p of parts(q.cit)) if (!s.includes(p)) bad(`citazione non trovata ${q.id}: "${p}"`);
 }
 const ok = new Set(tags.similarBands.concat(tags.community).filter(b => b.handle && b.confirmed).map(b => b.handle.replace(/^@/, '').toLowerCase()));
-const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'band' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'live' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }];
+const focuses = [{ type: 'auto' }, ...band.songs.map(x => ({ type: 'song', item: x.n })), { type: 'member', item: 'aldo' }, { type: 'band' }, { type: 'review', item: 'outlaws' }, { type: 'doomcharts' }, { type: 'album' }, { type: 'live' }, { type: 'custom', text: 'Live in Milan\nFriday night, volume up.' }, ...lib.journeys.map(j => ({ type: 'journey', item: j.id }))];
 // ---- coerenza: foto <-> testo, arco, lingua, caption ----
 const PH = Object.fromEntries(L.photos().map(x => [x.id, x]));
 const PORTRAIT = Object.fromEntries(band.members.map(m => [m.photo, m.id]));
@@ -103,6 +103,17 @@ for (const m of lib.moods) for (const count of [7, 8, 9, 10]) for (const f of fo
       for (let x = 0; x < bySlide.length; x++) for (let y = x + 1; y < bySlide.length; y++) for (const a of bySlide[x].f) for (const b of bySlide[y].f) if (a.includes(b) || b.includes(a)) bad(id + ` stessa riga citata in slide ${bySlide[x].i + 1} e ${bySlide[y].i + 1}`);
       if (!p.caption.startsWith(lib.analyses.find(a => a.song === f.item).caption.split('\n')[0])) bad(id + ' caption senza analisi');
     } else if (p.slides.some(s => s.tipo === 'Analysis')) bad(id + ' analisi fuori focus');
+    if (f.type === 'journey') {
+      const j = lib.journeys.find(x => x.id === f.item);
+      const jSlides = p.slides.filter(s => s._ref && s._ref.slot === 'journey');
+      if (!j) bad(id + ' viaggio sconosciuto');
+      else {
+        if (!jSlides.length) bad(id + ' viaggio senza movimenti');
+        const jsongs = new Set(j.songs);
+        for (const s of jSlides) { const so = band.songs.find(x => x.title === s.fonte); if (so && !jsongs.has(so.n)) bad(id + ' viaggio: brano fuori tema ' + so.n); }
+        const parts = jSlides.map(s => s._ref.part); if (new Set(parts).size !== parts.length) bad(id + ' viaggio: movimenti ripetuti');
+      }
+    } else if (p.slides.some(s => s._ref && s._ref.slot === 'journey')) bad(id + ' viaggio fuori focus');
     if (f.type === 'live') {
       const lv = p.slides.filter(s => s.tipo === 'Live');
       if (lv.length < 2) bad(id + ' poche slide live');
@@ -126,7 +137,7 @@ for (const a of lib.analyses) {
   const own = norm((band.songs.find(x => x.n === a.song) || {}).lyrics || '');
   // il brano 8 (una sola riga di testo reale) cita anche altri brani dell'album: per lui il pool e' l'intero songbook
   const pool = a.song === 8 ? allLyrics : own;
-  if (!Array.isArray(a.parts) || a.parts.length !== 7) bad(`analisi ${a.song}: servono 7 parti, trovate ${(a.parts || []).length}`);
+  if (!Array.isArray(a.parts) || a.parts.length !== 8) bad(`analisi ${a.song}: servono 8 parti, trovate ${(a.parts || []).length}`);
   const seenTitles = new Set();
   for (const part of a.parts || []) {
     if ((part.titolo || '').length > 90) bad(`analisi ${a.song}: titolo troppo lungo`);
@@ -143,6 +154,28 @@ for (const a of lib.analyses) {
   for (const m of a.caption.matchAll(/"([^"]+)"/g)) {
     const q = norm(m[1]); if (q.length < 4) continue;
     if (!pool.includes(q)) bad(`analisi ${a.song} caption: citazione non letterale "${m[1]}"`);
+  }
+}
+// viaggi nell'album: ogni citazione letterale e' verificata sul SOLO brano indicato dal movimento (non sull'intero
+// songbook), ogni brano citato deve comparire nell'elenco songs[] del viaggio, nessun movimento duplicato
+for (const j of lib.journeys || []) {
+  if (!Array.isArray(j.movements) || !j.movements.length) bad(`viaggio ${j.id}: nessun movimento`);
+  const seen = new Set();
+  for (const mv of j.movements || []) {
+    const so = band.songs.find(x => x.n === mv.song);
+    if (!so) { bad(`viaggio ${j.id}: brano ${mv.song} inesistente`); continue; }
+    if (!(j.songs || []).includes(mv.song)) bad(`viaggio ${j.id}: movimento del brano ${mv.song} non elencato in songs[]`);
+    if ((mv.titolo || '').length > 90) bad(`viaggio ${j.id} brano ${mv.song}: titolo troppo lungo`);
+    if ((mv.corpo || '').length > 300) bad(`viaggio ${j.id} brano ${mv.song}: corpo troppo lungo`);
+    if (mv.cit) { const own = norm(so.lyrics || ''); for (const p of parts(mv.cit)) if (!own.includes(p)) bad(`viaggio ${j.id} brano ${mv.song}: citazione non letterale "${p}"`); }
+    const key = (mv.titolo || '') + '|' + (mv.cit || '');
+    if (seen.has(key)) bad(`viaggio ${j.id}: movimento duplicato`);
+    seen.add(key);
+  }
+  for (const m of j.caption.matchAll(/"([^"]+)"/g)) {
+    const q = norm(m[1]); if (q.length < 4) continue;
+    const pool = norm((j.songs || []).map(n => (band.songs.find(x => x.n === n) || {}).lyrics || '').join(' '));
+    if (!pool.includes(q)) bad(`viaggio ${j.id} caption: citazione non letterale "${m[1]}"`);
   }
 }
 // swap
@@ -164,6 +197,20 @@ for (let i = 0; i < s10.length; i++) {
 }
 const anTitlesAfterSwap = s10.filter(s => s.tipo === 'Analysis').map(s => s.titolo);
 if (new Set(anTitlesAfterSwap).size !== anTitlesAfterSwap.length) bad('swap analisi: parti ripetute dopo lo swap');
+// swap sui movimenti di un viaggio (stessa logica: nessun movimento ripetuto dopo una serie di swap)
+if (lib.journeys && lib.journeys.length) {
+  const journeyFocus = { type: 'journey', item: lib.journeys[0].id };
+  const rj = L.propose({ mood: 'doom', focus: journeyFocus, count: 10, seed: 11 });
+  let sj = rj.proposals[0].slides;
+  for (let i = 0; i < sj.length; i++) {
+    if (!sj[i]._ref || sj[i]._ref.slot !== 'journey') continue;
+    let out; try { out = L.swap({ mood: 'doom', focus: journeyFocus, slides: sj, index: i, seed: 30 + i }); } catch (e) { bad('swap viaggio ' + i + ' ' + e.message); continue; }
+    if (out.slides.length !== 10) bad('swap viaggio len');
+    sj = out.slides;
+  }
+  const partsAfterSwap = sj.filter(s => s._ref && s._ref.slot === 'journey').map(s => s._ref.part);
+  if (new Set(partsAfterSwap).size !== partsAfterSwap.length) bad('swap viaggio: movimenti ripetuti dopo lo swap');
+}
 console.log(`${n} caroselli assemblati, ${fail} errori`);
 process.exit(fail ? 1 : 0);
 

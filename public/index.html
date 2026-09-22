@@ -183,6 +183,7 @@
       <option value="review">Una recensione / articolo</option>
       <option value="member">Un membro della band</option>
       <option value="band">L'intera band (tutti e 4 i membri)</option>
+      <option value="journey">Un viaggio nell'album (piu' brani collegati)</option>
       <option value="album">L'album Roadburn Chronicles</option>
       <option value="doomcharts">Doom Charts #14</option>
       <option value="live">Live / concerti (set 30 min - 1h30)</option>
@@ -402,6 +403,13 @@
    <div class="hint" id="lvInfo" style="margin-top:8px"></div>
    <div class="row" style="margin-top:10px">
     <label style="margin:0">Qualita'</label><select id="lvRes" style="width:auto"><option value="1080">1080x1920</option><option value="720">720x1280 (piu' leggero)</option></select>
+    <label style="margin:0">Effetto</label>
+    <select id="lvFx" style="width:auto">
+     <option value="off">Nessuno</option>
+     <option value="desert" selected>Deserto - calore e polvere</option>
+     <option value="toxic">Veleno - pulsazione tossica</option>
+     <option value="stage">Palco - fari e flash a tempo</option>
+    </select>
     <button class="btn" id="lvMake">&#127916; Crea video testi</button>
    </div>
    <div id="lvOut" style="display:none;margin-top:12px">

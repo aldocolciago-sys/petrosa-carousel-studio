@@ -68,17 +68,20 @@
     return r;
   }
   const cutAll = slides => (slides || []).map(cut);
-  // Reel per un post dedicato a un brano: il carosello e' quasi tutto lettura del testo (piu' slide di analisi che
-  // altro), troppo per un video che scorre da solo senza che nessuno possa fermarsi a rileggere. Il Reel diventa un
-  // trailer: copertina, il verso citato per intero, 1-2 spunti dell'analisi (accorciati da cut/cutAll) e la CTA
-  // finale - il resto dell'analisi resta scritto per intero nel carosello e nella didascalia del post.
-  // Non e' un post dedicato a un brano (nessuna slide di tipo Analysis): le slide tornano tutte, invariate.
+  // Reel per un post dedicato a un brano (o a un "viaggio nell'album", piu' brani): il carosello e' quasi tutto
+  // lettura del testo (piu' slide di analisi/movimento che altro), troppo per un video che scorre da solo senza
+  // che nessuno possa fermarsi a rileggere. Il Reel diventa un trailer: copertina, un verso citato per intero,
+  // 1-2 spunti (accorciati da cut/cutAll) e la CTA finale - il resto resta scritto per intero nel carosello e
+  // nella didascalia del post. Le slide di un viaggio non hanno tipo fisso (mostrano il titolo del viaggio come
+  // etichetta, per restare coerenti fra loro), quindi si riconoscono da _ref.slot === 'journey', non da s.tipo.
+  // Non e' un post dedicato a un brano/viaggio (niente slide di analisi o di viaggio): le slide tornano tutte, invariate.
   function songTeaser(slides) {
     const arr = slides || [];
-    if (!arr.some(s => s.tipo === 'Analysis')) return arr;
+    const isDeep = s => s.tipo === 'Analysis' || (s._ref && s._ref.slot === 'journey');
+    if (!arr.some(isDeep)) return arr;
     const hook = arr[0];
-    const quote = arr.find(s => s.tipo === 'Song');
-    const picks = arr.filter(s => s.tipo === 'Analysis').slice(0, 2);
+    const quote = arr.find(s => s.tipo === 'Song') || arr.find(s => isDeep(s) && s.citazione);
+    const picks = arr.filter(isDeep).slice(0, 2);
     const cta = arr[arr.length - 1];
     const out = [hook, quote, ...picks, cta].filter(Boolean);
     return out.filter((s, i) => out.indexOf(s) === i);   // niente doppioni (es. carosello cortissimo dove cta e hook coincidessero)

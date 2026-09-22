@@ -450,10 +450,12 @@
     // vedi Renderer.loadImages), cambiando a OGNI riga (mai la stessa immagine due volte consecutive)
     const BG_POOL = ['antonio', 'giorgio', 'aldo', 'andrea', 'desert1', 'desert2', 'desert3', 'cover', 'logo'];
     const bg = LSY.backgroundSchedule(durs, BG_POOL, s.n);
-    // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema, marchio) gia' pronto
-    // per il Reel. _skipTitle: qui il bitmap pre-renderizzato contiene solo sfondo/kicker/barra - il titolo (le
-    // parole del verso) viene disegnato a parte a ogni fotogramma qui sotto, per poterlo animare parola per parola.
-    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: bg[idx] || 'none', _prog: (r.from + idx + 1) / nTot, _skipTitle: true }));
+    // slide sintetiche "lyric": riusano il motore di rendering esistente (sfondo, font, tema) gia' pronto per il
+    // Reel. _skipTitle: qui il bitmap pre-renderizzato contiene solo lo sfondo - il titolo (le parole del verso)
+    // viene disegnato a parte a ogni fotogramma qui sotto, per poterlo animare parola per parola. Il marchio e il
+    // titolo di brano/album sono un overlay statico separato (vedi piu' sotto, lyricOverlay), non fanno parte di
+    // questo bitmap: cosi' restano nitidi anche quando lo sfondo zooma/trema con gli effetti.
+    const AS = lines.map((l, idx) => ({ layout: 'lyric', titolo: l.text, fonte: s.title, immagine: bg[idx] || 'none', _skipTitle: true }));
     const n = AS.length;
     const S = []; let acc = 0; durs.forEach(d => { S.push(acc); acc += d; }); const contentT = acc;
     const offset = Math.max(0, Math.min(times[r.from], Math.max(0, s.dur - contentT - 0.2)));
@@ -472,8 +474,19 @@
       const nSeg = Math.min(8, Math.max(1, Math.round(dead / PAUSE_CYCLE)));
       const pool = BG_POOL.filter(k => k !== bg[idx]);
       const seq = LSY.backgroundSchedule(Array(nSeg).fill(0), pool.length ? pool : BG_POOL, s.n * 1000 + idx + 7);
-      return seq.map(img => C.renderOff(0, 'reel', [{ layout: 'lyric', titolo: '', fonte: s.title, immagine: img, _prog: (r.from + idx + 1) / nTot, _skipTitle: true }]));
+      return seq.map(img => C.renderOff(0, 'reel', [{ layout: 'lyric', titolo: '', fonte: s.title, immagine: img, _skipTitle: true }]));
     });
+    // overlay fisso (marchio in alto, titolo brano/album in basso): un solo canvas, disegnato una volta sola e
+    // ricomposto sopra ogni fotogramma, sempre senza zoom/tremolio (vedi Renderer.lyricOverlay)
+    const overlay = document.createElement('canvas');
+    window.Renderer.lyricOverlay(overlay, { song: s.title, album: (st.data.album || {}).title, handle: st.data.handle, theme: st.theme });
+    // tela "di servizio" per le parole cantate animate: drawLyricWords calcola posizioni/misure per la tela nativa
+    // del motore di rendering (1080x1920, vedi Renderer.W/HREEL), non per la risoluzione di export scelta - qui la
+    // ridisegno a parte e poi la scalo (stessa g.x/g.y/g.w/g.h dello sfondo, cosi' resta perfettamente allineata e
+    // zooma/trasla insieme a lui) invece di disegnarla direttamente su fx: a 720px, senza questo passaggio, le
+    // parole uscirebbero troppo grandi e tagliate fuori dal fotogramma.
+    const wordsCanvas = document.createElement('canvas'); wordsCanvas.width = window.Renderer.W; wordsCanvas.height = window.Renderer.HREEL;
+    const wctx = wordsCanvas.getContext('2d');
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H; const fx = fc.getContext('2d');
     const TR = 0.25;   // dissolvenza (s) tra una riga e la successiva
     // leggero effetto "Ken Burns": ogni riga (o, in pausa, ogni foto) parte a schermo intero e si allarga piano, cosi'
@@ -498,11 +511,69 @@
       const cx = W / 2, cy = H / 2;
       fx.translate(cx + dx, cy + dy); if (scale !== 1) fx.scale(scale, scale); fx.translate(-cx, -cy);
       fx.globalAlpha = alpha; fx.drawImage(bgCanvas, g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
-      if (textAlpha > 0) window.Renderer.drawLyricWords(fx, layouts[idx], st.theme, localT, Math.min(dur, TEXT_HOLD), alpha * textAlpha);
+      if (textAlpha > 0) {
+        wctx.clearRect(0, 0, wordsCanvas.width, wordsCanvas.height);
+        window.Renderer.drawLyricWords(wctx, layouts[idx], st.theme, localT, Math.min(dur, TEXT_HOLD), 1);
+        fx.globalAlpha = alpha * textAlpha; fx.drawImage(wordsCanvas, g.x, g.y, g.w, g.h); fx.globalAlpha = 1;
+      }
       fx.restore();
     };
+    // ---- effetti del Video testi: atmosfera coerente con lo stoner/doom, sopra lo sfondo/parole di drawLine e
+    // SOTTO il marchio fisso (mai zoomati/tremolati insieme al contenuto, vedi frame() piu' sotto). "desert": calore
+    // che fa tremare l'inquadratura (shear orizzontale) e polvere che sale. "toxic": fumo verde/viola alla deriva e
+    // un alone ai bordi che pulsa a tempo di cassa/basso. "stage": fari che spazzano il fotogramma, vibrazione e
+    // flash caldo sul colpo - come un vero concerto. FX === 'off': nessuno di questi (comportamento di sempre).
+    const FX = $('lvFx') ? $('lvFx').value : 'desert';
+    const rnd = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+    let pulse = () => 0;   // sostituita sotto, dopo l'analisi del beat (solo se un effetto e' attivo)
+    const dust = Array.from({ length: 22 }, (_, k) => ({ x: rnd(k * 3 + 1), y: rnd(k * 3 + 2), sp: 0.02 + rnd(k * 3 + 3) * 0.03, sz: 2 + rnd(k * 3 + 4) * 4 }));
+    function fxDesert(t) {
+      fx.save(); fx.globalCompositeOperation = 'multiply'; fx.fillStyle = `rgba(234,88,12,${(0.05 + 0.02 * Math.sin(t * 0.5)).toFixed(3)})`; fx.fillRect(0, 0, W, H);
+      fx.globalCompositeOperation = 'lighter';
+      dust.forEach((d, k) => {
+        const y = (((d.y - t * d.sp) % 1) + 1) % 1 * H, x = ((d.x * W + Math.sin(t * 0.3 + k) * 26) % W + W) % W;
+        const a = Math.max(0, 0.12 + 0.1 * Math.sin(t * 1.3 + k * 2));
+        fx.fillStyle = `rgba(245,158,11,${a.toFixed(3)})`; fx.beginPath(); fx.arc(x, y, d.sz, 0, Math.PI * 2); fx.fill();
+      });
+      fx.restore();
+    }
+    const smoke = [{ x: 0.2, y: 0.3, r: 0.5, hue: '139,92,246', sp: 0.015 }, { x: 0.75, y: 0.65, r: 0.42, hue: '34,197,94', sp: -0.011 }, { x: 0.5, y: 0.15, r: 0.36, hue: '192,38,211', sp: 0.02 }];
+    function fxToxic(t, P) {
+      fx.save(); fx.globalCompositeOperation = 'screen';
+      smoke.forEach((sm, k) => {
+        const cx = (((sm.x + Math.sin(t * sm.sp + k) * 0.12) % 1) + 1) % 1 * W, cy = (((sm.y + Math.cos(t * sm.sp * 0.8 + k) * 0.1) % 1) + 1) % 1 * H, r = sm.r * W;
+        const g = fx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0, `rgba(${sm.hue},${(0.1 + P * 0.06).toFixed(3)})`); g.addColorStop(1, `rgba(${sm.hue},0)`);
+        fx.fillStyle = g; fx.fillRect(0, 0, W, H);
+      });
+      fx.globalCompositeOperation = 'source-over';
+      const vg = fx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.75);
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(20,80,40,${(0.28 + P * 0.22).toFixed(3)})`);
+      fx.fillStyle = vg; fx.fillRect(0, 0, W, H);
+      fx.restore();
+    }
+    function fxStage(t, P) {
+      fx.save(); fx.globalCompositeOperation = 'lighter';
+      [{ a: t * 0.25, col: '245,158,11' }, { a: -t * 0.18 + 2, col: '139,92,246' }].forEach(b => {
+        const ang = Math.sin(b.a) * 0.9, cx = W / 2 + Math.sin(b.a * 1.3) * W * 0.5;
+        fx.save(); fx.translate(cx, -H * 0.2); fx.rotate(ang);
+        const g = fx.createLinearGradient(-90, 0, 90, 0);
+        g.addColorStop(0, `rgba(${b.col},0)`); g.addColorStop(0.5, `rgba(${b.col},0.12)`); g.addColorStop(1, `rgba(${b.col},0)`);
+        fx.fillStyle = g; fx.fillRect(-90, 0, 180, H * 1.6);
+        fx.restore();
+      });
+      if (P > 0.05) { fx.globalCompositeOperation = 'lighter'; fx.fillStyle = `rgba(255,150,40,${(P * 0.16).toFixed(3)})`; fx.fillRect(0, 0, W, H); }
+      fx.restore();
+    }
     const frame = t => {
       fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1; fx.fillStyle = '#000'; fx.fillRect(0, 0, W, H);
+      const P = FX === 'off' ? 0 : pulse(t);
+      fx.save();
+      if (FX === 'stage' && P > 0.03) {
+        const fr = Math.floor(t * 30), sh = P * 5;
+        fx.translate(Math.round((rnd(fr * 2 + 1) - 0.5) * 2 * sh), Math.round((rnd(fr * 2 + 2) - 0.5) * 2 * sh));
+      }
+      if (FX === 'desert') { const shear = Math.sin(t * 0.9) * 0.01; fx.transform(1, 0, shear, 1, 0, 0); }
       let i = S.length - 1; while (i > 0 && t < S[i]) i--;
       const lt = t - S[i];
       if (i > 0 && lt < TR) {
@@ -512,9 +583,20 @@
         else if (kind === 'punch') drawLine(i, lt, p, 0, 0, 0.9 + 0.1 * p);
         else drawLine(i, lt, p, 0, 0, 1);
       } else drawLine(i, lt, 1, 0, 0, 1);
+      fx.restore();
+      if (FX === 'desert') fxDesert(t);
+      else if (FX === 'toxic') fxToxic(t, P);
+      else if (FX === 'stage') fxStage(t, P);
+      // marchio e titolo brano/album: sempre in cima, sempre fermi (vedi lyricOverlay). L'overlay e' sempre
+      // disegnato a 1080x1920 (risoluzione nativa del motore di rendering): va scalato qui alla risoluzione di
+      // export scelta (W x H, es. 720x1280), altrimenti a 720 verrebbe ritagliato invece che rimpicciolito e il
+      // titolo del brano - piu' in basso - uscirebbe fuori dal fotogramma.
+      fx.globalCompositeOperation = 'source-over'; fx.globalAlpha = 1;
+      fx.drawImage(overlay, 0, 0, W, H);
     };
     const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); if (ac.state === 'suspended') await ac.resume();
     const buf = await ac.decodeAudioData(await (await fetch(clipUrl(s))).arrayBuffer());
+    if (FX !== 'off') { const hits = beatHits(buf, offset, offset + contentT); pulse = makePulse(hits, contentT); }
     const dest = ac.createMediaStreamDestination(), src = ac.createBufferSource(), gain = ac.createGain();
     src.buffer = buf; src.connect(gain); gain.connect(dest);
     frame(0);

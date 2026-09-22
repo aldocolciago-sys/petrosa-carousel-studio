@@ -60,12 +60,13 @@
   // ---------- Focus ----------
   function onFocus() {
     const f = $('focus').value, sel = $('item');
-    $('itemWrap').style.display = ['song', 'review', 'member'].includes(f) ? 'block' : 'none';
+    $('itemWrap').style.display = ['song', 'review', 'member', 'journey'].includes(f) ? 'block' : 'none';
     $('customWrap').style.display = f === 'custom' ? 'block' : 'none';
     let opts = [];
     if (f === 'song') { $('itemLabel').textContent = 'Brano'; opts = st.data.songs.map(s => [s.n, `${String(s.n).padStart(2, '0')} - ${s.title}`]); }
     if (f === 'review') { $('itemLabel').textContent = 'Recensione'; opts = st.data.reviews.map(r => [r.id, `${r.publication} - ${r.author}`]); }
     if (f === 'member') { $('itemLabel').textContent = 'Membro'; opts = st.data.members.map(m => [m.id, `${m.name} (${m.role})`]); }
+    if (f === 'journey') { $('itemLabel').textContent = 'Viaggio'; opts = (st.lib.journeys || []).map(j => [j.id, j.title]); }
     const prev = sel.value;
     sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l.replace(/</g, '&lt;')}</option>`).join('');
     if (opts.some(([v]) => String(v) === prev)) sel.value = prev; // non perdere la scelta se l'elenco viene ricostruito
@@ -206,7 +207,7 @@
   $('dkStyle').onclick = () => { if ($('result').style.display === 'none') return toast('Genera prima un carosello: poi qui scegli sfondo, colori e font.', true); scrollTo($('styleBar')); };
   function updateSummary() {
     const m = (st.lib && st.lib.moods.find(x => x.id === st.mood) || {}).label || '';
-    const f = $('focus').selectedOptions[0].text + (['song', 'review', 'member'].includes($('focus').value) && $('item').selectedOptions[0] ? ': ' + $('item').selectedOptions[0].text : '');
+    const f = $('focus').selectedOptions[0].text + (['song', 'review', 'member', 'journey'].includes($('focus').value) && $('item').selectedOptions[0] ? ': ' + $('item').selectedOptions[0].text : '');
     $('cfgSum').textContent = `⚙ ${m} · ${f} · ${st.slides.length} slide — tocca per modificare`;
   }
 

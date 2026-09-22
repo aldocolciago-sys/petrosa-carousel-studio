@@ -41,7 +41,10 @@ function loadSongs() {
   return txt.split(/^## /m).filter(Boolean).map(block => {
     const [head, ...lines] = block.split('\n');
     const [num, title] = head.split('|').map(s => s.trim());
-    return { n: parseInt(num, 10), title, lyrics: lines.join('\n').trim() };
+    // stesso pulizia di library.js: le note tra parentesi nell'intestazione (es. "Viper (singolo)") sono solo per
+    // chi cura i dati, non devono comparire nei post ne' in "/api/data" (deve restare identico a library.js:
+    // altrimenti il titolo mostrato in UI/API e quello usato dentro i caroselli assemblati non coincidono)
+    return { n: parseInt(num, 10), title: title.replace(/\s*\([^)]*\)\s*$/, ''), lyrics: lines.join('\n').trim() };
   });
 }
 function loadAll() {

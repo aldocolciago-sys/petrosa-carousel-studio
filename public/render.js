@@ -371,11 +371,16 @@
     tagChips(ctx, s.tag, H - BM + 10 - tagH + 10);
   };
 
-  // Video testi: una riga di testo a tutto schermo (karaoke), con una barra di avanzamento nel brano.
-  // s._skipTitle: usato dal Video testi per pre-renderizzare UNA VOLTA per riga solo sfondo/kicker/barra (il
-  // bitmap che poi ruota/zooma in reel.js), mentre il titolo vero viene disegnato a parte a ogni fotogramma con
+  // Video testi: una riga di testo a tutto schermo (karaoke). Il marchio (logo/nome/handle, in alto) e il titolo di
+  // brano/album (in basso) sono un overlay statico separato (vedi lyricOverlay piu' sotto), disegnato da reel.js
+  // SOPRA lo sfondo gia' zoomato (Ken Burns): restano cosi' sempre nitidi e fermi, mai deformati dallo zoom.
+  // LYRIC_FOOT_H: spazio riservato in basso, sotto la riga cantata, per quell'overlay - serve qui solo per centrare
+  // correttamente la riga nello spazio che le resta sopra.
+  // s._skipTitle: usato dal Video testi per pre-renderizzare UNA VOLTA per riga solo lo sfondo (il bitmap che poi
+  // ruota/zooma in reel.js), mentre il titolo vero viene disegnato a parte a ogni fotogramma con
   // lyricWordLayout/drawLyricWords qui sotto, per poter animare le singole parole. Se non impostato si comporta
   // come sempre (titolo incluso) - usato per eventuali anteprime statiche.
+  const LYRIC_FOOT_H = 260;
   L.lyric = (ctx, s, i) => {
     background(ctx, i + 23);
     // sfondo che ruota (membri della band, sfondi, logo, copertina - vedi ReelCut/LyricSync.backgroundSchedule):
@@ -384,23 +389,67 @@
       const f = FOCUS[s.immagine] || [0.5, 0.3];
       ctx.globalAlpha = 0.48; coverImg(ctx, images[s.immagine], 0, 0, W, H, f[0], f[1]); ctx.globalAlpha = 1; shade(ctx, 0, H, 0.45, 0.8);
     }
-    if (s.fonte) kicker(ctx, s.fonte, 72, 210 + TP);
     if (!s._skipTitle) {
       const q = String(s.titolo || '').trim();
-      const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, H - BM - 360 - TP, 108, 44, 1.18);
-      const top = TP + (H - TP - BM - f.h) / 2;
+      const bottom = H - BM - LYRIC_FOOT_H;
+      const f = fit(ctx, q, z => `${DW} ${z}px ${BRAND}`, W - 144 - XR, bottom - TP - 40, 108, 44, 1.18);
+      const top = TP + (bottom - TP - f.h) / 2;
       ctx.font = `${DW} ${f.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.55), 40);
       ctx.fillStyle = gradFill(ctx, 72, W - 72, HI(), C.amber, C.orange);
       drawLines(ctx, f, W / 2, top, 1.18, 'center'); noGlow(ctx);
     }
-    if (s._prog != null) {
-      const by = H - BM - 30, bw = W - 144, bx = 72, p = Math.max(0, Math.min(1, s._prog));
-      ctx.strokeStyle = hexA(C.soft, 0.28); ctx.lineWidth = 6; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw, by); ctx.stroke();
-      if (p > 0) { ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw * p, by); ctx.stroke(); }
-      ctx.lineCap = 'butt';
-    }
   };
+
+  // ---------- Video testi: overlay fisso (marchio in alto, titolo brano/album in basso) ----------
+  // Disegnato UNA VOLTA (non a ogni fotogramma) su un canvas trasparente a parte, che reel.js poi sovrappone SENZA
+  // zoom sopra lo sfondo animato: logo/nome/handle e titolo restano sempre perfettamente fermi e leggibili, qualsiasi
+  // cosa succeda sotto (zoom Ken Burns, transizioni, effetti). Icona Instagram: un semplice simbolo generico (cornice
+  // arrotondata + obiettivo), non il logo ufficiale.
+  function igIcon(ctx, x, y, size, col) {
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, size * 0.09); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    rr(ctx, x, y, size, size, size * 0.32); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x + size / 2, y + size / 2, size * 0.26, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x + size * 0.76, y + size * 0.24, size * 0.06, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    ctx.restore();
+  }
+  function lyricOverlay(canvas, opts) {
+    opts = opts || {};
+    REEL = true; H = 1920; BM = 470; TP = 190; XR = 60; FS = 1.28;
+    applyTheme(opts.theme);
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+    // marchio, in alto a sinistra: logo tondo + nome, e poco sotto l'account Instagram con la sua iconcina
+    const lg = images.logo, cy1 = TP + 60;
+    ctx.save();
+    glow(ctx, hexA(C.amber, 0.5), 22);
+    ctx.beginPath(); ctx.arc(96, cy1, 36, 0, Math.PI * 2); ctx.closePath(); ctx.fillStyle = '#000'; ctx.fill();
+    noGlow(ctx);
+    ctx.save(); ctx.beginPath(); ctx.arc(96, cy1, 36, 0, Math.PI * 2); ctx.clip();
+    if (lg) ctx.drawImage(lg, 96 - 46, cy1 - 32, 92, 65);
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(96, cy1, 37, 0, Math.PI * 2); ctx.strokeStyle = C.amber; ctx.lineWidth = 3; ctx.stroke();
+    ctx.font = `${DW} 40px ${BRAND}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillStyle = gradFill(ctx, 150, 420); ctx.fillText('PETROSA', 150, cy1 + 2);
+    ctx.restore();
+    const cy2 = cy1 + 66;
+    igIcon(ctx, 150, cy2 - 15, 30, C.soft);
+    ctx.font = `700 30px ${BODY}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.soft;
+    ctx.fillText(opts.handle || '@petrosa_band', 150 + 40, cy2 + 1);
+    // titolo, in basso e centrato: il brano (grande, in evidenza) e l'album (piu' piccolo, sopra)
+    if (opts.album) {
+      ctx.textAlign = 'center';
+      kicker(ctx, opts.album, W / 2 - measureKicker(ctx, opts.album) / 2, H - BM - LYRIC_FOOT_H + 60, C.soft);
+    }
+    if (opts.song) {
+      const f = fit(ctx, opts.song, z => `${DW} ${z}px ${BRAND}`, W - 160 - XR, 150, 76, 40, 1.14);
+      ctx.font = `${DW} ${f.size}px ${BRAND}`; glow(ctx, hexA(C.orange, 0.55), 34);
+      ctx.fillStyle = gradFill(ctx, W / 2 - 320, W / 2 + 320, HI(), C.amber, C.orange);
+      drawLines(ctx, f, W / 2, H - BM - LYRIC_FOOT_H + 108, 1.14, 'center'); noGlow(ctx);
+    }
+    return canvas;
+  }
+  function measureKicker(ctx, text) { ctx.font = `700 26px ${BODY}`; return ctx.measureText(String(text || '').toUpperCase().split('').join(' ')).width; }
 
   // ---------- Video testi: parole animate ----------
   // Calcola UNA VOLTA per riga (non a ogni fotogramma) la posizione di ogni singola parola del titolo "lyric",
@@ -492,8 +541,10 @@
     ctx.clearRect(0, 0, W, H);
     L[layout](ctx, s, i, n);
     if (layout === 'hook') L.hookText(ctx, s);
-    chrome(ctx, i, n, handle, layout === 'cta' || i === n - 1);
+    // Video testi: marchio e titolo sono l'overlay fisso disegnato a parte (vedi lyricOverlay) - niente "chrome"
+    // qui, altrimenti finirebbe dentro il bitmap di sfondo che reel.js zooma (Ken Burns) e ruoterebbe/sgranerebbe con lui.
+    if (layout !== 'lyric') chrome(ctx, i, n, handle, layout === 'cta' || i === n - 1);
   }
 
-  const api = window.Renderer = { W, H, HREEL: 1920, render, loadImages, need, loadFonts, ensureFonts, images, lyricWordLayout, drawLyricWords };
+  const api = window.Renderer = { W, H, HREEL: 1920, render, loadImages, need, loadFonts, ensureFonts, images, lyricWordLayout, drawLyricWords, lyricOverlay };
 })();
