@@ -77,7 +77,9 @@ async function startMockAnthropic() {
 
 // ---------- Mock PostFast (con CORS, come un bucket con upload firmato) ----------
 async function startMockPostfast() {
-  const state = { posts: [], uploads: [], puts: [], signed: [] };
+  // force429Remaining/retryAfterSeconds: i test possono impostarli per simulare il rate limit reale di PostFast
+  // (429 "Too many requests" + header Retry-After) e verificare che postfast() in handler.js lo rispetti e ritenti.
+  const state = { posts: [], uploads: [], puts: [], signed: [], force429Remaining: 0, retryAfterSeconds: 1, calls: 0 };
   let seq = 0;
   const srv = http.createServer(async (req, res) => {
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'PUT,OPTIONS', 'access-control-allow-headers': '*' };
@@ -98,6 +100,11 @@ async function startMockPostfast() {
       return res.end();
     }
     if (req.headers['pf-api-key'] !== 'test-pf-key') return json(res, 401, { message: 'bad key' });
+    state.calls++;
+    if (state.force429Remaining > 0) {
+      state.force429Remaining--;
+      return json(res, 429, { statusCode: 429, message: 'Too many requests. Please try again later.', error: 'Too Many Requests' }, { 'retry-after': String(state.retryAfterSeconds) });
+    }
     if (u.pathname === '/social-media/my-social-accounts') return json(res, 200, [
       { id: 'acc-ig', platform: 'instagram', platformUsername: 'petrosa', displayName: 'Petrosa IG', connectionStatus: 'CONNECTED' },
       { id: 'acc-tt', platform: 'tiktok', platformUsername: 'petrosa', displayName: 'Petrosa TT', connectionStatus: 'CONNECTED' },

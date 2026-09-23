@@ -170,7 +170,7 @@ describe('con Anthropic e PostFast (mock)', () => {
   let app, ant, pf;
   before(async () => {
     ant = await H.startMockAnthropic(); pf = await H.startMockPostfast();
-    app = await H.startApp({ ANTHROPIC_API_KEY: 'test-anthropic-key', ANTHROPIC_BASE_URL: ant.url, POSTFAST_API_KEY: 'test-pf-key', POSTFAST_API_URL: pf.url, BLOB_READ_WRITE_TOKEN: 'test-blob-token' });
+    app = await H.startApp({ ANTHROPIC_API_KEY: 'test-anthropic-key', ANTHROPIC_BASE_URL: ant.url, POSTFAST_API_KEY: 'test-pf-key', POSTFAST_API_URL: pf.url, BLOB_READ_WRITE_TOKEN: 'test-blob-token', POSTFAST_MIN_GAP_MS: '0' });
   });
   after(() => { app.stop(); ant.close(); pf.close(); });
 
@@ -248,6 +248,23 @@ describe('con Anthropic e PostFast (mock)', () => {
   test('PostFast: account (i disattivati sono nascosti)', async () => {
     const a = (await H.get(app, '/api/social/accounts')).body;
     assert.deepEqual(a.map(x => x.platform), ['INSTAGRAM', 'TIKTOK']); assert.equal(a[0].username, 'petrosa');
+  });
+  test('PostFast: limite di frequenza (429) - ritenta rispettando Retry-After e va comunque a buon fine', async () => {
+    pf.state.force429Remaining = 1; pf.state.retryAfterSeconds = 1;
+    const t0 = Date.now();
+    const a = (await H.get(app, '/api/social/accounts')).body;
+    const elapsed = Date.now() - t0;
+    assert.deepEqual(a.map(x => x.platform), ['INSTAGRAM', 'TIKTOK']);
+    assert.ok(elapsed >= 900, `doveva aspettare almeno ~1s per il Retry-After (429 simulato), ha aspettato solo ${elapsed}ms`);
+    assert.equal(pf.state.force429Remaining, 0);
+  });
+  test('PostFast: limite di frequenza (429) persistente -> errore chiaro dopo i tentativi, non un crash', async () => {
+    pf.state.force429Remaining = 99; pf.state.retryAfterSeconds = 1;
+    try {
+      const r = await H.get(app, '/api/social/accounts');
+      assert.notEqual(r.status, 200);
+      assert.match(String(r.body.error || ''), /limite di richieste/);
+    } finally { pf.state.force429Remaining = 0; } // ripristina per non contaminare i test successivi
   });
   test('PostFast: upload slide + caricamento non valido', async () => {
     const r = await H.post(app, '/api/social/upload', { image: H.TINY_JPEG }); assert.equal(r.status, 200); assert.ok(r.body.key);

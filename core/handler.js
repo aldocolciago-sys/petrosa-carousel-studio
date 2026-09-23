@@ -408,13 +408,40 @@ async function scanWeb() {
 }
 
 // ---------- PostFast (pubblicazione automatica) ----------
+// PostFast applica un limite di frequenza per chiave API (documentazione ufficiale, https://postfa.st/docs):
+// 60 richieste/minuto, 150/5 minuti, 300/ora, 2000/giorno, con risposta 429 ("Too many requests") quando si
+// sfora. Un piano settimanale (caroselli + Reel, un giorno dopo l'altro senza pause) carica ~9-13 chiamate
+// PostFast al giorno (una per slide, piu' la pubblicazione, piu' altre due per il Reel): dopo 4-5 giorni
+// consecutivi ci si avvicina facilmente al limite di 60/minuto. Due contromisure, entrambe qui cosi' valgono
+// per OGNI chiamata a PostFast (carosello, Reel, video testi, piano settimanale), non solo per una:
+// 1) distanziamo ogni chiamata di almeno POSTFAST_MIN_GAP_MS dalla precedente, restando sempre sotto le 60/min;
+// 2) se PostFast risponde comunque 429, rispettiamo l'header Retry-After che la loro documentazione consiglia
+//    di attendere, e ritentiamo un paio di volte prima di arrenderci con un errore chiaro.
+// Configurabili via ambiente SOLO per i test (che altrimenti impiegherebbero minuti reali): in produzione
+// restano sempre ai valori prudenti di default.
+const POSTFAST_MIN_GAP_MS = () => process.env.POSTFAST_MIN_GAP_MS !== undefined ? Number(process.env.POSTFAST_MIN_GAP_MS) : 1100; // ~54 richieste/minuto: margine sotto il limite di 60/minuto documentato
+const POSTFAST_MAX_RETRY_WAIT_MS = () => process.env.POSTFAST_MAX_RETRY_WAIT_MS !== undefined ? Number(process.env.POSTFAST_MAX_RETRY_WAIT_MS) : 15000; // margine prudente sotto maxDuration:60 di vercel.json
+let lastPostfastCallAt = 0;
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+
 async function postfast(pathname, opts = {}) {
   if (!POSTFAST_KEY()) throw new Error('Manca POSTFAST_API_KEY (variabile ambiente / file .env)');
-  const r = await fetch(POSTFAST_URL() + pathname, { ...opts, headers: { 'pf-api-key': POSTFAST_KEY(), ...(opts.headers || {}) } });
-  const txt = await r.text();
-  let j; try { j = JSON.parse(txt); } catch { j = { raw: txt }; }
-  if (!r.ok) throw new Error(`PostFast ${r.status}: ${typeof j === 'object' ? JSON.stringify(j).slice(0, 400) : txt.slice(0, 400)}`);
-  return j;
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; ; attempt++) {
+    const wait = POSTFAST_MIN_GAP_MS() - (Date.now() - lastPostfastCallAt);
+    if (wait > 0) await sleep(wait);
+    lastPostfastCallAt = Date.now();
+    const r = await fetch(POSTFAST_URL() + pathname, { ...opts, headers: { 'pf-api-key': POSTFAST_KEY(), ...(opts.headers || {}) } });
+    const txt = await r.text();
+    let j; try { j = JSON.parse(txt); } catch { j = { raw: txt }; }
+    if (r.status !== 429) {
+      if (!r.ok) throw new Error(`PostFast ${r.status}: ${typeof j === 'object' ? JSON.stringify(j).slice(0, 400) : txt.slice(0, 400)}`);
+      return j;
+    }
+    if (attempt >= MAX_RETRIES) throw new Error(`PostFast ${r.status}: limite di richieste raggiunto (${typeof j === 'object' ? JSON.stringify(j).slice(0, 200) : txt.slice(0, 200)}). Aspetta qualche minuto e riprova: i giorni gia' inviati restano validi, serve solo reinviare quelli rimasti.`);
+    const retryAfterMs = Math.min(POSTFAST_MAX_RETRY_WAIT_MS(), Math.max(1000, (parseFloat(r.headers.get('retry-after')) || 5) * 1000));
+    await sleep(retryAfterMs);
+  }
 }
 
 async function listAccounts() {

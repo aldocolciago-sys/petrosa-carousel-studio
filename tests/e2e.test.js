@@ -19,7 +19,7 @@ const IGNORE = /Failed to load resource|ERR_TUNNEL|ERR_NAME|ERR_INTERNET|fonts\.
 describe('interfaccia', { skip: SKIP }, () => {
 before(async () => {
   ant = await H.startMockAnthropic(); pf = await H.startMockPostfast();
-  app = await H.startApp({ ANTHROPIC_API_KEY: 'test-anthropic-key', ANTHROPIC_BASE_URL: ant.url, POSTFAST_API_KEY: 'test-pf-key', POSTFAST_API_URL: pf.url, BLOB_READ_WRITE_TOKEN: 'test-blob-token' });
+  app = await H.startApp({ ANTHROPIC_API_KEY: 'test-anthropic-key', ANTHROPIC_BASE_URL: ant.url, POSTFAST_API_KEY: 'test-pf-key', POSTFAST_API_URL: pf.url, BLOB_READ_WRITE_TOKEN: 'test-blob-token', POSTFAST_MIN_GAP_MS: '0' });
   browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
 });
 after(async () => { if (browser) await browser.close(); if (app) app.stop(); if (ant) ant.close(); if (pf) pf.close(); });
