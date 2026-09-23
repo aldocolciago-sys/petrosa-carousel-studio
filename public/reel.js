@@ -317,20 +317,25 @@
     if (onStatus) onStatus('Carico il video...');
     const contentType = blob.type === 'video/webm' ? 'video/webm' : blob.type === 'video/quicktime' ? 'video/quicktime' : 'video/mp4';
     const up = await api('/api/social/upload-url', { contentType });
-    let host = '(url non valido)'; try { host = new URL(up.signedUrl).host; } catch { /* lo si segnala sotto */ }
+    // Il bucket dei video di PostFast non manda intestazioni CORS sull'URL firmato (la loro documentazione
+    // mostra il PUT fatto solo lato server), quindi NON carichiamo piu' il video direttamente dal browser a
+    // PostFast: lo mandiamo a /api/video-proxy, sullo stesso dominio dell'app (niente CORS), che lo gira lui
+    // con una richiesta server-to-server verso l'URL firmato. Vedi videoProxyPut in core/handler.js e, per
+    // come funziona online su Vercel senza il limite di 4,5 MB delle funzioni Node, api/video-proxy.js.
+    const proxyUrl = '/api/video-proxy?target=' + encodeURIComponent(up.signedUrl);
     let put;
     try {
-      put = await fetch(up.signedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob });
+      put = await fetch(proxyUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob });
     } catch (e) {
-      const info = { errore: (e && e.name) + ': ' + (e && e.message), host, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, dimensioneMB: (blob.size / 1048576).toFixed(1) };
-      console.error('[Petrosa] upload video: nessuna risposta HTTP ricevuta (possibile blocco CORS o problema di rete) -', info);
-      const err = new Error(`Caricamento del video non riuscito: il browser non ha ricevuto nessuna risposta da PostFast (${info.errore}). Apri la Console del browser (F12 -> Console) proprio quando succede: se vedi una riga rossa con scritto "blocked by CORS policy", e' davvero un blocco CORS sul bucket di PostFast (${host}) e vanno avvisati loro; se la console mostra altro, dimmi cosa c'e' scritto. Nel frattempo scarica il file e caricalo a mano dal pannello PostFast.`);
+      const info = { errore: (e && e.name) + ': ' + (e && e.message), contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, dimensioneMB: (blob.size / 1048576).toFixed(1) };
+      console.error('[Petrosa] upload video: nessuna risposta dal nostro server (/api/video-proxy) -', info);
+      const err = new Error(`Caricamento del video non riuscito: il browser non ha ricevuto risposta dal nostro server (${info.errore}). Apri la Console del browser (F12 -> Console) per il dettaglio tecnico. Nel frattempo scarica il file e caricalo a mano dal pannello PostFast.`);
       err.code = 'VIDEO_UPLOAD_NETWORK_FAIL'; err.diag = info;
       throw err;
     }
     if (!put.ok) {
       const body = await put.text().catch(() => '');
-      console.error('[Petrosa] upload video: risposta HTTP non ok -', { status: put.status, host, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, corpo: body.slice(0, 500) });
+      console.error('[Petrosa] upload video: risposta non ok da /api/video-proxy -', { status: put.status, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, corpo: body.slice(0, 500) });
       const err = new Error(`Upload video fallito: HTTP ${put.status}${body ? ' - ' + body.slice(0, 200) : ''}`);
       err.code = 'VIDEO_UPLOAD_HTTP_' + put.status;
       throw err;

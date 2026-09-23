@@ -482,6 +482,40 @@ function readBody(req, limit = 80 * 1024 * 1024) {
     req.on('error', reject);
   });
 }
+// come readBody, ma senza fare JSON.parse: per il corpo binario grezzo del video in /api/video-proxy (vedi sotto).
+function readRawBody(req, limit = 260 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = []; let size = 0;
+    req.on('data', c => { size += c.length; if (size > limit) { reject(new Error('File troppo grande')); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+// Il bucket dei VIDEO di PostFast non manda intestazioni CORS sull'URL firmato (la loro stessa documentazione
+// mostra il PUT fatto solo lato server: Node/Python/cURL, mai da un browser) - per questo il caricamento
+// diretto browser->PostFast viene bloccato dal browser stesso. Qui il browser manda il video A NOI (stesso
+// dominio dell'app: niente CORS), e noi lo giriamo con una PUT server-to-server verso l'URL firmato: il CORS
+// e' una regola imposta solo dal browser, una richiesta server-to-server non ne e' mai soggetta. In locale
+// (node run.js) questa funzione gestisce la richiesta direttamente; online (Vercel) la STESSA richiesta arriva
+// invece alla funzione "Edge" in api/video-proxy.js (vedi il rewrite in vercel.json), che fa streaming del
+// corpo e quindi non ha il limite di 4,5 MB delle funzioni Vercel Node normali (qui in locale non serve,
+// perche' non gira come funzione serverless).
+// in locale/test (non su Vercel) il "bucket" e' il server finto dei test su 127.0.0.1: qui si allarga la
+// whitelist solo per quello, cosi' la stessa logica resta verificabile senza toccare nulla in produzione,
+// dove la whitelist resta rigidamente i soli host dei bucket veri di PostFast.
+const VIDEO_PROXY_HOST_OK = h => /(\.cloudflarestorage\.com|\.amazonaws\.com)$/i.test(h || '') || (!process.env.VERCEL && /^(127\.0\.0\.1|localhost)$/i.test(h || ''));
+async function videoProxyPut(req, res, url) {
+  const target = url.searchParams.get('target');
+  if (!target) return send(res, 400, { error: 'Parametro "target" mancante.' });
+  let t; try { t = new URL(target); } catch { return send(res, 400, { error: 'URL di destinazione non valido.' }); }
+  if (!VIDEO_PROXY_HOST_OK(t.hostname)) return send(res, 400, { error: 'Host di destinazione non consentito.' });
+  const contentType = req.headers['content-type'] || 'application/octet-stream';
+  const buf = await readRawBody(req);
+  const put = await fetch(t, { method: 'PUT', headers: { 'content-type': contentType }, body: buf });
+  const body = await put.text().catch(() => '');
+  res.writeHead(put.status, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end(body);
+}
 
 const SERVERLESS = !!process.env.VERCEL;
 const PASSWORD = () => process.env.APP_PASSWORD || '';
@@ -565,6 +599,7 @@ async function handler(req, res) {
       return send(res, 200, { songs: d.songs.map(x => ({ n: x.n, title: x.title, lyrics: x.lyrics, ...(au.songs[x.n] || {}), anchors: sy[x.n] || [] })) });
     }
     if (url.pathname === '/api/social/upload-url' && req.method === 'POST') return send(res, 200, await videoUploadUrl(await readBody(req)));
+    if (url.pathname === '/api/video-proxy' && req.method === 'PUT') return await videoProxyPut(req, res, url);
     if (url.pathname === '/api/social/accounts') return send(res, 200, (await listAccounts()).filter(a => a.status !== 'DISABLED'));
     if (url.pathname === '/api/social/upload' && req.method === 'POST') return send(res, 200, await uploadSlide(await readBody(req)));
     if (url.pathname === '/api/social/publish' && req.method === 'POST') return send(res, 200, await publish(await readBody(req)));

@@ -3,6 +3,6 @@
   "buildCommand": "",
   "installCommand": "",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }],
+  "rewrites": [{ "source": "/api/((?!video-proxy).*)", "destination": "/api/index" }],
   "functions": { "api/index.js": { "includeFiles": "{data/**,public/reelcut.js}", "maxDuration": 60 } }
 }
