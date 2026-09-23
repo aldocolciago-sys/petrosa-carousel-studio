@@ -5,8 +5,8 @@
   const thumbs = [];
 
   const toast = (msg, bad) => {
-    const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.borderColor = bad ? 'var(--red)' : 'var(--amber)';
-    clearTimeout(toast.h); toast.h = setTimeout(() => (t.style.display = 'none'), 6000);
+    const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.borderColor = bad ? 'var(--red)' : 'var(--amber)'; t.style.whiteSpace = 'pre-line';
+    clearTimeout(toast.h); toast.h = setTimeout(() => (t.style.display = 'none'), bad ? 12000 : 6000);
   };
   const api = async (url, body) => {
     const r = await fetch(url, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined);
