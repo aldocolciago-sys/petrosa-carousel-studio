@@ -317,31 +317,34 @@
     if (onStatus) onStatus('Carico il video...');
     const contentType = blob.type === 'video/webm' ? 'video/webm' : blob.type === 'video/quicktime' ? 'video/quicktime' : 'video/mp4';
     const up = await api('/api/social/upload-url', { contentType });
-    // Il bucket dei video di PostFast non manda intestazioni CORS sull'URL firmato (la loro documentazione
-    // mostra il PUT fatto solo lato server), quindi NON carichiamo piu' il video direttamente dal browser a
-    // PostFast: lo mandiamo a /api/video-proxy, sullo stesso dominio dell'app (niente CORS), che lo gira lui
-    // con una richiesta server-to-server verso l'URL firmato. Vedi videoProxyPut in core/handler.js e, per
-    // come funziona online su Vercel senza il limite di 4,5 MB delle funzioni Node, api/video-proxy.js.
-    const proxyUrl = '/api/video-proxy?target=' + encodeURIComponent(up.signedUrl);
+    // NOTA: il video va dal browser a VERCEL BLOB, non piu' direttamente al bucket di PostFast: sia le funzioni
+    // Vercel Node che quelle Edge hanno un limite FISSO di ~4,5 MB sul corpo della richiesta in ingresso (da qui
+    // l'errore "413 FUNCTION_PAYLOAD_TOO_LARGE" incontrato con il precedente tentativo di farlo passare da un
+    // nostro proxy), e il bucket video di PostFast non manda intestazioni CORS sul suo URL firmato (la loro
+    // documentazione mostra il PUT fatto solo lato server), quindi il browser non puo' caricarcelo direttamente.
+    // Vercel Blob invece e' pensato apposta per upload diretti dal browser (CORS incluso): quando si chiama
+    // "/api/social/publish" il nostro server legge poi il video da li' e lo trasferisce a PostFast da server a
+    // server (mai soggetto a CORS ne' al limite sul corpo in ingresso - vedi relayBlobVideoToPostfast).
+    let host = '(url non valido)'; try { host = new URL(up.presignedUrl).host; } catch { /* lo si segnala sotto */ }
     let put;
     try {
-      put = await fetch(proxyUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob });
+      put = await fetch(up.presignedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob });
     } catch (e) {
-      const info = { errore: (e && e.name) + ': ' + (e && e.message), contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, dimensioneMB: (blob.size / 1048576).toFixed(1) };
-      console.error('[Petrosa] upload video: nessuna risposta dal nostro server (/api/video-proxy) -', info);
-      const err = new Error(`Caricamento del video non riuscito: il browser non ha ricevuto risposta dal nostro server (${info.errore}). Apri la Console del browser (F12 -> Console) per il dettaglio tecnico. Nel frattempo scarica il file e caricalo a mano dal pannello PostFast.`);
+      const info = { errore: (e && e.name) + ': ' + (e && e.message), host, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, dimensioneMB: (blob.size / 1048576).toFixed(1) };
+      console.error('[Petrosa] upload video: nessuna risposta HTTP ricevuta da Vercel Blob -', info);
+      const err = new Error(`Caricamento del video non riuscito: il browser non ha ricevuto nessuna risposta da Vercel Blob (${info.errore}). Controlla la connessione e riprova (vedi la Console del browser, F12, per i dettagli).`);
       err.code = 'VIDEO_UPLOAD_NETWORK_FAIL'; err.diag = info;
       throw err;
     }
     if (!put.ok) {
       const body = await put.text().catch(() => '');
-      console.error('[Petrosa] upload video: risposta non ok da /api/video-proxy -', { status: put.status, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, corpo: body.slice(0, 500) });
+      console.error('[Petrosa] upload video: risposta HTTP non ok -', { status: put.status, host, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, corpo: body.slice(0, 500) });
       const err = new Error(`Upload video fallito: HTTP ${put.status}${body ? ' - ' + body.slice(0, 200) : ''}`);
       err.code = 'VIDEO_UPLOAD_HTTP_' + put.status;
       throw err;
     }
     if (onStatus) onStatus('Programmo...');
-    return api('/api/social/publish', { video: true, caption: captionOverride || C.fullCaption(), keys: [up.key], mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
+    return api('/api/social/publish', { video: true, caption: captionOverride || C.fullCaption(), blobPathname: up.pathname, contentType: up.contentType, mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
   }
   const teaserCaption = () => { const h = (activeSlides()[0] || {}).titolo; return window.Teaser ? window.Teaser.caption(h, Date.now()) : undefined; };
   $('rlPub').onclick = async () => {

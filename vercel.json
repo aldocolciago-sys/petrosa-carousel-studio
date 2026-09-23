@@ -1,8 +1,8 @@
 {
   "framework": null,
   "buildCommand": "",
-  "installCommand": "",
+  "installCommand": "npm install",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/api/((?!video-proxy).*)", "destination": "/api/index" }],
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }],
   "functions": { "api/index.js": { "includeFiles": "{data/**,public/reelcut.js}", "maxDuration": 60 } }
 }

@@ -3,6 +3,10 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+// Vercel Blob: usato SOLO lato server (qui e in relayBlobVideoToPostfast), mai nel browser - vedi i commenti
+// su blobUploadUrl piu' sotto per il perche'.
+const { issueSignedToken, presignUrl, del: delBlob } = require('@vercel/blob');
 
 const ROOT = path.join(__dirname, '..');
 const PUBLIC = path.join(ROOT, 'public');
@@ -26,6 +30,10 @@ const ANTHROPIC_KEY = () => process.env.ANTHROPIC_API_KEY || '';
 const MODEL = () => process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
 const POSTFAST_KEY = () => process.env.POSTFAST_API_KEY || '';
 const POSTFAST_URL = () => (process.env.POSTFAST_API_URL || 'https://api.postfa.st').replace(/\/$/, '');
+// La documentazione Vercel conferma che issueSignedToken() accetta SIA il token statico BLOB_READ_WRITE_TOKEN
+// SIA le credenziali OIDC (BLOB_STORE_ID + VERCEL_OIDC_TOKEN, che oggi Vercel collega di default quando si crea
+// uno Store Blob): controlliamo che almeno una delle due coppie sia presente, invece di richiedere solo la prima.
+const BLOB_AUTH_OK = () => !!(process.env.BLOB_READ_WRITE_TOKEN || (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN));
 
 // ---------- Dati ----------
 const LIB = require('../library');
@@ -431,10 +439,10 @@ async function uploadSlide(p) {
   return { key: u.key };
 }
 
-// URL firmato per caricare un VIDEO direttamente dal browser (evita il limite di 4,5 MB delle funzioni Vercel)
-// Il tipo dichiarato qui deve corrispondere ESATTAMENTE a quello del video vero registrato dal browser (mp4 o webm,
-// a seconda dei codec supportati: vedi pickMime in reel.js) - altrimenti l'intestazione content-type del PUT non
-// corrisponde piu' a quella con cui PostFast ha firmato l'URL, e alcuni bucket rifiutano l'upload per questo.
+// URL firmato di POSTFAST per un video (usato SOLO lato server, da relayBlobVideoToPostfast qui sotto: il bucket
+// video di PostFast non manda intestazioni CORS sul suo URL firmato - la loro documentazione mostra il PUT fatto
+// solo lato server - quindi il browser non puo' caricarcelo direttamente. Vedi blobUploadUrl per il percorso che
+// il browser usa davvero).
 async function videoUploadUrl(p) {
   const type = ['video/mp4', 'video/webm', 'video/quicktime'].includes(p.contentType) ? p.contentType : 'video/mp4';
   const urls = await postfast('/file/get-signed-upload-urls', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: type, count: 1 }) });
@@ -443,9 +451,49 @@ async function videoUploadUrl(p) {
   return { signedUrl: u.signedUrl, key: u.key, contentType: type };
 }
 
+// URL firmato per caricare un VIDEO direttamente dal browser a VERCEL BLOB (non a PostFast, vedi sopra). Sia le
+// funzioni Vercel Node che quelle Edge hanno un limite FISSO di ~4,5 MB sul corpo delle richieste in INGRESSO
+// (confermato dalla documentazione Vercel: e' la causa dell'errore "413 FUNCTION_PAYLOAD_TOO_LARGE" incontrato
+// con il precedente tentativo di proxy), quindi un video vero (10-250 MB) non puo' mai passare DENTRO una
+// function - deve andare dal browser a uno storage esterno pensato per questo. Vercel Blob lo e' (CORS incluso);
+// il video viene poi letto da li' e trasferito a PostFast da server a server in relayBlobVideoToPostfast, quando
+// si chiama /api/social/publish - un salto che NON e' mai soggetto ne' a CORS ne' al limite sul corpo in
+// ingresso (quel limite riguarda solo cio' che un client manda ALLA function, non le fetch che la function fa
+// lei stessa verso l'esterno).
+async function blobUploadUrl(p) {
+  if (!BLOB_AUTH_OK()) throw new Error('Manca la configurazione di Vercel Blob (BLOB_READ_WRITE_TOKEN oppure BLOB_STORE_ID+VERCEL_OIDC_TOKEN): crea uno Store Blob su Vercel, sezione Storage del progetto, e ridistribuisci.');
+  const type = ['video/mp4', 'video/webm', 'video/quicktime'].includes(p.contentType) ? p.contentType : 'video/mp4';
+  const ext = type === 'video/webm' ? 'webm' : type === 'video/quicktime' ? 'mov' : 'mp4';
+  const pathname = `reels/${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+  const maximumSizeInBytes = 260 * 1024 * 1024; // margine sopra il limite di 250 MB per post di PostFast
+  const token = await issueSignedToken({ pathname, operations: ['put'], allowedContentTypes: [type], maximumSizeInBytes, validUntil: Date.now() + 15 * 60 * 1000 });
+  const { presignedUrl } = await presignUrl(token, { operation: 'put', pathname, access: 'private', allowedContentTypes: [type], maximumSizeInBytes, addRandomSuffix: false, allowOverwrite: true });
+  return { presignedUrl, pathname, contentType: type };
+}
+
+// Il video e' gia' su Vercel Blob (blobUploadUrl sopra). Qui lo leggiamo in streaming e lo trasferiamo a PostFast
+// SENZA mai bufferizzarlo per intero in memoria e senza che transiti dal browser: e' una fetch che la nostra
+// function fa verso l'esterno (server-to-server), quindi non soggetta a CORS ne' al limite sul corpo in ingresso.
+async function relayBlobVideoToPostfast(pathname, contentType) {
+  const type = ['video/mp4', 'video/webm', 'video/quicktime'].includes(contentType) ? contentType : 'video/mp4';
+  const pf = await videoUploadUrl({ contentType: type });
+  const getToken = await issueSignedToken({ pathname, operations: ['get'], validUntil: Date.now() + 10 * 60 * 1000 });
+  const { presignedUrl: getUrl } = await presignUrl(getToken, { operation: 'get', pathname, access: 'private' });
+  const src = await fetch(getUrl);
+  if (!src.ok || !src.body) throw new Error(`Video temporaneo non trovato su Vercel Blob (HTTP ${src.status}). Riprova a caricarlo.`);
+  const put = await fetch(pf.signedUrl, { method: 'PUT', headers: { 'content-type': type }, body: src.body, duplex: 'half' });
+  if (!put.ok) {
+    const body = await put.text().catch(() => '');
+    throw new Error(`Trasferimento del video verso PostFast fallito: HTTP ${put.status}${body ? ' - ' + body.slice(0, 200) : ''}`);
+  }
+  delBlob(pathname).catch(() => {}); // pulizia best-effort: il file temporaneo su Vercel Blob non serve piu'
+  return pf.key;
+}
+
 async function publish(p) {
-  const { caption, keys, accounts, mode, date } = p;
+  const { caption, accounts, mode, date } = p;
   const isVideo = p.video === true;
+  const keys = (isVideo && p.blobPathname) ? [await relayBlobVideoToPostfast(p.blobPathname, p.contentType)] : p.keys;
   if (!keys?.length) throw new Error(isVideo ? 'Nessun video caricato.' : 'Nessuna slide caricata.');
   if (isVideo && keys.length !== 1) throw new Error('Un Reel e\' un solo video.');
   if (!isVideo && (keys.length < 2 || keys.length > 10)) throw new Error('Un carosello richiede da 2 a 10 slide.');
@@ -482,41 +530,6 @@ function readBody(req, limit = 80 * 1024 * 1024) {
     req.on('error', reject);
   });
 }
-// come readBody, ma senza fare JSON.parse: per il corpo binario grezzo del video in /api/video-proxy (vedi sotto).
-function readRawBody(req, limit = 260 * 1024 * 1024) {
-  return new Promise((resolve, reject) => {
-    const chunks = []; let size = 0;
-    req.on('data', c => { size += c.length; if (size > limit) { reject(new Error('File troppo grande')); req.destroy(); } else chunks.push(c); });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
-}
-// Il bucket dei VIDEO di PostFast non manda intestazioni CORS sull'URL firmato (la loro stessa documentazione
-// mostra il PUT fatto solo lato server: Node/Python/cURL, mai da un browser) - per questo il caricamento
-// diretto browser->PostFast viene bloccato dal browser stesso. Qui il browser manda il video A NOI (stesso
-// dominio dell'app: niente CORS), e noi lo giriamo con una PUT server-to-server verso l'URL firmato: il CORS
-// e' una regola imposta solo dal browser, una richiesta server-to-server non ne e' mai soggetta. In locale
-// (node run.js) questa funzione gestisce la richiesta direttamente; online (Vercel) la STESSA richiesta arriva
-// invece alla funzione "Edge" in api/video-proxy.js (vedi il rewrite in vercel.json), che fa streaming del
-// corpo e quindi non ha il limite di 4,5 MB delle funzioni Vercel Node normali (qui in locale non serve,
-// perche' non gira come funzione serverless).
-// in locale/test (non su Vercel) il "bucket" e' il server finto dei test su 127.0.0.1: qui si allarga la
-// whitelist solo per quello, cosi' la stessa logica resta verificabile senza toccare nulla in produzione,
-// dove la whitelist resta rigidamente i soli host dei bucket veri di PostFast.
-const VIDEO_PROXY_HOST_OK = h => /(\.cloudflarestorage\.com|\.amazonaws\.com)$/i.test(h || '') || (!process.env.VERCEL && /^(127\.0\.0\.1|localhost)$/i.test(h || ''));
-async function videoProxyPut(req, res, url) {
-  const target = url.searchParams.get('target');
-  if (!target) return send(res, 400, { error: 'Parametro "target" mancante.' });
-  let t; try { t = new URL(target); } catch { return send(res, 400, { error: 'URL di destinazione non valido.' }); }
-  if (!VIDEO_PROXY_HOST_OK(t.hostname)) return send(res, 400, { error: 'Host di destinazione non consentito.' });
-  const contentType = req.headers['content-type'] || 'application/octet-stream';
-  const buf = await readRawBody(req);
-  const put = await fetch(t, { method: 'PUT', headers: { 'content-type': contentType }, body: buf });
-  const body = await put.text().catch(() => '');
-  res.writeHead(put.status, { 'content-type': 'text/plain; charset=utf-8' });
-  res.end(body);
-}
-
 const SERVERLESS = !!process.env.VERCEL;
 const PASSWORD = () => process.env.APP_PASSWORD || '';
 // Endpoint che usano chiavi segrete o scrivono su disco
@@ -598,8 +611,7 @@ async function handler(req, res) {
       const d = loadAll(), au = readJSON(path.join(DATA, 'audio.json'), { songs: {} }), sy = readJSON(path.join(DATA, 'audio-sync.json'), {});
       return send(res, 200, { songs: d.songs.map(x => ({ n: x.n, title: x.title, lyrics: x.lyrics, ...(au.songs[x.n] || {}), anchors: sy[x.n] || [] })) });
     }
-    if (url.pathname === '/api/social/upload-url' && req.method === 'POST') return send(res, 200, await videoUploadUrl(await readBody(req)));
-    if (url.pathname === '/api/video-proxy' && req.method === 'PUT') return await videoProxyPut(req, res, url);
+    if (url.pathname === '/api/social/upload-url' && req.method === 'POST') return send(res, 200, await blobUploadUrl(await readBody(req)));
     if (url.pathname === '/api/social/accounts') return send(res, 200, (await listAccounts()).filter(a => a.status !== 'DISABLED'));
     if (url.pathname === '/api/social/upload' && req.method === 'POST') return send(res, 200, await uploadSlide(await readBody(req)));
     if (url.pathname === '/api/social/publish' && req.method === 'POST') return send(res, 200, await publish(await readBody(req)));

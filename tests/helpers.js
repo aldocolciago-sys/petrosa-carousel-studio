@@ -16,6 +16,15 @@ function makeSandbox() {
     recursive: true,
     filter: p => { const r = path.relative(ROOT, p).replace(/\\/g, '/'); return !/^(node_modules|\.git|tests|\.github)(\/|$)/.test(r) && r !== '.env' && !/^public\/assets\/(Audio|Sfondo)/i.test(r); }
   });
+  // node_modules non viene copiato (sarebbe lento/inutile duplicarlo), ma core/handler.js da "npm install
+  // @vercel/blob" in poi lo richiede fin dall'avvio: senza un link ad esso, "node run.js" nella sandbox
+  // fallirebbe SUBITO con MODULE_NOT_FOUND, per QUALSIASI test (non solo quelli video). Un link ("junction" e'
+  // sicuro anche su Windows, dove i symlink normali richiedono permessi elevati) punta la sandbox alla vera
+  // node_modules del progetto, cosi' i test continuano a usare un solo "npm install" reale.
+  const realModules = path.join(ROOT, 'node_modules');
+  if (fs.existsSync(realModules)) {
+    try { fs.symlinkSync(realModules, path.join(dir, 'node_modules'), 'junction'); } catch { /* se fallisce, i test lo segnaleranno da soli (MODULE_NOT_FOUND) */ }
+  }
   return dir;
 }
 

@@ -170,7 +170,7 @@ describe('con Anthropic e PostFast (mock)', () => {
   let app, ant, pf;
   before(async () => {
     ant = await H.startMockAnthropic(); pf = await H.startMockPostfast();
-    app = await H.startApp({ ANTHROPIC_API_KEY: 'test-anthropic-key', ANTHROPIC_BASE_URL: ant.url, POSTFAST_API_KEY: 'test-pf-key', POSTFAST_API_URL: pf.url });
+    app = await H.startApp({ ANTHROPIC_API_KEY: 'test-anthropic-key', ANTHROPIC_BASE_URL: ant.url, POSTFAST_API_KEY: 'test-pf-key', POSTFAST_API_URL: pf.url, BLOB_READ_WRITE_TOKEN: 'test-blob-token' });
   });
   after(() => { app.stop(); ant.close(); pf.close(); });
 
@@ -268,15 +268,20 @@ describe('con Anthropic e PostFast (mock)', () => {
       if (mode === 'schedule') assert.equal(b.posts[0].scheduledAt, '2030-01-01T10:00:00.000Z');
     }
   });
-  test('PostFast: Reel video (URL firmato, upload diretto con CORS, REEL)', async () => {
+  test('PostFast: Reel video (upload su Vercel Blob dal browser, poi relay server-to-server verso PostFast, REEL)', async () => {
+    // 1) il browser chiede un URL firmato: ora punta a Vercel Blob (mock), non piu' al bucket di PostFast -
+    //    quel bucket non manda intestazioni CORS, quindi il browser non potrebbe mai caricarci nulla direttamente.
     const u = await H.post(app, '/api/social/upload-url', { contentType: 'video/mp4' });
-    assert.equal(u.status, 200); assert.ok(u.body.signedUrl && u.body.key);
-    assert.equal(pf.state.signed.at(-1).contentType, 'video/mp4');
-    const put = await fetch(u.body.signedUrl, { method: 'PUT', headers: { 'content-type': 'video/mp4' }, body: Buffer.alloc(2048, 1) });
+    assert.equal(u.status, 200); assert.ok(u.body.presignedUrl && u.body.pathname);
+    const put = await fetch(u.body.presignedUrl, { method: 'PUT', headers: { 'content-type': 'video/mp4' }, body: Buffer.alloc(2048, 1) });
     assert.equal(put.status, 200);
-    const r = await H.post(app, '/api/social/publish', { video: true, caption: 'c', keys: [u.body.key], accounts: [{ id: 'acc-ig', platform: 'INSTAGRAM' }, { id: 'acc-tt', platform: 'TIKTOK' }], mode: 'now' });
-    assert.equal(r.status, 200); const b = pf.state.posts.at(-1);
+    // 2) /api/social/publish riceve solo il pathname (pochi byte): e' il SERVER a leggere il video da Vercel
+    //    Blob e a trasferirlo a PostFast (mai soggetto a CORS ne' al limite di ~4,5 MB sul corpo in ingresso).
+    const r = await H.post(app, '/api/social/publish', { video: true, caption: 'c', blobPathname: u.body.pathname, contentType: 'video/mp4', accounts: [{ id: 'acc-ig', platform: 'INSTAGRAM' }, { id: 'acc-tt', platform: 'TIKTOK' }], mode: 'now' });
+    assert.equal(r.status, 200, JSON.stringify(r.body)); const b = pf.state.posts.at(-1);
     assert.deepEqual(b.posts[0].mediaItems.map(m => m.type), ['VIDEO']); assert.equal(b.controls.instagramPublishType, 'REEL'); assert.equal(b.controls.tiktokAutoAddMusic, false);
+    assert.equal(pf.state.signed.at(-1).contentType, 'video/mp4'); // l'URL firmato PostFast, chiesto dal relay lato server, ha il content-type giusto
+    assert.ok(pf.state.puts.some(p => p.type === 'video/mp4' && p.size === 2048), 'il video relayato deve arrivare intero (2048 byte) a PostFast');
   });
   test('PostFast: controlli di validita\'', async () => {
     const acc = [{ id: 'acc-ig', platform: 'INSTAGRAM' }];
