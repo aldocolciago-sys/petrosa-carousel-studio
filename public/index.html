@@ -128,6 +128,12 @@
     .cols { grid-template-columns:minmax(0,1fr); }
     .cols > div, .card, #result { min-width:0; max-width:100%; }
     #strip { max-width:100%; }
+    /* le label lunghe (es. "Finale a loop...", "Reel breve indipendente...") sono item flex di .row, e ".row > *"
+       (riga sopra, valida anche qui) le fissa a flex-shrink:0 come bottoni/select: il loro testo non si riduce
+       mai sotto la larghezza intera, sfonda la card e allarga tutta la pagina (su mobile il browser "zooma
+       indietro" per farcela stare, spostando anche il dock fisso in basso: e' quello che rendeva #dkStyle non
+       cliccabile). Qui si riabilita lo shrink solo per le label, cosi' il testo va a capo dentro la card. */
+    .row > label { flex-shrink:1; min-width:0; word-break:break-word; }
     .cfgsum { flex:1 1 100%; }
     #result .card > .row > h2 { flex:1 1 100%; min-width:0; }
     .editor { grid-template-columns:minmax(0,1fr); }

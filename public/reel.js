@@ -5,6 +5,9 @@
   const norm = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
   const mmss = t => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`; };
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  // slug per nomi di file "riconoscibili" (titolo brano, effetto...): minuscolo, senza accenti, parole separate da trattini
+  const fileSlug = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  const dateStamp = d => { d = d || new Date(); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`; };
   const LS = 'petrosa.audiosync';
   let songs = [], byN = {}, local = {};
   try { local = JSON.parse(localStorage.getItem(LS) || '{}'); } catch { local = {}; }
@@ -303,12 +306,35 @@
     const a = document.createElement('a'); a.href = rl.url; a.download = `petrosa-reel-${(byN[$('rlSong').value] || {}).file || 'audio'}-${Date.now()}.${rl.ext}`.replace('.mp3', ''); a.click();
   };
   // carica il video su PostFast (URL firmato) e lo programma come Reel; captionOverride: usata dal Reel breve indipendente al posto della caption del post
+  // Diagnostica: prima si dichiarava sempre 'video/mp4' anche quando il browser aveva registrato un WebM (il formato
+  // dipende dai codec che il browser supporta: vedi pickMime), disallineando l'intestazione dal contenuto vero. Ora si
+  // usa il tipo REALE del video registrato. In piu', se il caricamento fallisce senza nemmeno una risposta HTTP (il
+  // sintomo tipico di un blocco CORS, ma anche di un problema di rete), non si afferma piu' per certo "e' il CORS":
+  // si registra in console tutto il necessario per capirlo davvero (host, tipo/dimensione del video, errore esatto del
+  // browser) e lo si mette anche nel messaggio, cosi' aprendo la Console (F12) del browser nel momento del guasto si
+  // vede la riga rossa definitiva ("blocked by CORS policy...") se e' davvero quello, o un altro errore se non lo e'.
   async function sendReel(blob, chosen, mode, dateIso, onStatus, captionOverride) {
     if (onStatus) onStatus('Carico il video...');
-    const up = await api('/api/social/upload-url', { contentType: 'video/mp4' });
-    let put; try { put = await fetch(up.signedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob }); }
-    catch (e) { throw new Error('Il browser non puo\' caricare il video direttamente su PostFast (blocco CORS). Scarica il file e caricalo dal pannello PostFast.'); }
-    if (!put.ok) throw new Error('Upload video fallito: HTTP ' + put.status);
+    const contentType = blob.type === 'video/webm' ? 'video/webm' : blob.type === 'video/quicktime' ? 'video/quicktime' : 'video/mp4';
+    const up = await api('/api/social/upload-url', { contentType });
+    let host = '(url non valido)'; try { host = new URL(up.signedUrl).host; } catch { /* lo si segnala sotto */ }
+    let put;
+    try {
+      put = await fetch(up.signedUrl, { method: 'PUT', headers: { 'content-type': up.contentType }, body: blob });
+    } catch (e) {
+      const info = { errore: (e && e.name) + ': ' + (e && e.message), host, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, dimensioneMB: (blob.size / 1048576).toFixed(1) };
+      console.error('[Petrosa] upload video: nessuna risposta HTTP ricevuta (possibile blocco CORS o problema di rete) -', info);
+      const err = new Error(`Caricamento del video non riuscito: il browser non ha ricevuto nessuna risposta da PostFast (${info.errore}). Apri la Console del browser (F12 -> Console) proprio quando succede: se vedi una riga rossa con scritto "blocked by CORS policy", e' davvero un blocco CORS sul bucket di PostFast (${host}) e vanno avvisati loro; se la console mostra altro, dimmi cosa c'e' scritto. Nel frattempo scarica il file e caricalo a mano dal pannello PostFast.`);
+      err.code = 'VIDEO_UPLOAD_NETWORK_FAIL'; err.diag = info;
+      throw err;
+    }
+    if (!put.ok) {
+      const body = await put.text().catch(() => '');
+      console.error('[Petrosa] upload video: risposta HTTP non ok -', { status: put.status, host, contentTypeInviato: up.contentType, contentTypeVideoRegistrato: blob.type, corpo: body.slice(0, 500) });
+      const err = new Error(`Upload video fallito: HTTP ${put.status}${body ? ' - ' + body.slice(0, 200) : ''}`);
+      err.code = 'VIDEO_UPLOAD_HTTP_' + put.status;
+      throw err;
+    }
     if (onStatus) onStatus('Programmo...');
     return api('/api/social/publish', { video: true, caption: captionOverride || C.fullCaption(), keys: [up.key], mode, accounts: chosen.map(c => ({ id: c.id, platform: c.platform })), date: dateIso });
   }
@@ -674,9 +700,14 @@
     return `"${first}"\n\n${s.title} - from Roadburn Chronicles.\nFull song and lyrics: link in bio.\n\n#stonerrock #doommetal #stonerdoom #lyricvideo #petrosa`;
   }
   const lvKeyOf = () => JSON.stringify([$('lvSong').value, lvRange(), $('lvRes').value, $('lvFx').value, lvTheme()]);
+  // etichette brevi degli effetti (per il nome del file scaricato: vedi lvDl piu' sotto), stessi valori del <select id="lvFx"> in index.html
+  const LV_FX_LABEL = { off: 'senza-effetti', desert: 'deserto', toxic: 'veleno', stage: 'palco' };
   function lvShowVideo(out, s, r) {
     if (lv.url) URL.revokeObjectURL(lv.url);
     lv.blob = out.blob; lv.ext = out.ext; lv.url = URL.createObjectURL(out.blob); lv.key = lvKeyOf();
+    // si fissano ORA titolo del brano ed effetto usati per QUESTO video, cosi' il nome del file scaricato (lvDl) resta
+    // corretto anche se dopo si cambiano canzone/effetto nei menu senza rigenerare il video.
+    lv.songTitle = s.title; lv.fx = $('lvFx').value; lv.made = new Date();
     $('lvVideo').src = lv.url; $('lvOut').style.display = 'block';
     $('lvFmt').innerHTML = out.ext === 'mp4' ? `File MP4 (${(out.blob.size / 1048576).toFixed(1)} MB), pronto per Instagram e TikTok.` : `<span style="color:var(--amber)">Il browser ha prodotto un WebM (${(out.blob.size / 1048576).toFixed(1)} MB): Instagram richiede MP4. Apri l'app con Chrome aggiornato per ottenere direttamente l'MP4.</span>`;
     $('lvCap').value = lyricCaption(s, r.from, r.to);
@@ -692,8 +723,9 @@
   };
   $('lvDl').onclick = () => {
     if (!lv.blob) return;
-    const s = byN[$('lvSong').value];
-    const a = document.createElement('a'); a.href = lv.url; a.download = `petrosa-video-testi-${(s || {}).file || 'audio'}-${Date.now()}.${lv.ext}`.replace('.mp3', ''); a.click();
+    // nome riconoscibile: brano + effetto usato + data/ora, es. "petrosa-video-testi-the-shadow-palco-20260923-1042.mp4"
+    const name = ['petrosa-video-testi', fileSlug(lv.songTitle), fileSlug(LV_FX_LABEL[lv.fx] || lv.fx), dateStamp(lv.made)].filter(Boolean).join('-');
+    const a = document.createElement('a'); a.href = lv.url; a.download = `${name}.${lv.ext}`; a.click();
   };
   $('lvPub').onclick = async () => {
     if (!lv.blob) return toast('Crea prima il video.', true);

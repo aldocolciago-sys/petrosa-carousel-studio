@@ -432,8 +432,11 @@ async function uploadSlide(p) {
 }
 
 // URL firmato per caricare un VIDEO direttamente dal browser (evita il limite di 4,5 MB delle funzioni Vercel)
+// Il tipo dichiarato qui deve corrispondere ESATTAMENTE a quello del video vero registrato dal browser (mp4 o webm,
+// a seconda dei codec supportati: vedi pickMime in reel.js) - altrimenti l'intestazione content-type del PUT non
+// corrisponde piu' a quella con cui PostFast ha firmato l'URL, e alcuni bucket rifiutano l'upload per questo.
 async function videoUploadUrl(p) {
-  const type = p.contentType === 'video/quicktime' ? 'video/quicktime' : 'video/mp4';
+  const type = ['video/mp4', 'video/webm', 'video/quicktime'].includes(p.contentType) ? p.contentType : 'video/mp4';
   const urls = await postfast('/file/get-signed-upload-urls', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contentType: type, count: 1 }) });
   const u = Array.isArray(urls) ? urls[0] : (urls.urls || urls.data || [])[0];
   if (!u?.signedUrl || !u?.key) throw new Error('PostFast non ha restituito un URL di upload: ' + JSON.stringify(urls).slice(0, 200));

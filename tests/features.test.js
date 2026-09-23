@@ -191,9 +191,12 @@ describe('4. piano settimanale (3 post al giorno: mezzogiorno, sera, mezzanotte)
         assert.ok(d.slides.length >= 7 && d.slides.length <= 10); assert.equal(d.slides.length, d.n);
         assert.equal(d.slides[0].tipo, 'Cover'); assert.equal(d.slides[d.slides.length - 1].layout, 'cta');
         assert.ok(d.caption.length > 60 && d.hashtags.length >= 8);
-        // post dedicato a un brano: il Reel e' un trailer piu' corto del carosello (copertina, verso citato, 1-2 spunti di analisi, CTA);
-        // per gli altri argomenti il Reel usa tutte le slide del post
-        if (d.slides.some(s => s.tipo === 'Analysis')) assert.ok(d.reel.slides.length < d.slides.length && d.reel.slides.length >= 4, 'reel-trailer: ' + d.reel.slides.length);
+        // post dedicato a un brano O a un "viaggio nell'album" (piu' brani collegati): il Reel e' un trailer piu' corto
+        // del carosello (copertina, verso citato, 1-2 spunti di analisi/viaggio, CTA); le slide di un viaggio non hanno
+        // tipo fisso e si riconoscono da _ref.slot === 'journey', non da s.tipo (vedi isDeep in reelcut.js).
+        // Per gli altri argomenti il Reel usa tutte le slide del post.
+        const isDeep = s => s.tipo === 'Analysis' || (s._ref && s._ref.slot === 'journey');
+        if (d.slides.some(isDeep)) assert.ok(d.reel.slides.length < d.slides.length && d.reel.slides.length >= 4, 'reel-trailer: ' + d.reel.slides.length);
         else assert.equal(d.reel.slides.length, d.slides.length);
         assert.ok(Number.isInteger(d.reel.song) && d.reel.song >= 1 && d.reel.song <= 10);
         d.slides.filter(s => s.citazione).forEach(s => assert.equal(s.verified, true));

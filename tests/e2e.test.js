@@ -66,7 +66,7 @@ describe('e2e', () => {
     assert.equal(await page.locator('#moods .mood').count(), 7);
     assert.match(await $(page, 'pillAI').innerText(), /AI live/); assert.match(await $(page, 'pillPZ').innerText(), /PostFast collegato/);
     const opts = await page.locator('#focus option').evaluateAll(o => o.map(x => x.value));
-    assert.deepEqual(opts, ['auto', 'song', 'review', 'member', 'band', 'album', 'doomcharts', 'live', 'custom']);
+    assert.deepEqual(opts, ['auto', 'song', 'review', 'member', 'band', 'journey', 'album', 'doomcharts', 'live', 'custom']);
     assert.ok(await $(page, 'btnClaude').isVisible());
     assert.equal(await page.locator('nav button').count(), 4);   // Studio, Tag & band simili, Audio & sync, Video testi
   }));
@@ -434,7 +434,10 @@ describe('e2e', () => {
 
   test('Audio & sync: 10 brani, punti di sincronizzazione, salvataggio, file JSON, effetto sul Reel', T, () => run(async page => {
     await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10);
-    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati/); }
+    // data/audio-sync.json ora contiene i punti REALI per tutti e 10 i brani (non piu' uno stub vuoto), quindi arrivano
+    // gia' completamente sincronizzati: si azzerano prima con "Azzera" per verificare anche lo stato "stimato" (meno
+    // di 2 punti), che e' quello che questo giro vuole controllare.
+    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); await page.click('#syncReset'); assert.ok(await page.locator('#syncLines .ln').count() >= 1, 'righe brano ' + i); assert.match(await $(page, 'syncStatus').innerText(), /stimati/); }
     await page.selectOption('#syncSong', '4'); const n = await page.locator('#syncLines .ln').count();
     await page.evaluate(() => (document.getElementById('syncAudio').currentTime = 25)); await page.locator('#syncLines .ln').nth(0).locator('[data-a=set]').click();
     await page.evaluate(() => (document.getElementById('syncAudio').currentTime = 320)); await page.locator('#syncLines .ln').nth(n - 1).locator('[data-a=set]').click();
@@ -455,6 +458,11 @@ describe('e2e', () => {
   test('Video testi: brano sincronizzato per intero, tratto scelto, video karaoke e pubblicazione come Reel', T, () => run(async page => {
     // un post scelto serve solo per rendere visibile la card 6 "Pubblica con PostFast" (dentro #result, nascosta finche' non si sceglie una proposta)
     await gen(page, { mood: 0 }); await useProposal(page);
+    // data/audio-sync.json ora ha i punti REALI per tutti i 10 brani, quindi arrivano gia' completamente sincronizzati:
+    // si azzerano tutti prima di verificare lo stato "vuoto" della scheda Video testi (nessun brano ancora pronto),
+    // che e' il punto di partenza che questo test vuole controllare prima di sincronizzarne uno per intero a mano.
+    await page.click('nav button[data-tab=audio]'); await page.waitForFunction(() => document.querySelectorAll('#syncSong option').length === 10);
+    for (let i = 1; i <= 10; i++) { await page.selectOption('#syncSong', String(i)); await page.click('#syncReset'); }
     // scheda "Video testi": non basta come per il Reel del post (2 punti stimano il resto); qui serve un'ancora su OGNI riga
     await page.click('nav button[data-tab=lyrics]');
     // il contenuto della scheda arriva da una chiamata async (loadSongs -> renderLyric): va aspettata prima di leggere lvNone/lvBox

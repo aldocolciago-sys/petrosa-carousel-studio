@@ -256,24 +256,26 @@
     const withReel = $('planReel').checked, n = plan.data.plan.length;
     if (!confirm(`Inviare a PostFast ${n} caroselli${withReel ? ' e ' + n + ' Reel' : ''} su ${chosen.map(c => c.name).join(', ')} (${mode === 'draft' ? 'come bozze' : 'programmati agli orari consigliati'})?\nCi vorranno alcuni minuti: tieni aperta questa scheda. Se un giorno da' errore, si passa comunque a quello dopo: alla fine vedi l'elenco di cosa non e' andato.`)) return;
     const res = [];
-    // se il PRIMO Reel fallisce perche' il browser non riesce a caricare il video direttamente su PostFast (blocco
-    // CORS: un limite del bucket di PostFast, non dell'app), TUTTI i Reel falliranno allo stesso identico modo -
-    // non ha senso ritentarli 15-21 volte: dopo il primo si salta subito il Reel dei giorni seguenti (il carosello
-    // continua regolarmente) cosi' il piano finisce prima e il messaggio finale resta chiaro invece di ripetersi.
-    let reelBlockedMsg = null;
+    // se il PRIMO Reel fallisce senza che il browser riceva nemmeno una risposta HTTP (codice VIDEO_UPLOAD_NETWORK_FAIL:
+    // vedi sendReel in reel.js - tipicamente un blocco CORS del bucket di PostFast, ma non solo), TUTTI i Reel
+    // falliranno allo stesso identico modo - non ha senso ritentarli 15-21 volte: dopo il primo si salta subito il
+    // Reel dei giorni seguenti (il carosello continua regolarmente) cosi' il piano finisce prima e il messaggio
+    // finale resta chiaro invece di ripetersi. Un errore HTTP "normale" (es. account scaduto) invece si ritenta
+    // giorno per giorno, perche' potrebbe non ripetersi identico.
+    let reelBlocked = null;   // { message } del primo blocco di rete/CORS incontrato
     const openErrors = await each(async (d, i, N) => {
       const tag = `Giorno ${d.day} (${d.slotLabel})`;
       try {
         prog(`${tag} ${i + 1}/${N}: carico il carosello...`);
         await C.sendCarousel(chosen, mode, d.when.carousel, m => prog(`${tag} ${i + 1}/${N}: ${m}`));
         if (!withReel) { res.push([tag, true]); return; }
-        if (reelBlockedMsg) { res.push([tag, false, 'Carosello ok. Reel saltato (vedi sotto).']); return; }
+        if (reelBlocked) { res.push([tag, false, 'Carosello ok. Reel saltato (vedi sotto).']); return; }
         try {
           const r = await generateDayReel(i, m => prog(`${tag} ${i + 1}/${N}: ${m}`));
           await window.Reel.sendReel(r.blob, chosen, mode, d.when.reel, m => prog(`${tag} ${i + 1}/${N}: ${m}`));
           res.push([tag, true]);
         } catch (e) {
-          if (/blocco CORS/.test(e.message)) reelBlockedMsg = e.message;
+          if (e.code === 'VIDEO_UPLOAD_NETWORK_FAIL') reelBlocked = { message: e.message };
           res.push([tag, false, 'Carosello ok. Reel: ' + e.message]);
         }
       } catch (e) { res.push([tag, false, e.message]); }
@@ -282,8 +284,8 @@
     const bad = res.filter(r => !r[1]);
     if (!bad.length) return C.toast(`PostFast: ${n} caroselli${withReel ? ' e ' + n + ' Reel' : ''} ${mode === 'draft' ? 'salvati come bozza' : 'programmati'}.`);
     const lines = bad.slice(0, 8).map(b => `${b[0]}: ${b[2]}`).join('\n');
-    const corsNote = reelBlockedMsg ? `\n\nI Reel non si caricano: e' PostFast che blocca l'upload diretto dal browser (CORS), non un problema dell'app - i caroselli invece vanno regolarmente. Serve che PostFast abiliti il CORS sul link di upload dei video per il tuo dominio; nel frattempo scarica i Reel dal giorno nel piano e caricali a mano dal pannello PostFast.` : '';
-    C.toast(`Piano inviato: ${res.length - bad.length}/${res.length} ok, ${bad.length} con errori:\n${lines}${bad.length > 8 ? `\n...e altri ${bad.length - 8}` : ''}${corsNote}`, true);
+    const netNote = reelBlocked ? `\n\nI Reel non arrivano nemmeno a rispondere (i caroselli invece vanno regolarmente): ${reelBlocked.message}` : '';
+    C.toast(`Piano inviato: ${res.length - bad.length}/${res.length} ok, ${bad.length} con errori:\n${lines}${bad.length > 8 ? `\n...e altri ${bad.length - 8}` : ''}${netNote}`, true);
   }
   $('planZip').onclick = exportAll; $('planSend').onclick = scheduleAll;
   if ($('planChBtn')) $('planChBtn').onclick = loadPlanChannels;
